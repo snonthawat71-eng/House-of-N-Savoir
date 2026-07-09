@@ -11,15 +11,20 @@ export type Profile = {
   active: boolean;
 };
 
+type AAL = { current: string | null; next: string | null };
+
 type AuthState = {
   loading: boolean;
   session: Session | null;
   profile: Profile | null;
   /** true = ล็อกอินสำเร็จแต่ไม่ได้รับเชิญ (ไม่มีโปรไฟล์) */
   notInvited: boolean;
+  /** ระดับการยืนยันตัวตน: aal1 = ล็อกอินแล้ว, aal2 = ผ่าน 2 ชั้นแล้ว */
+  aal: AAL;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshAAL: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthState | null>(null);
@@ -29,6 +34,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notInvited, setNotInvited] = useState(false);
+  const [aal, setAal] = useState<AAL>({ current: null, next: null });
+
+  const refreshAAL = useCallback(async () => {
+    if (!isSupabaseConfigured) return;
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    setAal({ current: data?.currentLevel ?? null, next: data?.nextLevel ?? null });
+  }, []);
 
   const loadProfile = useCallback(async (s: Session | null) => {
     if (!s) {
@@ -64,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
       setSession(data.session);
       await loadProfile(data.session);
+      await refreshAAL();
       setLoading(false);
     });
 
@@ -71,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
       setSession(s);
       await loadProfile(s);
+      await refreshAAL();
       setLoading(false);
     });
 
@@ -78,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [loadProfile, refreshAAL]);
 
   const signInWithGoogle = useCallback(async () => {
     await supabase.auth.signInWithOAuth({
@@ -91,13 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setNotInvited(false);
+    setAal({ current: null, next: null });
   }, []);
 
   const refreshProfile = useCallback(() => loadProfile(session), [loadProfile, session]);
 
   return (
     <Ctx.Provider
-      value={{ loading, session, profile, notInvited, signInWithGoogle, signOut, refreshProfile }}
+      value={{ loading, session, profile, notInvited, aal, signInWithGoogle, signOut, refreshProfile, refreshAAL }}
     >
       {children}
     </Ctx.Provider>

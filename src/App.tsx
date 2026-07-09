@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
+import MfaGate from "./MfaGate";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -208,6 +209,10 @@ export default function App() {
           </div>
         </AuthShell>
       );
+    }
+    // ล็อกอิน + ได้รับเชิญแล้ว แต่ยังไม่ผ่านยืนยัน 2 ชั้น → บังคับทำ 2FA ก่อน
+    if (auth.aal.current !== "aal2") {
+      return <MfaGate />;
     }
   }
 
