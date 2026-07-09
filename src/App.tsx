@@ -12,6 +12,7 @@ import { isSupabaseConfigured } from "./lib/supabase";
 import MfaGate from "./MfaGate";
 import UsersAdmin from "./UsersAdmin";
 import ProductsScreen from "./ProductsScreen";
+import AuditScreen from "./AuditScreen";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -815,7 +816,7 @@ export default function App() {
       case "supplier": return <SupplierScreen />;
       case "products": return demo ? <Products /> : <ProductsScreen />;
       case "formula": return <Formula />;
-      case "audit": return <Audit />;
+      case "audit": return demo ? <Audit /> : <AuditScreen />;
       case "alerts": return <Alerts />;
       case "me": return <Me />;
       case "users": return <UsersAdmin />;
