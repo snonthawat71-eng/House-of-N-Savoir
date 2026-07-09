@@ -325,17 +325,23 @@ export default function App() {
     { id: "supplier", name: "Supplier", icon: Factory, sub: "PO · สัญญา" },
   ];
 
-  /* ---------- MODULES = หน้าหมวดงาน (หน้าแรกหลัง OTP · แสดงเฉพาะที่มีสิทธิ์) ---------- */
+  /* ---------- MODULES = หน้าแรกหลังล็อกอิน (โลโก้ + ชื่อผู้ใช้ + 4 การ์ด + CONNECT) ---------- */
   const ModulesScreen = () => {
     const visible = MODULES.filter((m) => P.mods.includes(m.id));
+    const displayName = demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้");
     return (
-      <div className="px-5 pb-32">
-        <div className="mt-2 mb-1 px-1" style={{ color: C.sub, fontSize: 13 }}>เลือกหมวดงานที่ต้องการ</div>
-        <div className="px-1 mb-4" style={{ fontFamily: disp, fontSize: 24, fontWeight: 800, color: C.ink, letterSpacing: -0.4 }}>
-          หมวดงานของคุณ
+      <div className="px-5 pb-16 pt-7">
+        {/* โลโก้กลาง + ชื่อผู้ใช้ปัจจุบัน */}
+        <div className="flex flex-col items-center text-center mb-7">
+          <div className="flex items-center justify-center rounded-2xl mb-3"
+            style={{ width: 66, height: 66, background: C.ink, color: "#fff", boxShadow: SHADOW }}>
+            <span style={{ fontFamily: disp, fontSize: 30, fontWeight: 800 }}>N</span>
+          </div>
+          <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 800, color: C.ink }}>{displayName}</div>
+          <div style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>{P.name} · {P.en}</div>
         </div>
 
-        {/* modules — เฉพาะที่มีสิทธิ์ ที่ไม่มีสิทธิ์จะถูกซ่อน */}
+        {/* 4 การ์ดหมวดงาน — เฉพาะที่มีสิทธิ์ */}
         <div className="grid grid-cols-2 gap-3">
           {visible.map((m) => (
             <div key={m.id} onClick={() => go(m.id)} className="rounded-3xl p-5"
@@ -350,67 +356,100 @@ export default function App() {
           ))}
         </div>
 
-        {/* Formula Lab — แสดงเฉพาะ role ที่เข้าได้ */}
-        {P.formula && (
-          <div onClick={() => go("formula")} className="rounded-3xl p-5 mt-3"
-            style={{ background: C.ink }}>
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2" style={{ color: "#fff" }}>
-                  <FlaskConical size={18} style={{ color: C.red }} />
-                  <span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700 }}>Formula Lab</span>
-                </div>
-                <div style={{ color: "#9AA0A6", fontSize: 12, marginTop: 6, maxWidth: 200 }}>
-                  สูตรผสมกลิ่น + คำนวณต้นทุน/ราคา · ลับสุดยอด
-                </div>
-                <div className="mt-4 inline-flex items-center gap-1 rounded-full px-3 py-1.5"
-                  style={{ background: C.red, color: "#fff", fontSize: 12, fontWeight: 600 }}>
-                  เปิดดูสูตร <ChevronRight size={13} />
-                </div>
+        {/* การ์ด N SAVOIR CONNECT */}
+        <div onClick={() => go("connect")} className="rounded-3xl p-5 mt-3" style={{ background: C.ink }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2" style={{ color: "#fff" }}>
+                <LayoutGrid size={18} style={{ color: C.red }} />
+                <span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, letterSpacing: 0.3 }}>N SAVOIR CONNECT</span>
               </div>
-              <ShieldCheck size={40} style={{ color: "#2A2B2E" }} />
+              <div style={{ color: "#9AA0A6", fontSize: 12, marginTop: 6 }}>เครื่องมือพิเศษ · Formula Lab · Portal</div>
+            </div>
+            <ChevronRight size={22} style={{ color: "#9AA0A6" }} />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ---------- N SAVOIR CONNECT = Formula Lab + Portal ---------- */
+  const ConnectScreen = () => (
+    <div className="px-5 pb-32">
+      {/* Formula Lab — ดีไซน์เดิม (ล็อกถ้าไม่มีสิทธิ์) */}
+      <div onClick={() => P.formula && go("formula")} className="rounded-3xl p-5 mt-2" style={{ background: C.ink }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2" style={{ color: "#fff" }}>
+              <FlaskConical size={18} style={{ color: C.red }} />
+              <span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700 }}>Formula Lab</span>
+            </div>
+            <div style={{ color: "#9AA0A6", fontSize: 12, marginTop: 6, maxWidth: 200 }}>
+              สูตรผสมกลิ่น + คำนวณต้นทุน/ราคา · ลับสุดยอด
+            </div>
+            <div className="mt-4 inline-flex items-center gap-1 rounded-full px-3 py-1.5"
+              style={{ background: P.formula ? C.red : "#2A2B2E", color: "#fff", fontSize: 12, fontWeight: 600 }}>
+              {P.formula ? <>เปิดดูสูตร <ChevronRight size={13} /></> : <><Lock size={12} /> เฉพาะเจ้าของ</>}
             </div>
           </div>
-        )}
+          <ShieldCheck size={40} style={{ color: "#2A2B2E" }} />
+        </div>
+      </div>
 
-        {/* Audit Log — แสดงเฉพาะเจ้าของ */}
-        {P.audit && (
-          <div onClick={() => go("audit")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
-            style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
-                <ScrollText size={20} style={{ color: C.ink }} />
-              </div>
-              <div>
-                <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Audit Log</div>
-                <div style={{ fontSize: 11, color: C.sub }}>ใครทำอะไร เมื่อไหร่ · เจ้าของเท่านั้น</div>
-              </div>
-            </div>
-            <ChevronRight size={18} style={{ color: C.sub }} />
-          </div>
-        )}
-
-        <div onClick={() => go("products")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
+      {/* Portal — เฉพาะเจ้าของ/Dev */}
+      {P.audit && (
+        <div onClick={() => go("portal")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
           style={{ background: C.card, boxShadow: SHADOW_SM }}>
           <div className="flex items-center gap-3">
             <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
-              <Package size={20} style={{ color: C.ink }} />
+              <SlidersHorizontal size={20} style={{ color: C.ink }} />
             </div>
             <div>
-              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>สินค้ากลาง</div>
-              <div style={{ fontSize: 11, color: C.sub }}>คีย์ครั้งเดียว ใช้ทั้งระบบ · Product Master</div>
+              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Portal</div>
+              <div style={{ fontSize: 11, color: C.sub }}>Audit Log · จัดการผู้ใช้งาน</div>
             </div>
           </div>
           <ChevronRight size={18} style={{ color: C.sub }} />
         </div>
+      )}
+    </div>
+  );
 
-        <button onClick={() => go("home")} className="w-full mt-3 rounded-2xl py-3.5 flex items-center justify-center gap-2"
-          style={{ background: C.card, boxShadow: SHADOW_SM, color: C.ink, fontWeight: 600, fontSize: 13 }}>
-          <Home size={16} /> ไปที่ภาพรวม (Dashboard)
-        </button>
-      </div>
-    );
-  };
+  /* ---------- Portal = Audit Log + จัดการผู้ใช้ (เจ้าของ/Dev) ---------- */
+  const PortalScreen = () => (
+    <div className="px-5 pb-32">
+      {P.audit && (
+        <div onClick={() => go("audit")} className="rounded-3xl p-4 mt-2 flex items-center justify-between"
+          style={{ background: C.card, boxShadow: SHADOW_SM }}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
+              <ScrollText size={20} style={{ color: C.ink }} />
+            </div>
+            <div>
+              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Audit Log</div>
+              <div style={{ fontSize: 11, color: C.sub }}>ใครทำอะไร เมื่อไหร่ · เก็บถาวร</div>
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: C.sub }} />
+        </div>
+      )}
+      {(role === "owner" || role === "dev") && (
+        <div onClick={() => go("users")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
+          style={{ background: C.card, boxShadow: SHADOW_SM }}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
+              <User size={20} style={{ color: C.ink }} />
+            </div>
+            <div>
+              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>กำหนดสิทธิ์ · จัดการผู้ใช้งาน</div>
+              <div style={{ fontSize: 11, color: C.sub }}>เชิญ / เปลี่ยนตำแหน่ง / ปิดใช้งาน</div>
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: C.sub }} />
+        </div>
+      )}
+    </div>
+  );
 
   /* ---------- HOME = แดชบอร์ดภาพรวม (แบบเดิม) ---------- */
   const HomeScreen = () => (
@@ -439,27 +478,6 @@ export default function App() {
             <span style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{a.l}</span>
           </button>
         ))}
-      </div>
-
-      {/* formula lab feature card (dark) */}
-      <div onClick={() => P.formula && go("formula")} className="rounded-3xl p-5 mt-4 relative overflow-hidden"
-        style={{ background: C.ink }}>
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2" style={{ color: "#fff" }}>
-              <FlaskConical size={18} style={{ color: C.red }} />
-              <span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700 }}>Formula Lab</span>
-            </div>
-            <div style={{ color: "#9AA0A6", fontSize: 12, marginTop: 6, maxWidth: 190 }}>
-              สูตรผสมกลิ่น + คำนวณต้นทุน/ราคา · ลับสุดยอด
-            </div>
-            <div className="mt-4 inline-flex items-center gap-1 rounded-full px-3 py-1.5"
-              style={{ background: P.formula ? C.red : "#2A2B2E", color: "#fff", fontSize: 12, fontWeight: 600 }}>
-              {P.formula ? <>เปิดดูสูตร <ChevronRight size={13} /></> : <><Lock size={12} /> ล็อกสำหรับ role นี้</>}
-            </div>
-          </div>
-          <ShieldCheck size={40} style={{ color: "#2A2B2E" }} />
-        </div>
       </div>
 
       {/* modules */}
@@ -497,21 +515,6 @@ export default function App() {
         </Card>
       </div>
 
-      {P.audit && (
-        <div onClick={() => go("audit")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
-          style={{ background: C.card, boxShadow: SHADOW_SM }}>
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl flex items-center justify-center" style={{ width: 40, height: 40, background: C.bg }}>
-              <ScrollText size={19} style={{ color: C.ink }} />
-            </div>
-            <div>
-              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Audit Log</div>
-              <div style={{ fontSize: 11, color: C.sub }}>ใครทำอะไร เมื่อไหร่ · เจ้าของเท่านั้น</div>
-            </div>
-          </div>
-          <ChevronRight size={18} style={{ color: C.sub }} />
-        </div>
-      )}
     </div>
   );
 
@@ -535,6 +538,11 @@ export default function App() {
           <div style={{ color: C.sub, fontSize: 11 }}>ลูกค้าทั้งหมด</div></Card>
         <Card><div style={{ fontFamily: disp, fontWeight: 800, fontSize: 26, color: C.green }}>+46</div>
           <div style={{ color: C.sub, fontSize: 11 }}>ใหม่เดือนนี้</div></Card>
+      </div>
+      <SectionTitle>เครื่องมือ</SectionTitle>
+      <div className="grid grid-cols-2 gap-3">
+        <Card><FileText size={19} style={{ color: C.ink }} /><div style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: C.ink, marginTop: 8 }}>สร้างใบเสนอราคา</div><div style={{ color: C.sub, fontSize: 11 }}>สร้าง + เก็บ + PDF</div></Card>
+        <Card><TrendingUp size={19} style={{ color: C.green }} /><div style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: C.ink, marginTop: 8 }}>สถิติภาพรวม</div><div style={{ color: C.sub, fontSize: 11 }}>กราฟ + รายงาน</div></Card>
       </div>
       <SectionTitle>เอกสารภายใน</SectionTitle>
       {["นโยบายราคาส่ง 2568.pdf","แผนการตลาด Q3.xlsx","นำเข้าจาก Excel.csv"].map((f) => (
@@ -573,7 +581,6 @@ export default function App() {
       ))}
       <SectionTitle>เครื่องมือ</SectionTitle>
       <div className="grid grid-cols-2 gap-3">
-        <Card><FileText size={19} style={{ color: C.ink }} /><div style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: C.ink, marginTop: 8 }}>สร้างใบเสนอราคา</div><div style={{ color: C.sub, fontSize: 11 }}>สร้าง + เก็บ + PDF</div></Card>
         <Card><RotateCcw size={19} style={{ color: C.red }} /><div style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: C.ink, marginTop: 8 }}>คืน / เคลม</div><div style={{ color: C.sub, fontSize: 11 }}>2 รายการเปิดอยู่</div></Card>
       </div>
       <SectionTitle>ตัวอย่างที่ส่งแล้ว · tracking</SectionTitle>
@@ -780,11 +787,6 @@ export default function App() {
           <span style={{ color: ok ? C.green : C.red, fontSize: 12, fontWeight: 700 }}>{v}</span>
         </div>
       ))}
-      {(role === "owner" || role === "dev") && (
-        <button onClick={() => go("users")} className="w-full mt-3 rounded-2xl py-4 flex items-center justify-center gap-2" style={{ background: C.card, boxShadow: SHADOW_SM, color: C.ink, fontWeight: 700, fontSize: 14 }}>
-          <User size={16} /> จัดการผู้ใช้ (เชิญ / สิทธิ์)
-        </button>
-      )}
       {demo ? (
         <button onClick={() => setRolePick(true)} className="w-full mt-3 rounded-2xl py-4" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
           สลับ role เพื่อทดสอบสิทธิ์
@@ -798,7 +800,7 @@ export default function App() {
   );
 
   /* ---------- router ---------- */
-  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"สินค้ากลาง", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้" };
+  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"สินค้ากลาง", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้" };
   const NAV = [
     { id: "modules", label: "หมวดงาน", icon: LayoutGrid },
     { id: "home", label: "ภาพรวม", icon: Home },
@@ -815,6 +817,8 @@ export default function App() {
       case "b2c": return <B2CScreen />;
       case "supplier": return <SupplierScreen />;
       case "products": return demo ? <Products /> : <ProductsScreen />;
+      case "connect": return <ConnectScreen />;
+      case "portal": return <PortalScreen />;
       case "formula": return <Formula />;
       case "audit": return demo ? <Audit /> : <AuditScreen />;
       case "alerts": return <Alerts />;
@@ -827,27 +831,30 @@ export default function App() {
   return (
     <div style={{ fontFamily: sans, background: C.bg, minHeight: "100vh" }} className="max-w-md mx-auto relative">
       <style>{FONTS}</style>
-      <Header title={titleMap[screen] || "N SAVOIR"} back={screen !== "home" && !isNavScreen} />
+      {/* หน้าแรก (หมวดงาน) ไม่มีหัวข้อและไม่มีแถบเมนู */}
+      {screen !== "modules" && <Header title={titleMap[screen] || "N SAVOIR"} back={screen !== "home" && !isNavScreen} />}
       <Body />
       <RolePicker />
 
-      {/* floating dark pill nav */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pb-4 pt-2 flex justify-center pointer-events-none">
-        <div className="flex items-center gap-1 rounded-full px-2 py-2 pointer-events-auto"
-          style={{ background: C.ink, boxShadow: "0 10px 30px rgba(0,0,0,.25)" }}>
-          {NAV.map((n) => {
-            const active = screen === n.id;
-            return (
-              <button key={n.id} onClick={() => go(n.id)}
-                className="flex items-center gap-2 rounded-full transition-all"
-                style={{ background: active ? C.red : "transparent", padding: active ? "10px 16px" : "10px 12px" }}>
-                <n.icon size={20} style={{ color: active ? "#fff" : "#9AA0A6" }} />
-                {active && <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{n.label}</span>}
-              </button>
-            );
-          })}
+      {/* floating dark pill nav — ซ่อนบนหน้าแรก */}
+      {screen !== "modules" && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pb-4 pt-2 flex justify-center pointer-events-none">
+          <div className="flex items-center gap-1 rounded-full px-2 py-2 pointer-events-auto"
+            style={{ background: C.ink, boxShadow: "0 10px 30px rgba(0,0,0,.25)" }}>
+            {NAV.map((n) => {
+              const active = screen === n.id;
+              return (
+                <button key={n.id} onClick={() => go(n.id)}
+                  className="flex items-center gap-2 rounded-full transition-all"
+                  style={{ background: active ? C.red : "transparent", padding: active ? "10px 16px" : "10px 12px" }}>
+                  <n.icon size={20} style={{ color: active ? "#fff" : "#9AA0A6" }} />
+                  {active && <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{n.label}</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
