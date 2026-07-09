@@ -344,81 +344,93 @@ export default function App() {
     const displayName = demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้");
     const email = demo ? "demo@nsavoir.app" : (auth.session?.user?.email || "");
     const isAdmin = role === "owner" || role === "dev";
+    const initial = (displayName || "N").trim().charAt(0).toUpperCase() || "N";
     return (
-      <div className="px-5 pb-16 pt-7">
-        {/* ส่วนหัว — สะอาดสไตล์ fintech */}
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="flex items-center justify-center rounded-2xl mb-4"
-            style={{ width: 56, height: 56, background: C.ink, color: "#fff", boxShadow: SHADOW }}>
-            <span style={{ fontFamily: disp, fontSize: 26, fontWeight: 800 }}>N</span>
+      <div className="pb-16">
+        {/* หัวดำคลุมด้านบน */}
+        <div style={{ background: C.ink }} className="px-6 pt-12 pb-24 rounded-b-[34px]">
+          <div className="flex items-center justify-between mb-6">
+            <div className="rounded-full flex items-center justify-center"
+              style={{ width: 46, height: 46, background: "#1E1F22", color: "#fff", fontFamily: disp, fontWeight: 800, fontSize: 18 }}>
+              {initial}
+            </div>
+            <div className="rounded-full flex items-center justify-center" style={{ width: 40, height: 40, background: "#1E1F22" }}>
+              <Bell size={18} style={{ color: "#9AA0A6" }} />
+            </div>
           </div>
-          <div style={{ color: C.sub, fontSize: 10.5, fontWeight: 600, letterSpacing: 2.5 }}>HOUSE OF N SAVOIR</div>
-          <div style={{ fontFamily: disp, fontSize: 22, fontWeight: 800, color: C.ink, letterSpacing: -0.3, marginTop: 5 }}>{displayName}</div>
-          <div className="inline-flex items-center gap-1.5 rounded-full mt-2.5 px-3 py-1"
+          <div style={{ color: C.red, fontFamily: disp, fontSize: 13, fontWeight: 700 }}>House of N Savoir</div>
+          <div style={{ fontFamily: disp, fontSize: 27, fontWeight: 800, color: "#fff", letterSpacing: -0.5, marginTop: 2 }}>{displayName}</div>
+          <div style={{ color: "#8A8F98", fontSize: 12, marginTop: 5 }}>{email} · {P.name}</div>
+        </div>
+
+        {/* การ์ดเลื่อนซ้าย-ขวา (ซ้อนทับหัวดำครึ่งหนึ่ง) */}
+        <div className="flex gap-3 overflow-x-auto px-5 -mt-16 pb-2"
+          style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+          {isAdmin && (
+            <div onClick={openConnect} className="shrink-0 rounded-3xl p-5 relative overflow-hidden"
+              style={{ width: "84%", scrollSnapAlign: "start", background: C.red, boxShadow: "0 16px 34px rgba(229,50,42,.32)" }}>
+              <div style={{ position: "absolute", right: -30, bottom: -40, width: 150, height: 150, borderRadius: "50%", background: "rgba(0,0,0,.14)" }} />
+              <div className="relative flex items-start justify-between">
+                <div className="flex items-center justify-center rounded-2xl" style={{ width: 46, height: 46, background: "rgba(255,255,255,.18)" }}>
+                  <Lock size={22} style={{ color: "#fff" }} />
+                </div>
+                <ChevronRight size={20} style={{ color: "rgba(255,255,255,.75)" }} />
+              </div>
+              <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: "#fff", marginTop: 16 }}>N Savoir Connect</div>
+              <div style={{ color: "rgba(255,255,255,.85)", fontSize: 12.5, marginTop: 2 }}>ระบบจัดการสำหรับผู้บริหาร</div>
+            </div>
+          )}
+          {/* การ์ดสำรอง — เผื่อฟังก์ชันดูกิจกรรมอื่นในอนาคต */}
+          <div className="shrink-0 rounded-3xl p-5 relative overflow-hidden"
+            style={{ width: "84%", scrollSnapAlign: "start", background: C.ink }}>
+            <div className="flex items-center justify-center rounded-2xl" style={{ width: 46, height: 46, background: "#1E1F22" }}>
+              <LayoutGrid size={22} style={{ color: "#9AA0A6" }} />
+            </div>
+            <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: "#fff", marginTop: 16 }}>กิจกรรมล่าสุด</div>
+            <div style={{ color: "#9AA0A6", fontSize: 12.5, marginTop: 2 }}>เร็ว ๆ นี้</div>
+          </div>
+        </div>
+
+        {/* เนื้อหาที่เหลือ */}
+        <div className="px-5 mt-6">
+          {/* แถบค้นหา + ปุ่ม filter */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+              <Search size={16} style={{ color: C.sub }} />
+              <span style={{ color: C.sub, fontSize: 13 }}>ค้นหาทั้งระบบ…</span>
+            </div>
+            <button className="rounded-2xl flex items-center justify-center" style={{ width: 46, height: 46, background: C.ink }}>
+              <SlidersHorizontal size={16} style={{ color: "#fff" }} />
+            </button>
+          </div>
+
+          {/* 4 การ์ดหมวดงาน — เฉพาะที่มีสิทธิ์ */}
+          <div className="grid grid-cols-2 gap-3">
+            {visible.map((m) => (
+              <div key={m.id} onClick={() => go(m.id)} className="rounded-3xl p-5"
+                style={{ background: C.card, boxShadow: SHADOW_SM }}>
+                <div className="flex items-center justify-center rounded-2xl mb-4"
+                  style={{ width: 48, height: 48, background: C.bg, color: C.ink }}>
+                  <m.icon size={23} />
+                </div>
+                <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: C.ink }}>{m.name}</div>
+                <div style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>{m.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Dashboard — สำหรับทุกคน */}
+          <div onClick={() => go("home")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
             style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <span className="rounded-full" style={{ width: 6, height: 6, background: C.red }} />
-            <span style={{ color: C.ink, fontSize: 11.5, fontWeight: 600 }}>{P.name}</span>
-            <span style={{ color: C.sub, fontSize: 11.5 }}>· {email}</span>
-          </div>
-        </div>
-
-        {/* N SAVOIR CONNECT — การ์ดพรีเมียม (พื้นที่ลับ) */}
-        {isAdmin && (
-          <div onClick={openConnect} className="rounded-3xl mb-4 relative overflow-hidden"
-            style={{ background: C.ink, padding: "22px 22px", boxShadow: "0 12px 30px rgba(17,18,20,.18)" }}>
-            <div style={{ position: "absolute", top: -50, right: -40, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(229,50,42,.28), rgba(229,50,42,0) 70%)" }} />
-            <div className="relative flex items-center gap-4">
-              <div className="flex items-center justify-center rounded-2xl shrink-0"
-                style={{ width: 52, height: 52, background: "rgba(229,50,42,.14)", border: "1px solid rgba(229,50,42,.35)" }}>
-                <Lock size={24} style={{ color: C.red }} />
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
+                <LayoutGrid size={20} style={{ color: C.ink }} />
               </div>
-              <div className="flex-1 min-w-0">
-                <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: 0.3 }}>N SAVOIR CONNECT</div>
-                <div style={{ color: "#9AA0A6", fontSize: 12, marginTop: 2 }}>พื้นที่ลับ · แตะเพื่อปลดล็อก</div>
-              </div>
-              <ChevronRight size={20} style={{ color: "#6B7076" }} />
+              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Dashboard</div>
             </div>
+            <ChevronRight size={18} style={{ color: C.sub }} />
           </div>
-        )}
-
-        {/* แถบค้นหา + ปุ่ม filter (บนการ์ด 4 ช่อง) */}
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <Search size={16} style={{ color: C.sub }} />
-            <span style={{ color: C.sub, fontSize: 13 }}>ค้นหาทั้งระบบ…</span>
-          </div>
-          <button className="rounded-2xl flex items-center justify-center" style={{ width: 46, height: 46, background: C.ink }}>
-            <SlidersHorizontal size={16} style={{ color: "#fff" }} />
-          </button>
         </div>
-
-        {/* 4 การ์ดหมวดงาน — เฉพาะที่มีสิทธิ์ */}
-        <div className="grid grid-cols-2 gap-3">
-          {visible.map((m) => (
-            <div key={m.id} onClick={() => go(m.id)} className="rounded-3xl p-5"
-              style={{ background: C.card, boxShadow: SHADOW_SM }}>
-              <div className="flex items-center justify-center rounded-2xl mb-4"
-                style={{ width: 48, height: 48, background: C.bg, color: C.ink }}>
-                <m.icon size={23} />
-              </div>
-              <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: C.ink }}>{m.name}</div>
-              <div style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>{m.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Dashboard — สำหรับทุกคน */}
-        <div onClick={() => go("home")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
-          style={{ background: C.card, boxShadow: SHADOW_SM }}>
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
-              <LayoutGrid size={20} style={{ color: C.ink }} />
-            </div>
-            <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Dashboard</div>
-          </div>
-          <ChevronRight size={18} style={{ color: C.sub }} />
-        </div>
-
       </div>
     );
   };
