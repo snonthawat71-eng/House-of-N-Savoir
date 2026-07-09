@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { UserPlus, Loader2, Check, ShieldAlert } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./lib/supabase";
 import { logAudit } from "./lib/audit";
+import { useAuth } from "./lib/auth";
 
 const C = {
   bg: "#F1F2F4", card: "#FFFFFF", ink: "#111214",
@@ -23,7 +24,11 @@ const ROLE_OPTIONS = ["owner", "dev", "manager", "sales"];
 type Invite = { email: string; role: string; full_name: string | null; active: boolean };
 type Member = { id: string; email: string; role: string; active: boolean };
 
+const ADMIN_ROLES = ["owner", "dev"];
+
 export default function UsersAdmin() {
+  const auth = useAuth();
+  const myEmail = (auth.profile?.email || auth.session?.user?.email || "").toLowerCase();
   const [loading, setLoading] = useState(true);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -69,6 +74,11 @@ export default function UsersAdmin() {
   async function changeRole(inv: Invite, newRole: string) {
     setErr(""); setMsg("");
     const e = inv.email.toLowerCase();
+    // กันล็อกเอาต์ตัวเอง: ห้ามลดสิทธิ์บัญชีตัวเองต่ำกว่าแอดมิน
+    if (e === myEmail && !ADMIN_ROLES.includes(newRole)) {
+      setErr("เปลี่ยนสิทธิ์บัญชีตัวเองให้ต่ำกว่าแอดมินไม่ได้ (กันล็อกเอาต์)");
+      return;
+    }
     await supabase.from("allowed_emails").update({ role: newRole }).eq("email", e);
     await supabase.from("profiles").update({ role: newRole }).eq("email", e);
     await logAudit({ action: "update", entity: "role", entityId: e, oldValue: inv.role, newValue: newRole });
@@ -78,6 +88,11 @@ export default function UsersAdmin() {
   async function toggleActive(inv: Invite) {
     setErr(""); setMsg("");
     const e = inv.email.toLowerCase();
+    // กันปิดใช้งานบัญชีตัวเอง
+    if (e === myEmail && inv.active) {
+      setErr("ปิดใช้งานบัญชีตัวเองไม่ได้");
+      return;
+    }
     const next = !inv.active;
     await supabase.from("allowed_emails").update({ active: next }).eq("email", e);
     await supabase.from("profiles").update({ active: next }).eq("email", e);
@@ -133,6 +148,8 @@ export default function UsersAdmin() {
       ) : (
         invites.map((inv) => {
           const m = loggedIn(inv.email);
+          const isSelf = inv.email.toLowerCase() === myEmail;
+          const roleOpts = isSelf ? ADMIN_ROLES : ROLE_OPTIONS;
           return (
             <div key={inv.email} className="rounded-2xl p-4 mb-2" style={{ background: C.card, boxShadow: SHADOW_SM, opacity: inv.active ? 1 : 0.5 }}>
               <div className="flex items-center justify-between">
@@ -142,22 +159,31 @@ export default function UsersAdmin() {
                   </div>
                   <div style={{ color: C.sub, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis" }}>{inv.email}</div>
                 </div>
-                <span className="rounded-full px-2 py-0.5 shrink-0" style={{
-                  background: m ? C.greenSoft : C.bg, color: m ? C.green : C.sub, fontSize: 10, fontWeight: 600,
-                }}>{m ? "เข้าระบบแล้ว" : "ยังไม่เข้า"}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isSelf && <span className="rounded-full px-2 py-0.5" style={{ background: C.ink, color: "#fff", fontSize: 10, fontWeight: 700 }}>คุณ</span>}
+                  <span className="rounded-full px-2 py-0.5" style={{
+                    background: m ? C.greenSoft : C.bg, color: m ? C.green : C.sub, fontSize: 10, fontWeight: 600,
+                  }}>{m ? "เข้าระบบแล้ว" : "ยังไม่เข้า"}</span>
+                </div>
               </div>
               <div className="flex items-center gap-2 mt-3">
                 <select value={inv.role} onChange={(e) => changeRole(inv, e.target.value)}
                   className="flex-1 rounded-xl px-3 py-2" style={{ background: C.bg, border: "none", outline: "none", fontSize: 13, color: C.ink }}>
-                  {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                  {roleOpts.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
-                <button onClick={() => toggleActive(inv)}
-                  className="rounded-xl px-3 py-2" style={{
-                    background: inv.active ? C.redSoft : C.greenSoft, color: inv.active ? C.red : C.green,
-                    fontSize: 13, fontWeight: 600,
-                  }}>
-                  {inv.active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
-                </button>
+                {isSelf ? (
+                  <span className="rounded-xl px-3 py-2" style={{ background: C.bg, color: C.sub, fontSize: 12, fontWeight: 600 }}>
+                    บัญชีคุณ
+                  </span>
+                ) : (
+                  <button onClick={() => toggleActive(inv)}
+                    className="rounded-xl px-3 py-2" style={{
+                      background: inv.active ? C.redSoft : C.greenSoft, color: inv.active ? C.red : C.green,
+                      fontSize: 13, fontWeight: 600,
+                    }}>
+                    {inv.active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+                  </button>
+                )}
               </div>
             </div>
           );
