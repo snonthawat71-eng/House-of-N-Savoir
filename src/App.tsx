@@ -157,7 +157,8 @@ export default function App() {
   const role = demo ? roleDemo : (auth.profile?.role ?? "sales");
   const P = ROLES[role as keyof typeof ROLES] || ROLES.sales;
   const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
-  const go = (s) => { setScreen(s); window.scrollTo(0, 0); };
+  // ออกจากหน้า Connect เมื่อไหร่ ให้ล็อกทันที (ต้องใส่รหัสใหม่)
+  const go = (s) => { if (s !== "connect") setConnectUnlocked(false); setScreen(s); window.scrollTo(0, 0); };
 
   /* ---------- โครงหน้าล็อกอิน (โลโก้ + ชื่อแบรนด์) ---------- */
   const AuthShell = ({ children }: { children?: any }) => (
@@ -356,6 +357,18 @@ export default function App() {
           <div style={{ color: C.sub, fontSize: 12, marginTop: 1 }}>{email} · {P.name}</div>
         </div>
 
+        {/* N SAVOIR CONNECT — เหนือช่องค้นหา · การ์ดสูง จัดกลาง ล็อกแดงตรงกลาง */}
+        {isAdmin && (
+          <div onClick={openConnect} className="rounded-3xl mb-4 flex flex-col items-center justify-center text-center"
+            style={{ background: C.ink, padding: "34px 20px" }}>
+            <div className="flex items-center justify-center rounded-2xl mb-4"
+              style={{ width: 60, height: 60, background: "#1E1F22" }}>
+              <Lock size={28} style={{ color: C.red }} />
+            </div>
+            <span style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: 0.5 }}>N SAVOIR CONNECT</span>
+          </div>
+        )}
+
         {/* แถบค้นหา + ปุ่ม filter (บนการ์ด 4 ช่อง) */}
         <div className="flex items-center gap-2 mb-4">
           <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
@@ -394,18 +407,6 @@ export default function App() {
           <ChevronRight size={18} style={{ color: C.sub }} />
         </div>
 
-        {/* N SAVOIR CONNECT — เฉพาะเจ้าของ/Dev · ต้องใส่รหัส */}
-        {isAdmin && (
-          <div onClick={openConnect} className="rounded-3xl p-5 mt-3" style={{ background: C.ink }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2" style={{ color: "#fff" }}>
-                <LayoutGrid size={18} style={{ color: C.red }} />
-                <span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, letterSpacing: 0.3 }}>N SAVOIR CONNECT</span>
-              </div>
-              <Lock size={20} style={{ color: "#9AA0A6" }} />
-            </div>
-          </div>
-        )}
       </div>
     );
   };
