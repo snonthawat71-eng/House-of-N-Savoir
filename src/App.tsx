@@ -5,7 +5,7 @@ import {
   ArrowLeft, TrendingUp, TrendingDown, Truck, FileText, AlertTriangle,
   RotateCcw, Boxes, MapPin, CalendarClock, Eye, ChevronDown, Check,
   Fingerprint, Plus, SlidersHorizontal, KeyRound, ArrowUpRight, LayoutGrid,
-  LogOut, Loader2
+  LogOut, Loader2, Settings
 } from "lucide-react";
 import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
@@ -140,6 +140,18 @@ export default function App() {
   const [roleDemo, setRole] = useState("owner");
   const [screen, setScreen] = useState("modules");
   const [rolePick, setRolePick] = useState(false);
+
+  // รหัสเข้า N SAVOIR CONNECT (ล็อกอีกชั้นสำหรับเจ้าของ)
+  const CONNECT_PIN = (import.meta.env.VITE_CONNECT_PIN as string) || "2580";
+  const [connectUnlocked, setConnectUnlocked] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinErr, setPinErr] = useState("");
+  const openConnect = () => { if (connectUnlocked) go("connect"); else { setPinInput(""); setPinErr(""); setPinOpen(true); } };
+  const submitPin = () => {
+    if (pinInput === CONNECT_PIN) { setConnectUnlocked(true); setPinOpen(false); go("connect"); }
+    else { setPinErr("รหัสไม่ถูกต้อง"); setPinInput(""); }
+  };
 
   // role: โหมดเดโมใช้ตัวสลับ / โหมดจริงใช้ role จากฐานข้อมูล
   const role = demo ? roleDemo : (auth.profile?.role ?? "sales");
@@ -329,16 +341,30 @@ export default function App() {
   const ModulesScreen = () => {
     const visible = MODULES.filter((m) => P.mods.includes(m.id));
     const displayName = demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้");
+    const email = demo ? "demo@nsavoir.app" : (auth.session?.user?.email || "");
+    const isAdmin = role === "owner" || role === "dev";
     return (
       <div className="px-5 pb-16 pt-7">
-        {/* โลโก้กลาง + ชื่อผู้ใช้ปัจจุบัน */}
-        <div className="flex flex-col items-center text-center mb-7">
+        {/* โลโก้ + แบรนด์ + ชื่อ + อีเมล·ตำแหน่ง */}
+        <div className="flex flex-col items-center text-center mb-6">
           <div className="flex items-center justify-center rounded-2xl mb-3"
             style={{ width: 66, height: 66, background: C.ink, color: "#fff", boxShadow: SHADOW }}>
             <span style={{ fontFamily: disp, fontSize: 30, fontWeight: 800 }}>N</span>
           </div>
-          <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 800, color: C.ink }}>{displayName}</div>
-          <div style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>{P.name} · {P.en}</div>
+          <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 800, color: C.ink }}>House of N Savoir</div>
+          <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink, marginTop: 6 }}>{displayName}</div>
+          <div style={{ color: C.sub, fontSize: 12, marginTop: 1 }}>{email} · {P.name}</div>
+        </div>
+
+        {/* แถบค้นหา + ปุ่ม filter (บนการ์ด 4 ช่อง) */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+            <Search size={16} style={{ color: C.sub }} />
+            <span style={{ color: C.sub, fontSize: 13 }}>ค้นหาทั้งระบบ…</span>
+          </div>
+          <button className="rounded-2xl flex items-center justify-center" style={{ width: 46, height: 46, background: C.ink }}>
+            <SlidersHorizontal size={16} style={{ color: "#fff" }} />
+          </button>
         </div>
 
         {/* 4 การ์ดหมวดงาน — เฉพาะที่มีสิทธิ์ */}
@@ -356,22 +382,57 @@ export default function App() {
           ))}
         </div>
 
-        {/* การ์ด N SAVOIR CONNECT */}
-        <div onClick={() => go("connect")} className="rounded-3xl p-5 mt-3" style={{ background: C.ink }}>
-          <div className="flex items-center justify-between">
-            <div>
+        {/* Dashboard — สำหรับทุกคน */}
+        <div onClick={() => go("home")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
+          style={{ background: C.card, boxShadow: SHADOW_SM }}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
+              <LayoutGrid size={20} style={{ color: C.ink }} />
+            </div>
+            <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Dashboard</div>
+          </div>
+          <ChevronRight size={18} style={{ color: C.sub }} />
+        </div>
+
+        {/* N SAVOIR CONNECT — เฉพาะเจ้าของ/Dev · ต้องใส่รหัส */}
+        {isAdmin && (
+          <div onClick={openConnect} className="rounded-3xl p-5 mt-3" style={{ background: C.ink }}>
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2" style={{ color: "#fff" }}>
                 <LayoutGrid size={18} style={{ color: C.red }} />
                 <span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, letterSpacing: 0.3 }}>N SAVOIR CONNECT</span>
               </div>
-              <div style={{ color: "#9AA0A6", fontSize: 12, marginTop: 6 }}>เครื่องมือพิเศษ · Formula Lab · Portal</div>
+              <Lock size={20} style={{ color: "#9AA0A6" }} />
             </div>
-            <ChevronRight size={22} style={{ color: "#9AA0A6" }} />
           </div>
-        </div>
+        )}
       </div>
     );
   };
+
+  /* ---------- ป๊อปอัพใส่รหัสเข้า Connect ---------- */
+  const PinModal = () => pinOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-8 max-w-md mx-auto" style={{ background: "rgba(0,0,0,.5)" }}
+      onClick={() => setPinOpen(false)}>
+      <div className="w-full rounded-3xl p-6 text-center" style={{ background: C.card }} onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 flex items-center justify-center rounded-2xl" style={{ width: 52, height: 52, background: C.ink }}>
+          <Lock size={22} style={{ color: C.red }} />
+        </div>
+        <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: C.ink }}>ใส่รหัสเข้า Connect</div>
+        <div style={{ color: C.sub, fontSize: 12, marginTop: 4 }}>เฉพาะเจ้าของเท่านั้น</div>
+        <input value={pinInput} autoFocus type="password" inputMode="numeric"
+          onChange={(e) => { setPinInput(e.target.value); setPinErr(""); }}
+          onKeyDown={(e) => e.key === "Enter" && submitPin()}
+          placeholder="••••"
+          className="w-full rounded-2xl py-4 text-center mt-5"
+          style={{ background: C.bg, border: "none", outline: "none", fontFamily: disp, fontSize: 26, letterSpacing: 8, color: C.ink }} />
+        {pinErr && <p style={{ color: C.red, fontSize: 12 }} className="mt-2">{pinErr}</p>}
+        <button onClick={submitPin} className="w-full rounded-2xl py-4 mt-4" style={{ background: C.red, color: "#fff", fontWeight: 700 }}>
+          เข้าสู่ Connect
+        </button>
+      </div>
+    </div>
+  );
 
   /* ---------- N SAVOIR CONNECT = Formula Lab + Portal ---------- */
   const ConnectScreen = () => (
@@ -394,6 +455,21 @@ export default function App() {
           </div>
           <ShieldCheck size={40} style={{ color: "#2A2B2E" }} />
         </div>
+      </div>
+
+      {/* Main Stock (สินค้ากลาง) */}
+      <div onClick={() => go("products")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
+        style={{ background: C.card, boxShadow: SHADOW_SM }}>
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
+            <Package size={20} style={{ color: C.ink }} />
+          </div>
+          <div>
+            <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Main Stock</div>
+            <div style={{ fontSize: 11, color: C.sub }}>คลังสินค้ากลาง · คีย์ครั้งเดียว ใช้ทั้งระบบ</div>
+          </div>
+        </div>
+        <ChevronRight size={18} style={{ color: C.sub }} />
       </div>
 
       {/* Portal — เฉพาะเจ้าของ/Dev */}
@@ -451,70 +527,16 @@ export default function App() {
     </div>
   );
 
-  /* ---------- HOME = แดชบอร์ดภาพรวม (แบบเดิม) ---------- */
+  /* ---------- DASHBOARD (ภาพรวม) — ล้างไว้ก่อน เดี๋ยวปรับใหม่ ---------- */
   const HomeScreen = () => (
     <div className="px-5 pb-32">
-      {/* hero */}
-      <div className="mt-3 mb-1" style={{ color: C.sub, fontSize: 13 }}>ยอดขายเดือนนี้</div>
-      <div className="flex items-end gap-3">
-        <div style={{ fontFamily: disp, fontWeight: 800, fontSize: 40, letterSpacing: -1, color: C.ink, lineHeight: 1 }}>
-          {P.finance ? "฿310,000" : <Secret show={false} />}
+      <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: "60vh" }}>
+        <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 56, height: 56, background: C.card, boxShadow: SHADOW_SM }}>
+          <LayoutGrid size={24} style={{ color: C.sub }} />
         </div>
+        <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: C.ink }}>Dashboard</div>
+        <div style={{ color: C.sub, fontSize: 13, marginTop: 4 }}>กำลังปรับปรุง · เดี๋ยวทำใหม่</div>
       </div>
-      <div className="flex items-center gap-1 mt-2" style={{ color: C.green, fontSize: 13, fontWeight: 600 }}>
-        <ArrowUpRight size={15} /> +29% <span style={{ color: C.sub, fontWeight: 400 }}>จากเดือนก่อน</span>
-      </div>
-
-      {/* quick actions */}
-      <div className="grid grid-cols-3 gap-3 mt-5">
-        {[
-          { i: Search, l: "ค้นหา", s: "b2b" },
-          { i: Bell, l: "แจ้งเตือน", s: "alerts" },
-          { i: Package, l: "สินค้า", s: "products" },
-        ].map((a) => (
-          <button key={a.l} onClick={() => go(a.s)} className="rounded-2xl py-3.5 flex flex-col items-center gap-1.5"
-            style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <a.i size={19} style={{ color: C.ink }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{a.l}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* modules */}
-      <SectionTitle>หมวดงาน</SectionTitle>
-      <div className="grid grid-cols-2 gap-3">
-        {MODULES.map((m) => {
-          const ok = P.mods.includes(m.id);
-          return (
-            <div key={m.id} onClick={() => ok && go(m.id)} className="rounded-3xl p-4 relative"
-              style={{ background: C.card, boxShadow: SHADOW_SM, opacity: ok ? 1 : 0.55 }}>
-              <div className="flex items-center justify-center rounded-2xl mb-3"
-                style={{ width: 42, height: 42, background: C.bg, color: C.ink }}>
-                <m.icon size={20} />
-              </div>
-              <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: C.ink }}>{m.name}</div>
-              <div style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>{m.sub}</div>
-              {!ok && <Lock size={14} style={{ position: "absolute", top: 16, right: 16, color: C.red }} />}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* mini KPIs */}
-      <SectionTitle>วันนี้</SectionTitle>
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <div style={{ color: C.sub, fontSize: 11 }}>ออเดอร์ B2B ค้าง</div>
-          <div style={{ fontFamily: disp, fontWeight: 800, fontSize: 26, color: C.ink }} className="mt-1">3</div>
-          <div style={{ color: C.sub, fontSize: 11 }}>รอส่ง 2 · รอชำระ 1</div>
-        </Card>
-        <Card>
-          <div style={{ color: C.sub, fontSize: 11 }}>สต็อกใกล้หมด</div>
-          <div style={{ fontFamily: disp, fontWeight: 800, fontSize: 26, color: C.red }} className="mt-1">2</div>
-          <div style={{ color: C.sub, fontSize: 11 }}>Bois d'Encre · Fleur de Sel</div>
-        </Card>
-      </div>
-
     </div>
   );
 
@@ -559,14 +581,6 @@ export default function App() {
   /* ---------- B2B ---------- */
   const B2BScreen = () => (
     <div className="px-5 pb-32">
-      <div className="flex items-center gap-2 mt-2 mb-4">
-        <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-          <Search size={16} style={{ color: C.sub }} />
-          <span style={{ color: C.sub, fontSize: 13 }}>ค้นหาลูกค้า / ออเดอร์…</span>
-        </div>
-        <button className="rounded-2xl flex items-center justify-center" style={{ width: 46, height: 46, background: C.ink }}>
-          <SlidersHorizontal size={16} style={{ color: "#fff" }} /></button>
-      </div>
       <SectionTitle>ลูกค้าค้าส่ง</SectionTitle>
       {B2B.map((c) => (
         <Card key={c.name} style={{ marginBottom: 10 }}>
@@ -802,10 +816,10 @@ export default function App() {
   /* ---------- router ---------- */
   const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"สินค้ากลาง", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้" };
   const NAV = [
-    { id: "modules", label: "หมวดงาน", icon: LayoutGrid },
-    { id: "home", label: "ภาพรวม", icon: Home },
+    { id: "modules", label: "Overview", icon: Home },
+    { id: "home", label: "Dashboard", icon: LayoutGrid },
     { id: "alerts", label: "แจ้งเตือน", icon: Bell },
-    { id: "me", label: "ฉัน", icon: User },
+    { id: "me", label: "Manage", icon: Settings },
   ];
   const isNavScreen = NAV.some((n) => n.id === screen);
   const Body = () => {
@@ -835,6 +849,7 @@ export default function App() {
       {screen !== "modules" && <Header title={titleMap[screen] || "N SAVOIR"} back={screen !== "home" && !isNavScreen} />}
       <Body />
       <RolePicker />
+      <PinModal />
 
       {/* floating dark pill nav — ซ่อนบนหน้าแรก */}
       {screen !== "modules" && (
