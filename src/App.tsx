@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Home, Package, Bell, User, Search, Lock, ShieldCheck, ChevronRight,
   Building2, Handshake, Store, Factory, FlaskConical, ScrollText,
@@ -127,6 +127,35 @@ function Line() {
         <circle key={i} cx={p[0]} cy={p[1]} r="4" fill={C.red} stroke="#fff" strokeWidth="2" />
       ))}
     </svg>
+  );
+}
+
+/* ---------------- carousel (เลื่อนทีละใบ + จุดไข่ปลา) ---------------- */
+function Carousel({ children }: { children?: any }) {
+  const items = React.Children.toArray(children);
+  const ref = useRef<HTMLDivElement>(null);
+  const [idx, setIdx] = useState(0);
+  const onScroll = () => {
+    const el = ref.current;
+    if (!el) return;
+    setIdx(Math.round(el.scrollLeft / el.clientWidth));
+  };
+  return (
+    <div>
+      <div ref={ref} onScroll={onScroll} className="flex overflow-x-auto"
+        style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+        {items.map((c, i) => (
+          <div key={i} className="shrink-0 w-full px-5" style={{ scrollSnapAlign: "center" }}>{c}</div>
+        ))}
+      </div>
+      {items.length > 1 && (
+        <div className="flex justify-center gap-1.5 mt-3">
+          {items.map((_, i) => (
+            <span key={i} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 3, background: i === idx ? C.red : C.line, transition: "all .2s" }} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -344,15 +373,14 @@ export default function App() {
     const displayName = demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้");
     const email = demo ? "demo@nsavoir.app" : (auth.session?.user?.email || "");
     const isAdmin = role === "owner" || role === "dev";
-    const initial = (displayName || "N").trim().charAt(0).toUpperCase() || "N";
     return (
       <div className="pb-16">
-        {/* หัวดำคลุมด้านบน */}
-        <div style={{ background: C.ink }} className="px-6 pt-12 pb-24 rounded-b-[34px]">
+        {/* หัวดำคลุมด้านบน (ไม่มีขอบมน) */}
+        <div style={{ background: C.ink }} className="px-6 pt-12 pb-24">
           <div className="flex items-center justify-between mb-6">
-            <div className="rounded-full flex items-center justify-center"
-              style={{ width: 46, height: 46, background: "#1E1F22", color: "#fff", fontFamily: disp, fontWeight: 800, fontSize: 18 }}>
-              {initial}
+            <div className="flex items-center justify-center rounded-2xl"
+              style={{ width: 46, height: 46, background: "#fff", color: C.ink, fontFamily: disp, fontWeight: 800, fontSize: 24 }}>
+              N
             </div>
             <div className="rounded-full flex items-center justify-center" style={{ width: 40, height: 40, background: "#1E1F22" }}>
               <Bell size={18} style={{ color: "#9AA0A6" }} />
@@ -363,32 +391,32 @@ export default function App() {
           <div style={{ color: "#8A8F98", fontSize: 12, marginTop: 5 }}>{email} · {P.name}</div>
         </div>
 
-        {/* การ์ดเลื่อนซ้าย-ขวา (ซ้อนทับหัวดำครึ่งหนึ่ง) */}
-        <div className="flex gap-3 overflow-x-auto px-5 -mt-16 pb-2"
-          style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
-          {isAdmin && (
-            <div onClick={openConnect} className="shrink-0 rounded-3xl p-5 relative overflow-hidden"
-              style={{ width: "84%", scrollSnapAlign: "start", background: C.red, boxShadow: "0 16px 34px rgba(229,50,42,.32)" }}>
-              <div style={{ position: "absolute", right: -30, bottom: -40, width: 150, height: 150, borderRadius: "50%", background: "rgba(0,0,0,.14)" }} />
-              <div className="relative flex items-start justify-between">
-                <div className="flex items-center justify-center rounded-2xl" style={{ width: 46, height: 46, background: "rgba(255,255,255,.18)" }}>
-                  <Lock size={22} style={{ color: "#fff" }} />
+        {/* การ์ดเลื่อนทีละใบ (ซ้อนทับหัวดำครึ่งหนึ่ง) + จุดไข่ปลา */}
+        <div className="-mt-16">
+          <Carousel>
+            {isAdmin && (
+              <div onClick={openConnect} className="rounded-3xl p-5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center justify-center rounded-2xl" style={{ width: 48, height: 48, background: C.redSoft }}>
+                    <Lock size={22} style={{ color: C.red }} />
+                  </div>
+                  <ChevronRight size={20} style={{ color: C.sub }} />
                 </div>
-                <ChevronRight size={20} style={{ color: "rgba(255,255,255,.75)" }} />
+                <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink, marginTop: 14 }}>N Savoir Connect</div>
+                <div style={{ color: C.sub, fontSize: 12.5, marginTop: 2 }}>ระบบจัดการสำหรับผู้บริหาร</div>
               </div>
-              <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: "#fff", marginTop: 16 }}>N Savoir Connect</div>
-              <div style={{ color: "rgba(255,255,255,.85)", fontSize: 12.5, marginTop: 2 }}>ระบบจัดการสำหรับผู้บริหาร</div>
+            )}
+            <div className="rounded-3xl p-5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center justify-center rounded-2xl" style={{ width: 48, height: 48, background: C.bg }}>
+                  <LayoutGrid size={22} style={{ color: C.ink }} />
+                </div>
+                <ChevronRight size={20} style={{ color: C.sub }} />
+              </div>
+              <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink, marginTop: 14 }}>กิจกรรมล่าสุด</div>
+              <div style={{ color: C.sub, fontSize: 12.5, marginTop: 2 }}>เร็ว ๆ นี้</div>
             </div>
-          )}
-          {/* การ์ดสำรอง — เผื่อฟังก์ชันดูกิจกรรมอื่นในอนาคต */}
-          <div className="shrink-0 rounded-3xl p-5 relative overflow-hidden"
-            style={{ width: "84%", scrollSnapAlign: "start", background: C.ink }}>
-            <div className="flex items-center justify-center rounded-2xl" style={{ width: 46, height: 46, background: "#1E1F22" }}>
-              <LayoutGrid size={22} style={{ color: "#9AA0A6" }} />
-            </div>
-            <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: "#fff", marginTop: 16 }}>กิจกรรมล่าสุด</div>
-            <div style={{ color: "#9AA0A6", fontSize: 12.5, marginTop: 2 }}>เร็ว ๆ นี้</div>
-          </div>
+          </Carousel>
         </div>
 
         {/* เนื้อหาที่เหลือ */}
