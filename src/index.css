@@ -12,6 +12,7 @@ body,
 
 body {
   margin: 0;
-  background: #f1f2f4;
+  /* พื้นหลังนอกสุด (โผล่ตอนลากขึ้น/ลง) เป็นสีดำ */
+  background: #111214;
   -webkit-font-smoothing: antialiased;
 }

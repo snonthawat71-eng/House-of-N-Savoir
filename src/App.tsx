@@ -168,6 +168,7 @@ export default function App() {
   const [step, setStep] = useState("google");
   const [roleDemo, setRole] = useState("owner");
   const [screen, setScreen] = useState("modules");
+  const [history, setHistory] = useState<string[]>([]);
   const [rolePick, setRolePick] = useState(false);
 
   // รหัสเข้า N SAVOIR CONNECT (ล็อกอีกชั้นสำหรับเจ้าของ)
@@ -187,7 +188,22 @@ export default function App() {
   const P = ROLES[role as keyof typeof ROLES] || ROLES.sales;
   const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
   // ออกจากหน้า Connect เมื่อไหร่ ให้ล็อกทันที (ต้องใส่รหัสใหม่)
-  const go = (s) => { if (s !== "connect") setConnectUnlocked(false); setScreen(s); window.scrollTo(0, 0); };
+  const go = (s) => {
+    if (s !== "connect") setConnectUnlocked(false);
+    setHistory((h) => (s === screen ? h : [...h, screen]));
+    setScreen(s);
+    window.scrollTo(0, 0);
+  };
+  // ปุ่มย้อนกลับ = กลับหน้าก่อนหน้าจริง (ไม่ใช่เด้งกลับหน้าแรก)
+  const goBack = () => {
+    setHistory((h) => {
+      const prev = h.length ? h[h.length - 1] : "modules";
+      if (prev !== "connect") setConnectUnlocked(false);
+      setScreen(prev);
+      return h.slice(0, -1);
+    });
+    window.scrollTo(0, 0);
+  };
 
   /* ---------- โครงหน้าล็อกอิน (โลโก้ + ชื่อแบรนด์) ---------- */
   const AuthShell = ({ children }: { children?: any }) => (
@@ -300,7 +316,7 @@ export default function App() {
     <div className="px-5 pt-4 pb-2 flex items-center justify-between">
       {back ? (
         <div className="flex items-center gap-3">
-          <button onClick={() => go("modules")} className="rounded-full flex items-center justify-center"
+          <button onClick={goBack} className="rounded-full flex items-center justify-center"
             style={{ width: 38, height: 38, background: C.card, boxShadow: SHADOW_SM }}>
             <ArrowLeft size={18} style={{ color: C.ink }} />
           </button>
@@ -375,8 +391,8 @@ export default function App() {
     const isAdmin = role === "owner" || role === "dev";
     return (
       <div className="pb-16">
-        {/* หัวดำคลุมด้านบน (ไม่มีขอบมน) */}
-        <div style={{ background: C.ink }} className="px-6 pt-12 pb-24">
+        {/* หัวดำคลุมด้านบน (ไม่มีขอบมน · กินพื้นที่ status bar) */}
+        <div style={{ background: C.ink, paddingTop: "calc(48px + env(safe-area-inset-top))" }} className="px-6 pb-24">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center justify-center rounded-2xl"
               style={{ width: 46, height: 46, background: "#fff", color: C.ink, fontFamily: disp, fontWeight: 800, fontSize: 24 }}>
@@ -395,26 +411,24 @@ export default function App() {
         <div className="-mt-16">
           <Carousel>
             {isAdmin && (
-              <div onClick={openConnect} className="rounded-3xl p-5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center justify-center rounded-2xl" style={{ width: 48, height: 48, background: C.redSoft }}>
-                    <Lock size={22} style={{ color: C.red }} />
-                  </div>
-                  <ChevronRight size={20} style={{ color: C.sub }} />
+              <div onClick={openConnect} className="rounded-3xl px-5 py-6 flex items-center justify-between" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+                <div className="min-w-0">
+                  <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink }}>N Savoir Connect</div>
+                  <div style={{ color: C.sub, fontSize: 12.5, marginTop: 3 }}>ระบบจัดการสำหรับผู้บริหาร</div>
                 </div>
-                <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink, marginTop: 14 }}>N Savoir Connect</div>
-                <div style={{ color: C.sub, fontSize: 12.5, marginTop: 2 }}>ระบบจัดการสำหรับผู้บริหาร</div>
+                <div className="flex items-center justify-center rounded-2xl shrink-0 ml-4" style={{ width: 50, height: 50, background: C.redSoft }}>
+                  <Lock size={23} style={{ color: C.red }} />
+                </div>
               </div>
             )}
-            <div className="rounded-3xl p-5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center justify-center rounded-2xl" style={{ width: 48, height: 48, background: C.bg }}>
-                  <LayoutGrid size={22} style={{ color: C.ink }} />
-                </div>
-                <ChevronRight size={20} style={{ color: C.sub }} />
+            <div className="rounded-3xl px-5 py-6 flex items-center justify-between" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+              <div className="min-w-0">
+                <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink }}>กิจกรรมล่าสุด</div>
+                <div style={{ color: C.sub, fontSize: 12.5, marginTop: 3 }}>เร็ว ๆ นี้</div>
               </div>
-              <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink, marginTop: 14 }}>กิจกรรมล่าสุด</div>
-              <div style={{ color: C.sub, fontSize: 12.5, marginTop: 2 }}>เร็ว ๆ นี้</div>
+              <div className="flex items-center justify-center rounded-2xl shrink-0 ml-4" style={{ width: 50, height: 50, background: C.bg }}>
+                <LayoutGrid size={23} style={{ color: C.ink }} />
+              </div>
             </div>
           </Carousel>
         </div>
@@ -541,6 +555,20 @@ export default function App() {
           <ChevronRight size={18} style={{ color: C.sub }} />
         </div>
       )}
+    </div>
+  );
+
+  /* ---------- หน้า Connect ตอนล็อกอยู่ (ยังไม่ใส่รหัส) ---------- */
+  const ConnectLocked = () => (
+    <div className="px-5 flex flex-col items-center justify-center text-center" style={{ minHeight: "62vh" }}>
+      <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 60, height: 60, background: C.redSoft }}>
+        <Lock size={28} style={{ color: C.red }} />
+      </div>
+      <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: C.ink }}>ล็อกอยู่</div>
+      <div style={{ color: C.sub, fontSize: 13, marginTop: 4 }}>ต้องใส่รหัสเพื่อเข้า N Savoir Connect</div>
+      <button onClick={openConnect} className="mt-6 rounded-2xl px-7 py-3.5" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
+        ใส่รหัส
+      </button>
     </div>
   );
 
@@ -884,7 +912,7 @@ export default function App() {
       case "b2c": return <B2CScreen />;
       case "supplier": return <SupplierScreen />;
       case "products": return demo ? <Products /> : <ProductsScreen />;
-      case "connect": return <ConnectScreen />;
+      case "connect": return connectUnlocked ? <ConnectScreen /> : <ConnectLocked />;
       case "portal": return <PortalScreen />;
       case "formula": return <Formula />;
       case "audit": return demo ? <Audit /> : <AuditScreen />;
