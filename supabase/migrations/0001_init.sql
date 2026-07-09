@@ -141,7 +141,7 @@ grant execute on function public.is_admin() to authenticated;
 -- 8) เชิญผู้ใช้คนแรก (เจ้าของ) — แก้อีเมลให้ตรงก่อน Run ถ้าจำเป็น
 -- =====================================================================
 insert into public.allowed_emails (email, role, full_name)
-values ('nonthawat.code@gmail.com', 'owner', 'เจ้าของ')
+values ('s.nonthawat71@gmail.com', 'owner', 'เจ้าของ')
 on conflict (email) do update set role = excluded.role, active = true;
 
 -- ตัวอย่างเชิญคนอื่นเพิ่ม (ลบเครื่องหมาย -- ออกแล้วแก้อีเมล):

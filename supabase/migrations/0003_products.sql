@@ -4,13 +4,12 @@
 -- วางทั้งไฟล์นี้ใน Supabase → SQL Editor → Run
 -- =====================================================================
 
--- ---------- 0) เอาอีเมลที่ไม่เกี่ยวข้องออก ----------
-delete from public.profiles       where lower(email) = 's.nonthawat71@gmail.com';
-delete from public.allowed_emails where lower(email) = 's.nonthawat71@gmail.com';
+-- ---------- 0) ตั้งเจ้าของ = s.nonthawat71@gmail.com / เอา nonthawat.code ออก ----------
+delete from public.profiles       where lower(email) = 'nonthawat.code@gmail.com';
+delete from public.allowed_emails where lower(email) = 'nonthawat.code@gmail.com';
 
--- ยืนยันเจ้าของคือ nonthawat.code@gmail.com
 insert into public.allowed_emails (email, role, full_name)
-values ('nonthawat.code@gmail.com', 'owner', 'เจ้าของ')
+values ('s.nonthawat71@gmail.com', 'owner', 'เจ้าของ')
 on conflict (email) do update set role = 'owner', active = true;
 
 -- ---------- 1) ตารางสินค้ากลาง ----------
