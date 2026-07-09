@@ -10,6 +10,7 @@ import {
 import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
 import MfaGate from "./MfaGate";
+import UsersAdmin from "./UsersAdmin";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -763,6 +764,11 @@ export default function App() {
           <span style={{ color: ok ? C.green : C.red, fontSize: 12, fontWeight: 700 }}>{v}</span>
         </div>
       ))}
+      {(role === "owner" || role === "dev") && (
+        <button onClick={() => go("users")} className="w-full mt-3 rounded-2xl py-4 flex items-center justify-center gap-2" style={{ background: C.card, boxShadow: SHADOW_SM, color: C.ink, fontWeight: 700, fontSize: 14 }}>
+          <User size={16} /> จัดการผู้ใช้ (เชิญ / สิทธิ์)
+        </button>
+      )}
       {demo ? (
         <button onClick={() => setRolePick(true)} className="w-full mt-3 rounded-2xl py-4" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
           สลับ role เพื่อทดสอบสิทธิ์
@@ -776,7 +782,7 @@ export default function App() {
   );
 
   /* ---------- router ---------- */
-  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"สินค้ากลาง", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน" };
+  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"สินค้ากลาง", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้" };
   const NAV = [
     { id: "modules", label: "หมวดงาน", icon: LayoutGrid },
     { id: "home", label: "ภาพรวม", icon: Home },
@@ -797,6 +803,7 @@ export default function App() {
       case "audit": return <Audit />;
       case "alerts": return <Alerts />;
       case "me": return <Me />;
+      case "users": return <UsersAdmin />;
       default: return <HomeScreen />;
     }
   };
