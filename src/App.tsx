@@ -11,6 +11,7 @@ import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
 import MfaGate from "./MfaGate";
 import UsersAdmin from "./UsersAdmin";
+import ProductsScreen from "./ProductsScreen";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -388,7 +389,21 @@ export default function App() {
           </div>
         )}
 
-        <button onClick={() => go("home")} className="w-full mt-4 rounded-2xl py-3.5 flex items-center justify-center gap-2"
+        <div onClick={() => go("products")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
+          style={{ background: C.card, boxShadow: SHADOW_SM }}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
+              <Package size={20} style={{ color: C.ink }} />
+            </div>
+            <div>
+              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>สินค้ากลาง</div>
+              <div style={{ fontSize: 11, color: C.sub }}>คีย์ครั้งเดียว ใช้ทั้งระบบ · Product Master</div>
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: C.sub }} />
+        </div>
+
+        <button onClick={() => go("home")} className="w-full mt-3 rounded-2xl py-3.5 flex items-center justify-center gap-2"
           style={{ background: C.card, boxShadow: SHADOW_SM, color: C.ink, fontWeight: 600, fontSize: 13 }}>
           <Home size={16} /> ไปที่ภาพรวม (Dashboard)
         </button>
@@ -798,7 +813,7 @@ export default function App() {
       case "b2b": return <B2BScreen />;
       case "b2c": return <B2CScreen />;
       case "supplier": return <SupplierScreen />;
-      case "products": return <Products />;
+      case "products": return demo ? <Products /> : <ProductsScreen />;
       case "formula": return <Formula />;
       case "audit": return <Audit />;
       case "alerts": return <Alerts />;

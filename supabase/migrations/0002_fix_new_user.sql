@@ -7,7 +7,7 @@
 
 -- ---------- 1) ยืนยันว่าอีเมลเจ้าของถูกเชิญไว้แน่นอน ----------
 insert into public.allowed_emails (email, role, full_name)
-values ('s.nonthawat71@gmail.com', 'owner', 'เจ้าของ')
+values ('nonthawat.code@gmail.com', 'owner', 'เจ้าของ')
 on conflict (email) do update set role = 'owner', active = true;
 
 -- ---------- 2) เขียน trigger ใหม่แบบทนทาน (ไม่ throw error) ----------
