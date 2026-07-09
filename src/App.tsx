@@ -4,8 +4,11 @@ import {
   Building2, Handshake, Store, Factory, FlaskConical, ScrollText,
   ArrowLeft, TrendingUp, TrendingDown, Truck, FileText, AlertTriangle,
   RotateCcw, Boxes, MapPin, CalendarClock, Eye, ChevronDown, Check,
-  Fingerprint, Plus, SlidersHorizontal, KeyRound, ArrowUpRight, LayoutGrid
+  Fingerprint, Plus, SlidersHorizontal, KeyRound, ArrowUpRight, LayoutGrid,
+  LogOut, Loader2
 } from "lucide-react";
+import { useAuth } from "./lib/auth";
+import { isSupabaseConfigured } from "./lib/supabase";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -31,10 +34,10 @@ const mono = "'Space Mono', ui-monospace, monospace";
 
 /* ---------------- roles & permissions ---------------- */
 const ROLES = {
-  owner:   { name: "เจ้าของ", en: "Owner",      finance: true,  cost: true,  formula: true,  audit: true,  mods: ["office","b2b","b2c","supplier"] },
-  manager: { name: "ผู้จัดการ", en: "Manager",   finance: true,  cost: true,  formula: false, audit: false, mods: ["office","b2b","b2c","supplier"] },
-  sales:   { name: "ฝ่ายขาย", en: "Sales",       finance: false, cost: false, formula: false, audit: false, mods: ["b2b","b2c"] },
-  buyer:   { name: "ฝ่ายจัดซื้อ", en: "Purchasing", finance: false, cost: true, formula: false, audit: false, mods: ["supplier"] },
+  owner:   { name: "เจ้าของ", en: "Owner",           finance: true,  cost: true,  formula: true,  audit: true,  mods: ["office","b2b","b2c","supplier"] },
+  dev:     { name: "Dev Support", en: "Dev Support", finance: true,  cost: true,  formula: true,  audit: true,  mods: ["office","b2b","b2c","supplier"] },
+  manager: { name: "ผู้จัดการ", en: "Manager",       finance: true,  cost: true,  formula: false, audit: false, mods: ["office","b2b","b2c","supplier"] },
+  sales:   { name: "ฝ่ายขาย/แอดมิน", en: "Sale/Admin", finance: false, cost: false, formula: false, audit: false, mods: ["b2b","b2c"] },
 };
 
 /* ---------------- mock data ---------------- */
@@ -125,60 +128,120 @@ function Line() {
 
 /* ---------------- app ---------------- */
 export default function App() {
-  const [authed, setAuthed] = useState(false);
+  const auth = useAuth();
+  const demo = !isSupabaseConfigured; // ไม่มีคีย์ Supabase = โหมดเดโม (ข้อมูลจำลอง)
+
+  const [authedDemo, setAuthed] = useState(false);
   const [step, setStep] = useState("google");
-  const [role, setRole] = useState("owner");
+  const [roleDemo, setRole] = useState("owner");
   const [screen, setScreen] = useState("modules");
   const [rolePick, setRolePick] = useState(false);
-  const P = ROLES[role];
+
+  // role: โหมดเดโมใช้ตัวสลับ / โหมดจริงใช้ role จากฐานข้อมูล
+  const role = demo ? roleDemo : (auth.profile?.role ?? "sales");
+  const P = ROLES[role as keyof typeof ROLES] || ROLES.sales;
+  const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
   const go = (s) => { setScreen(s); window.scrollTo(0, 0); };
 
-  /* ---------- LOGIN ---------- */
-  if (!authed) {
-    return (
-      <div style={{ fontFamily: sans, background: C.bg, minHeight: "100vh", color: C.ink }}
-        className="flex flex-col items-center justify-center px-7 max-w-md mx-auto">
-        <style>{FONTS}</style>
-        <div className="w-full text-center">
-          <div className="mx-auto mb-6 flex items-center justify-center rounded-2xl"
-            style={{ width: 72, height: 72, background: C.ink, color: "#fff", boxShadow: SHADOW }}>
-            <span style={{ fontFamily: disp, fontSize: 34, fontWeight: 800 }}>N</span>
-          </div>
-          <div style={{ fontFamily: disp, fontSize: 22, fontWeight: 800, letterSpacing: -0.3 }}>HOUSE OF N SAVOIR</div>
-          <div style={{ color: C.sub, fontSize: 11, letterSpacing: 3, marginTop: 6 }}>INTERNAL · CONFIDENTIAL</div>
-
-          {step === "google" ? (
-            <div className="mt-10">
-              <button onClick={() => setStep("otp")}
-                className="w-full flex items-center justify-center gap-3 rounded-2xl py-4"
-                style={{ background: C.card, color: C.ink, fontWeight: 600, boxShadow: SHADOW_SM }}>
-                <span style={{ fontFamily: disp, fontWeight: 800, color: C.red }}>G</span> เข้าสู่ระบบด้วย Google
-              </button>
-              <p style={{ color: C.sub, fontSize: 12 }} className="mt-4 leading-relaxed">
-                เฉพาะอีเมลที่ได้รับเชิญ · เปิดใช้ยืนยันตัวตน 2 ชั้น
-              </p>
-            </div>
-          ) : (
-            <div className="mt-10">
-              <div className="flex items-center justify-center gap-2" style={{ color: C.red }}>
-                <Fingerprint size={18} /><span style={{ fontSize: 13, fontWeight: 600 }}>ยืนยันตัวตนขั้นที่ 2</span>
-              </div>
-              <div className="mt-4 flex justify-center gap-2">
-                {[1,2,3,4,5,6].map((n) => (
-                  <div key={n} className="rounded-xl flex items-center justify-center"
-                    style={{ width: 44, height: 54, background: C.card, boxShadow: SHADOW_SM, fontFamily: disp, fontSize: 20, fontWeight: 700, color: C.ink }}>
-                    {n <= 2 ? "•" : ""}
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => setAuthed(true)}
-                className="mt-7 w-full rounded-2xl py-4" style={{ background: C.red, color: "#fff", fontWeight: 700 }}>
-                ยืนยันรหัส OTP
-              </button>
-            </div>
-          )}
+  /* ---------- โครงหน้าล็อกอิน (โลโก้ + ชื่อแบรนด์) ---------- */
+  const AuthShell = ({ children }: { children?: any }) => (
+    <div style={{ fontFamily: sans, background: C.bg, minHeight: "100vh", color: C.ink }}
+      className="flex flex-col items-center justify-center px-7 max-w-md mx-auto">
+      <style>{FONTS}</style>
+      <div className="w-full text-center">
+        <div className="mx-auto mb-6 flex items-center justify-center rounded-2xl"
+          style={{ width: 72, height: 72, background: C.ink, color: "#fff", boxShadow: SHADOW }}>
+          <span style={{ fontFamily: disp, fontSize: 34, fontWeight: 800 }}>N</span>
         </div>
+        <div style={{ fontFamily: disp, fontSize: 22, fontWeight: 800, letterSpacing: -0.3 }}>HOUSE OF N SAVOIR</div>
+        <div style={{ color: C.sub, fontSize: 11, letterSpacing: 3, marginTop: 6 }}>INTERNAL · CONFIDENTIAL</div>
+        {children}
       </div>
+    </div>
+  );
+
+  const GoogleBtn = ({ onClick }: { onClick: () => void }) => (
+    <button onClick={onClick}
+      className="w-full flex items-center justify-center gap-3 rounded-2xl py-4"
+      style={{ background: C.card, color: C.ink, fontWeight: 600, boxShadow: SHADOW_SM }}>
+      <span style={{ fontFamily: disp, fontWeight: 800, color: C.red }}>G</span> เข้าสู่ระบบด้วย Google
+    </button>
+  );
+
+  /* ---------- LOGIN (โหมดจริง — ต่อ Supabase) ---------- */
+  if (!demo) {
+    if (auth.loading) {
+      return (
+        <AuthShell>
+          <div className="mt-10 flex justify-center" style={{ color: C.sub }}>
+            <Loader2 size={24} className="animate-spin" />
+          </div>
+        </AuthShell>
+      );
+    }
+    if (!auth.session) {
+      return (
+        <AuthShell>
+          <div className="mt-10">
+            <GoogleBtn onClick={() => auth.signInWithGoogle()} />
+            <p style={{ color: C.sub, fontSize: 12 }} className="mt-4 leading-relaxed">
+              เฉพาะอีเมลที่ได้รับเชิญ · เปิดใช้ยืนยันตัวตน 2 ชั้น
+            </p>
+          </div>
+        </AuthShell>
+      );
+    }
+    if (auth.notInvited || !auth.profile) {
+      return (
+        <AuthShell>
+          <div className="mt-8">
+            <div className="flex items-center justify-center gap-2" style={{ color: C.red }}>
+              <Lock size={16} /><span style={{ fontSize: 14, fontWeight: 700 }}>ยังไม่ได้รับเชิญ</span>
+            </div>
+            <p style={{ color: C.sub, fontSize: 12 }} className="mt-3 leading-relaxed">
+              อีเมล <b>{auth.session.user.email}</b> ยังไม่มีสิทธิ์เข้าใช้งาน<br />ติดต่อเจ้าของระบบเพื่อขอเชิญ
+            </p>
+            <button onClick={() => auth.signOut()}
+              className="mt-7 w-full rounded-2xl py-4" style={{ background: C.ink, color: "#fff", fontWeight: 700 }}>
+              ออกจากระบบ
+            </button>
+          </div>
+        </AuthShell>
+      );
+    }
+  }
+
+  /* ---------- LOGIN (โหมดเดโม — ข้อมูลจำลอง) ---------- */
+  if (demo && !authed) {
+    return (
+      <AuthShell>
+        {step === "google" ? (
+          <div className="mt-10">
+            <GoogleBtn onClick={() => setStep("otp")} />
+            <p style={{ color: C.sub, fontSize: 12 }} className="mt-4 leading-relaxed">
+              โหมดเดโม · เฉพาะอีเมลที่ได้รับเชิญ · เปิดใช้ยืนยันตัวตน 2 ชั้น
+            </p>
+          </div>
+        ) : (
+          <div className="mt-10">
+            <div className="flex items-center justify-center gap-2" style={{ color: C.red }}>
+              <Fingerprint size={18} /><span style={{ fontSize: 13, fontWeight: 600 }}>ยืนยันตัวตนขั้นที่ 2</span>
+            </div>
+            <div className="mt-4 flex justify-center gap-2">
+              {[1,2,3,4,5,6].map((n) => (
+                <div key={n} className="rounded-xl flex items-center justify-center"
+                  style={{ width: 44, height: 54, background: C.card, boxShadow: SHADOW_SM, fontFamily: disp, fontSize: 20, fontWeight: 700, color: C.ink }}>
+                  {n <= 2 ? "•" : ""}
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setAuthed(true)}
+              className="mt-7 w-full rounded-2xl py-4" style={{ background: C.red, color: "#fff", fontWeight: 700 }}>
+              ยืนยันรหัส OTP
+            </button>
+          </div>
+        )}
+      </AuthShell>
     );
   }
 
@@ -199,7 +262,7 @@ export default function App() {
           <div style={{ fontFamily: disp, fontSize: 22, fontWeight: 800, color: C.ink, letterSpacing: -0.3 }}>N SAVOIR</div>
         </div>
       )}
-      <button onClick={() => setRolePick(true)} className="flex items-center gap-2 rounded-full pl-2 pr-3 py-1.5"
+      <button onClick={() => (demo ? setRolePick(true) : go("me"))} className="flex items-center gap-2 rounded-full pl-2 pr-3 py-1.5"
         style={{ background: C.card, boxShadow: SHADOW_SM }}>
         <span className="rounded-full flex items-center justify-center"
           style={{ width: 26, height: 26, background: C.ink, color: "#fff", fontFamily: disp, fontWeight: 800, fontSize: 13 }}>N</span>
@@ -209,7 +272,7 @@ export default function App() {
     </div>
   );
 
-  const RolePicker = () => rolePick && (
+  const RolePicker = () => demo && rolePick && (
     <div className="fixed inset-0 z-40 flex items-end max-w-md mx-auto" style={{ background: "rgba(0,0,0,.4)" }}
       onClick={() => setRolePick(false)}>
       <div className="w-full rounded-t-3xl p-5" style={{ background: C.card }} onClick={(e) => e.stopPropagation()}>
@@ -676,7 +739,9 @@ export default function App() {
       <div className="flex items-center gap-3 mt-3">
         <div className="rounded-2xl flex items-center justify-center" style={{ width: 54, height: 54, background: C.ink, color: "#fff", fontFamily: disp, fontSize: 24, fontWeight: 800 }}>N</div>
         <div>
-          <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: C.ink }}>ผู้ใช้เดโม</div>
+          <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: C.ink }}>
+            {demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user.email || "ผู้ใช้")}
+          </div>
           <div style={{ color: C.sub, fontSize: 12 }}>{P.name} · {P.en}</div>
         </div>
       </div>
@@ -688,14 +753,20 @@ export default function App() {
         ["สูตรกลิ่น (Formula Lab)", P.formula ? "เข้าได้" : "ล็อก", P.formula],
         ["Audit Log", P.audit ? "ดู/export ได้" : "ไม่ได้", P.audit],
       ].map(([k, v, ok]) => (
-        <div key={k} className="flex items-center justify-between rounded-2xl px-4 py-3.5 mb-2" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+        <div key={String(k)} className="flex items-center justify-between rounded-2xl px-4 py-3.5 mb-2" style={{ background: C.card, boxShadow: SHADOW_SM }}>
           <span style={{ color: C.ink, fontSize: 13, fontWeight: 500 }}>{k}</span>
           <span style={{ color: ok ? C.green : C.red, fontSize: 12, fontWeight: 700 }}>{v}</span>
         </div>
       ))}
-      <button onClick={() => setRolePick(true)} className="w-full mt-3 rounded-2xl py-4" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
-        สลับ role เพื่อทดสอบสิทธิ์
-      </button>
+      {demo ? (
+        <button onClick={() => setRolePick(true)} className="w-full mt-3 rounded-2xl py-4" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
+          สลับ role เพื่อทดสอบสิทธิ์
+        </button>
+      ) : (
+        <button onClick={() => auth.signOut()} className="w-full mt-3 rounded-2xl py-4 flex items-center justify-center gap-2" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
+          <LogOut size={16} /> ออกจากระบบ
+        </button>
+      )}
     </div>
   );
 
