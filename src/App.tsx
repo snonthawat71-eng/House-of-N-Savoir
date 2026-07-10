@@ -13,6 +13,14 @@ import MfaGate from "./MfaGate";
 import UsersAdmin from "./UsersAdmin";
 import ProductsScreen from "./ProductsScreen";
 import AuditScreen from "./AuditScreen";
+import B2BReal from "./screens/B2B";
+import B2CReal from "./screens/B2C";
+import SupplierReal from "./screens/Supplier";
+import OfficeReal from "./screens/Office";
+import FormulaLabReal from "./screens/FormulaLab";
+import DashboardReal from "./screens/Dashboard";
+import AlertsReal from "./screens/Alerts";
+import ImportScreen from "./screens/Import";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -187,9 +195,10 @@ export default function App() {
   const role = demo ? roleDemo : (auth.profile?.role ?? "sales");
   const P = ROLES[role as keyof typeof ROLES] || ROLES.sales;
   const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
-  // ออกจากหน้า Connect เมื่อไหร่ ให้ล็อกทันที (ต้องใส่รหัสใหม่)
+  // โซน Connect: เดินไปมาภายในไม่ต้องใส่รหัสซ้ำ — จะล็อกใหม่เมื่อ "ออกจากโซน" เท่านั้น
+  const CONNECT_AREA = ["connect", "portal", "audit", "users", "formula", "products"];
   const go = (s) => {
-    if (s !== "connect") setConnectUnlocked(false);
+    if (!CONNECT_AREA.includes(s)) setConnectUnlocked(false);
     setHistory((h) => (s === screen ? h : [...h, screen]));
     setScreen(s);
     window.scrollTo(0, 0);
@@ -198,7 +207,7 @@ export default function App() {
   const goBack = () => {
     setHistory((h) => {
       const prev = h.length ? h[h.length - 1] : "modules";
-      if (prev !== "connect") setConnectUnlocked(false);
+      if (!CONNECT_AREA.includes(prev)) setConnectUnlocked(false);
       setScreen(prev);
       return h.slice(0, -1);
     });
@@ -895,7 +904,7 @@ export default function App() {
   );
 
   /* ---------- router ---------- */
-  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"สินค้ากลาง", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้" };
+  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV" };
   const NAV = [
     { id: "modules", label: "Overview", icon: Home },
     { id: "home", label: "Dashboard", icon: LayoutGrid },
@@ -906,20 +915,21 @@ export default function App() {
   const Body = () => {
     switch (screen) {
       case "modules": return <ModulesScreen />;
-      case "home": return <HomeScreen />;
-      case "office": return <Office />;
-      case "b2b": return <B2BScreen />;
-      case "b2c": return <B2CScreen />;
-      case "supplier": return <SupplierScreen />;
+      case "home": return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
+      case "office": return demo ? <Office /> : <OfficeReal go={go} finance={P.finance} />;
+      case "b2b": return demo ? <B2BScreen /> : <B2BReal />;
+      case "b2c": return demo ? <B2CScreen /> : <B2CReal />;
+      case "supplier": return demo ? <SupplierScreen /> : <SupplierReal />;
       case "products": return demo ? <Products /> : <ProductsScreen />;
       case "connect": return connectUnlocked ? <ConnectScreen /> : <ConnectLocked />;
       case "portal": return <PortalScreen />;
-      case "formula": return <Formula />;
+      case "formula": return demo ? <Formula /> : <FormulaLabReal />;
       case "audit": return demo ? <Audit /> : <AuditScreen />;
-      case "alerts": return <Alerts />;
+      case "alerts": return demo ? <Alerts /> : <AlertsReal />;
       case "me": return <Me />;
       case "users": return <UsersAdmin />;
-      default: return <HomeScreen />;
+      case "import": return <ImportScreen />;
+      default: return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
     }
   };
 
