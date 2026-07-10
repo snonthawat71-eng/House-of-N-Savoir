@@ -99,7 +99,7 @@ export default function ImportScreen() {
       <label className="w-full rounded-3xl py-10 flex flex-col items-center justify-center gap-3 cursor-pointer"
         style={{ background: C.card, boxShadow: SHADOW_SM, border: `2px dashed ${C.line}` }}>
         {busy ? <Loader2 size={28} className="animate-spin" style={{ color: C.sub }} />
-          : <FileSpreadsheet size={28} style={{ color: C.red }} />}
+          : <FileSpreadsheet size={28} style={{ color: C.brand }} />}
         <span style={{ color: C.ink, fontSize: 14, fontWeight: 700 }}>{busy ? "กำลังนำเข้า…" : "แตะเพื่อเลือกไฟล์"}</span>
         <span style={{ color: C.sub, fontSize: 12 }}>Excel (.xlsx) หรือ CSV</span>
         <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={busy}

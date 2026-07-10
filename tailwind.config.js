@@ -12,9 +12,11 @@ export default {
     },
     extend: {
       colors: {
-        // สีเดิมของแอป
+        // สีแบรนด์
         ink: "#111214",
-        brand: "#E5322A",
+        brand: "#014BAA",
+        imperial: "#001D51",
+        cream: "#F8F3F0",
         // โทเคนของ shadcn/ui (อ้างอิงตัวแปร CSS)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -35,8 +37,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        disp: ["'Plus Jakarta Sans'", "system-ui", "sans-serif"],
-        sans: ["'Inter'", "system-ui", "sans-serif"],
+        disp: ["'Urbanist'", "'Noto Sans Thai'", "system-ui", "sans-serif"],
+        sans: ["'Urbanist'", "'Noto Sans Thai'", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },

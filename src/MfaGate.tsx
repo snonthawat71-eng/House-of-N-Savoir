@@ -5,10 +5,10 @@ import { useAuth } from "./lib/auth";
 
 const C = {
   bg: "#F1F2F4", card: "#FFFFFF", ink: "#111214",
-  sub: "#8A8F98", line: "#EAECEF", red: "#E5322A",
+  sub: "#8A8F98", line: "#EAECEF", brand: "#014BAA", brandSoft: "#E7EEF7", red: "#E5322A",
 };
-const disp = "'Plus Jakarta Sans', system-ui, sans-serif";
-const sans = "'Inter', system-ui, sans-serif";
+const disp = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
+const sans = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
 
 /**
  * หน้าจอยืนยันตัวตนขั้นที่ 2 (2FA/OTP ด้วยแอป Authenticator)
@@ -95,7 +95,7 @@ export default function MfaGate() {
       <div className="w-full text-center">
         <div className="mx-auto mb-4 flex items-center justify-center rounded-2xl"
           style={{ width: 64, height: 64, background: C.ink, color: "#fff" }}>
-          <ShieldCheck size={30} style={{ color: C.red }} />
+          <ShieldCheck size={30} style={{ color: C.brand }} />
         </div>
         <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800 }}>ยืนยันตัวตนขั้นที่ 2</div>
 
@@ -142,7 +142,7 @@ export default function MfaGate() {
             {err && <p style={{ color: C.red, fontSize: 12 }} className="mt-2">{err}</p>}
             <button onClick={submit} disabled={busy}
               className="mt-4 w-full rounded-2xl py-4 flex items-center justify-center gap-2"
-              style={{ background: C.red, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
+              style={{ background: C.brand, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
               {busy ? <Loader2 size={18} className="animate-spin" /> : "ยืนยัน"}
             </button>
           </div>

@@ -94,7 +94,7 @@ export function DetailActions({ onEdit, onDelete }: { onEdit?: () => void; onDel
         </button>
       )}
       {onDelete && (
-        <button onClick={onDelete} aria-label="ลบ" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.1)] text-primary">
+        <button onClick={onDelete} aria-label="ลบ" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[hsl(var(--destructive)/0.1)] text-destructive">
           <Trash2 size={18} />
         </button>
       )}

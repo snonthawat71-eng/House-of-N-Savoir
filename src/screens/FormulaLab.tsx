@@ -48,7 +48,7 @@ export default function FormulaLab() {
   return (
     <div className="px-5 pb-32">
       <div className="mt-2 flex items-center gap-3 rounded-3xl p-4" style={{ background: C.ink }}>
-        <ShieldCheck size={22} style={{ color: C.red }} />
+        <ShieldCheck size={22} style={{ color: C.brand }} />
         <div>
           <div className="font-disp text-[15px] font-bold text-white">พื้นที่ลับสุดยอด</div>
           <div className="text-[11px]" style={{ color: "#9AA0A6" }}>ทุกการเข้าดูถูกบันทึกใน Audit Log</div>
@@ -66,8 +66,8 @@ export default function FormulaLab() {
       ) : (
         list.map((f) => (
           <div key={f.id} onClick={() => openFormula(f)} className="mb-2.5 flex cursor-pointer items-center gap-3 rounded-3xl bg-card p-4 shadow-sm">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: C.redSoft }}>
-              <FlaskConical size={20} style={{ color: C.red }} />
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: C.brandSoft }}>
+              <FlaskConical size={20} style={{ color: C.brand }} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-disp text-[15px] font-bold text-foreground">{f.name}</div>
@@ -104,7 +104,7 @@ function FormulaView({ f, onEdit, onDelete }: { f: Formula; onEdit: () => void; 
         {(f.lines || []).map((l, i, a) => (
           <div key={i} className="flex items-center justify-between py-2" style={{ borderBottom: i < a.length - 1 ? `1px solid ${C.line}` : "none" }}>
             <span className="text-[13px] text-foreground">{l.ingredient}</span>
-            <span className="text-[13px] font-bold" style={{ fontFamily: mono, color: C.red }}>{l.pct}%</span>
+            <span className="text-[13px] font-bold" style={{ fontFamily: mono, color: C.brand }}>{l.pct}%</span>
           </div>
         ))}
         <div className="flex items-center justify-between pt-2" style={{ borderTop: `1px solid ${C.line}` }}>
@@ -118,7 +118,7 @@ function FormulaView({ f, onEdit, onDelete }: { f: Formula; onEdit: () => void; 
         {[["ต้นทุนวัตถุดิบ/ขวด", baht(f.cost_material)], ["บรรจุภัณฑ์", baht(f.cost_packaging)], ["ต้นทุนรวม", baht(costTotal)], [`ราคาขายแนะนำ (×${f.multiplier})`, baht(Math.round(price))]].map(([n, v], i) => (
           <div key={String(n)} className="flex items-center justify-between py-2" style={{ borderBottom: i < 3 ? `1px solid ${C.line}` : "none" }}>
             <span className="text-[13px]" style={{ color: C.ink, fontWeight: i === 3 ? 700 : 400 }}>{n}</span>
-            <span className="font-disp text-sm font-bold" style={{ color: i === 3 ? C.red : C.ink }}>{v}</span>
+            <span className="font-disp text-sm font-bold" style={{ color: i === 3 ? C.brand : C.ink }}>{v}</span>
           </div>
         ))}
       </div>
@@ -167,7 +167,7 @@ function FormulaFields({ initial, onDone }: { initial: Formula | null; onDone: (
         {lines.map((l, i) => (
           <div key={i} className="mb-2 flex items-center gap-2 rounded-2xl bg-card px-4 py-2.5 shadow-sm">
             <span className="flex-1 text-[13px] text-foreground">{l.ingredient}</span>
-            <span className="text-[13px] font-bold" style={{ fontFamily: mono, color: C.red }}>{l.pct}%</span>
+            <span className="text-[13px] font-bold" style={{ fontFamily: mono, color: C.brand }}>{l.pct}%</span>
             <button onClick={() => setLines(lines.filter((_, x) => x !== i))}><X size={14} style={{ color: C.sub }} /></button>
           </div>
         ))}
@@ -182,11 +182,11 @@ function FormulaFields({ initial, onDone }: { initial: Formula | null; onDone: (
         <Field label="บรรจุภัณฑ์ (฿)"><input value={f.cost_packaging || ""} onChange={(e) => set("cost_packaging", num(e.target.value))} inputMode="numeric" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       </div>
       <Field label="ตัวคูณราคาขาย (เช่น 4.8)"><input value={f.multiplier || ""} onChange={(e) => set("multiplier", num(e.target.value))} inputMode="decimal" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      <div className="mb-3 flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: C.redSoft }}>
+      <div className="mb-3 flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: C.brandSoft }}>
         <span className="text-[13px] font-semibold text-foreground">ต้นทุนรวม {baht(costTotal)} → ราคาแนะนำ</span>
-        <span className="font-disp text-base font-extrabold" style={{ color: C.red }}>{baht(Math.round(costTotal * f.multiplier))}</span>
+        <span className="font-disp text-base font-extrabold" style={{ color: C.brand }}>{baht(Math.round(costTotal * f.multiplier))}</span>
       </div>
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึกสูตร"}</Button>
     </div>
   );

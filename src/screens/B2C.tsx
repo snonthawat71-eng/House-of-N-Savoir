@@ -256,7 +256,7 @@ export default function B2C() {
           <ChevronRight size={18} className="text-muted-foreground" />
         </button>
 
-        <button onClick={() => delShop(shop)} className="mt-6 w-full rounded-2xl bg-[hsl(var(--primary)/0.1)] py-3 text-sm font-semibold text-primary">ลบร้านนี้</button>
+        <button onClick={() => delShop(shop)} className="mt-6 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
 
         <Modal open={popup === "monthly"} onClose={() => setPopup(null)} title={`ยอดขายเดือนนี้ · ${monthLabel}`}>
           <div className="pb-4">
@@ -521,7 +521,7 @@ function ShopForm({ initial, onDone }: { initial: Location | null; onDone: () =>
       <Field label="เลขผู้เสียภาษี">{inp("tax_id")}</Field>
       <Field label="เบอร์ติดต่อ">{inp("phone")}</Field>
       <Field label="อีเมล">{inp("email")}</Field>
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
     </div>
   );

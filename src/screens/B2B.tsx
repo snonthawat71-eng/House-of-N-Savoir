@@ -277,7 +277,7 @@ function CustomerFields({ initial, onDone }: { initial: Customer | null; onDone:
       <Field label="เบอร์โทร"><input value={f.phone} onChange={(e) => set("phone", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="เครดิต (เช่น 30 วัน)"><input value={f.credit_terms} onChange={(e) => set("credit_terms", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="โน้ต"><input value={f.note} onChange={(e) => set("note", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
     </div>
   );
@@ -308,7 +308,7 @@ function OrderFields({ customers, onDone }: { customers: Customer[]; onDone: () 
         <datalist id="b2b-customers">{customers.map((c) => <option key={c.id} value={c.name} />)}</datalist>
       </Field>
       <LineItemsEditor items={items} onChange={setItems} />
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : `บันทึกออเดอร์ · ${baht(itemsTotal(items))}`}</Button>
     </div>
   );
@@ -338,7 +338,7 @@ function SampleFields({ customers, onDone }: { customers: Customer[]; onDone: ()
       <Field label="รายการ (เช่น Bois d'Encre ×3)"><input value={f.item} onChange={(e) => set("item", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="วันที่ส่ง"><input type="date" value={f.sent_date} onChange={(e) => set("sent_date", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="เลข tracking"><input value={f.tracking} onChange={(e) => set("tracking", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
     </div>
   );

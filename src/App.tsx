@@ -26,13 +26,15 @@ import Overview from "./screens/Overview";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
- *  Skin: fintech-clean · white / black / gray / red
+ *  Skin: fintech-clean · cream / black / gray / royal blue
  * ------------------------------------------------------------------ */
 
 const C = {
   bg: "#F1F2F4", card: "#FFFFFF",
   ink: "#111214", ink2: "#1A1B1E",
   sub: "#8A8F98", line: "#EAECEF",
+  brand: "#014BAA", brandSoft: "#E7EEF7",
+  imperial: "#001D51", cream: "#F8F3F0",
   red: "#E5322A", redSoft: "#FDECEA",
   green: "#16A45C", greenSoft: "#E7F5EE",
 };
@@ -40,10 +42,10 @@ const SHADOW = "0 1px 2px rgba(17,18,20,.04), 0 8px 24px rgba(17,18,20,.06)";
 const SHADOW_SM = "0 1px 2px rgba(17,18,20,.05), 0 4px 12px rgba(17,18,20,.05)";
 
 const FONTS = `
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 `;
-const disp = "'Plus Jakarta Sans', system-ui, sans-serif";
-const sans = "'Inter', system-ui, sans-serif";
+const disp = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
+const sans = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
 const mono = "'Space Mono', ui-monospace, monospace";
 
 /* ---------------- roles & permissions ---------------- */
@@ -127,14 +129,14 @@ function Line() {
     <svg viewBox="0 0 300 112" className="w-full" style={{ height: 120 }}>
       <defs>
         <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={C.red} stopOpacity="0.14" />
-          <stop offset="1" stopColor={C.red} stopOpacity="0" />
+          <stop offset="0" stopColor={C.brand} stopOpacity="0.14" />
+          <stop offset="1" stopColor={C.brand} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={area} fill="url(#g)" />
-      <path d={d} fill="none" stroke={C.red} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={C.brand} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {pts.map((p, i) => i === pts.length - 1 && (
-        <circle key={i} cx={p[0]} cy={p[1]} r="4" fill={C.red} stroke="#fff" strokeWidth="2" />
+        <circle key={i} cx={p[0]} cy={p[1]} r="4" fill={C.brand} stroke="#fff" strokeWidth="2" />
       ))}
     </svg>
   );
@@ -229,7 +231,7 @@ export default function App() {
     <button onClick={onClick}
       className="w-full flex items-center justify-center gap-3 rounded-2xl py-4"
       style={{ background: C.card, color: C.ink, fontWeight: 600, boxShadow: SHADOW_SM }}>
-      <span style={{ fontFamily: disp, fontWeight: 800, color: C.red }}>G</span> เข้าสู่ระบบด้วย Google
+      <span style={{ fontFamily: disp, fontWeight: 800, color: C.brand }}>G</span> เข้าสู่ระบบด้วย Google
     </button>
   );
 
@@ -293,7 +295,7 @@ export default function App() {
           </div>
         ) : (
           <div className="mt-10">
-            <div className="flex items-center justify-center gap-2" style={{ color: C.red }}>
+            <div className="flex items-center justify-center gap-2" style={{ color: C.brand }}>
               <Fingerprint size={18} /><span style={{ fontSize: 13, fontWeight: 600 }}>ยืนยันตัวตนขั้นที่ 2</span>
             </div>
             <div className="mt-4 flex justify-center gap-2">
@@ -305,7 +307,7 @@ export default function App() {
               ))}
             </div>
             <button onClick={() => setAuthed(true)}
-              className="mt-7 w-full rounded-2xl py-4" style={{ background: C.red, color: "#fff", fontWeight: 700 }}>
+              className="mt-7 w-full rounded-2xl py-4" style={{ background: C.brand, color: "#fff", fontWeight: 700 }}>
               ยืนยันรหัส OTP
             </button>
           </div>
@@ -347,7 +349,7 @@ export default function App() {
       <div className="w-full rounded-t-3xl p-5" style={{ background: C.card }} onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mb-4 rounded-full" style={{ width: 40, height: 4, background: C.line }} />
         <div className="flex items-center gap-2 mb-1" style={{ color: C.ink }}>
-          <KeyRound size={16} style={{ color: C.red }} /><span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700 }}>สลับมุมมองสิทธิ์ (เดโม)</span>
+          <KeyRound size={16} style={{ color: C.brand }} /><span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700 }}>สลับมุมมองสิทธิ์ (เดโม)</span>
         </div>
         <p style={{ color: C.sub, fontSize: 12 }} className="mb-4">
           สลับ role เพื่อดูว่าแต่ละคนเห็น/ทำอะไรได้ — ต้นทุน สูตร และการเงินจะถูกซ่อนตามสิทธิ์
@@ -361,7 +363,7 @@ export default function App() {
                 <span style={{ color: role === k ? "#9AA0A6" : C.sub, fontWeight: 400 }}> · {r.en}</span></div>
               <div style={{ color: role === k ? "#9AA0A6" : C.sub, fontSize: 11 }}>เข้าถึง {r.mods.length} หมวด {r.formula ? "· สูตรลับ" : ""} {r.finance ? "· การเงิน" : ""}</div>
             </div>
-            {role === k && <Check size={18} style={{ color: C.red }} />}
+            {role === k && <Check size={18} style={{ color: C.brand }} />}
           </button>
         ))}
       </div>
@@ -393,7 +395,7 @@ export default function App() {
       onClick={() => setPinOpen(false)}>
       <div className="w-full rounded-3xl p-6 text-center" style={{ background: C.card }} onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mb-3 flex items-center justify-center rounded-2xl" style={{ width: 52, height: 52, background: C.ink }}>
-          <Lock size={22} style={{ color: C.red }} />
+          <Lock size={22} style={{ color: C.brand }} />
         </div>
         <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: C.ink }}>ใส่รหัสเข้า Connect</div>
         <div style={{ color: C.sub, fontSize: 12, marginTop: 4 }}>เฉพาะเจ้าของเท่านั้น</div>
@@ -404,7 +406,7 @@ export default function App() {
           className="w-full rounded-2xl py-4 text-center mt-5"
           style={{ background: C.bg, border: "none", outline: "none", fontFamily: disp, fontSize: 26, letterSpacing: 8, color: C.ink }} />
         {pinErr && <p style={{ color: C.red, fontSize: 12 }} className="mt-2">{pinErr}</p>}
-        <button onClick={submitPin} className="w-full rounded-2xl py-4 mt-4" style={{ background: C.red, color: "#fff", fontWeight: 700 }}>
+        <button onClick={submitPin} className="w-full rounded-2xl py-4 mt-4" style={{ background: C.brand, color: "#fff", fontWeight: 700 }}>
           เข้าสู่ Connect
         </button>
       </div>
@@ -419,14 +421,14 @@ export default function App() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2" style={{ color: "#fff" }}>
-              <FlaskConical size={18} style={{ color: C.red }} />
+              <FlaskConical size={18} style={{ color: C.brand }} />
               <span style={{ fontFamily: disp, fontSize: 17, fontWeight: 700 }}>Formula Lab</span>
             </div>
             <div style={{ color: "#9AA0A6", fontSize: 12, marginTop: 6, maxWidth: 200 }}>
               สูตรผสมกลิ่น + คำนวณต้นทุน/ราคา · ลับสุดยอด
             </div>
             <div className="mt-4 inline-flex items-center gap-1 rounded-full px-3 py-1.5"
-              style={{ background: P.formula ? C.red : "#2A2B2E", color: "#fff", fontSize: 12, fontWeight: 600 }}>
+              style={{ background: P.formula ? C.brand : "#2A2B2E", color: "#fff", fontSize: 12, fontWeight: 600 }}>
               {P.formula ? <>เปิดดูสูตร <ChevronRight size={13} /></> : <><Lock size={12} /> เฉพาะเจ้าของ</>}
             </div>
           </div>
@@ -586,7 +588,7 @@ export default function App() {
       ))}
       <SectionTitle>เครื่องมือ</SectionTitle>
       <div className="grid grid-cols-2 gap-3">
-        <Card><RotateCcw size={19} style={{ color: C.red }} /><div style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: C.ink, marginTop: 8 }}>คืน / เคลม</div><div style={{ color: C.sub, fontSize: 11 }}>2 รายการเปิดอยู่</div></Card>
+        <Card><RotateCcw size={19} style={{ color: C.brand }} /><div style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: C.ink, marginTop: 8 }}>คืน / เคลม</div><div style={{ color: C.sub, fontSize: 11 }}>2 รายการเปิดอยู่</div></Card>
       </div>
       <SectionTitle>ตัวอย่างที่ส่งแล้ว · tracking</SectionTitle>
       {SAMPLES.map((s) => (
@@ -613,7 +615,7 @@ export default function App() {
         <Card key={l.name} style={{ marginBottom: 10 }}>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2" style={{ color: C.ink, fontSize: 14, fontWeight: 600 }}>
-              <MapPin size={15} style={{ color: C.red }} /> {l.name}
+              <MapPin size={15} style={{ color: C.brand }} /> {l.name}
             </span>
             <span style={{ fontFamily: disp, fontWeight: 800, fontSize: 20, color: C.ink }}>{l.stock}</span>
           </div>
@@ -693,7 +695,7 @@ export default function App() {
   const Formula = () => (
     <div className="px-5 pb-32">
       <div className="rounded-3xl p-4 mt-2 flex items-center gap-3" style={{ background: C.ink }}>
-        <ShieldCheck size={22} style={{ color: C.red }} />
+        <ShieldCheck size={22} style={{ color: C.brand }} />
         <div>
           <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: "#fff" }}>พื้นที่ลับสุดยอด</div>
           <div style={{ fontSize: 11, color: "#9AA0A6" }}>ทุกการเข้าดูถูกบันทึกใน Audit Log</div>
@@ -704,7 +706,7 @@ export default function App() {
         {[["Vetiver Haiti","18%"],["Bergamot Calabria","12%"],["Cedarwood Atlas","9%"],["Iso E Super","22%"],["Ambroxan","6%"],["Ethanol / base","33%"]].map(([n,v],i,a) => (
           <div key={n} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < a.length-1 ? `1px solid ${C.line}` : "none" }}>
             <span style={{ color: C.ink, fontSize: 13 }}>{n}</span>
-            <span style={{ fontFamily: mono, fontSize: 13, color: C.red, fontWeight: 700 }}>{v}</span>
+            <span style={{ fontFamily: mono, fontSize: 13, color: C.brand, fontWeight: 700 }}>{v}</span>
           </div>
         ))}
       </Card>
@@ -713,7 +715,7 @@ export default function App() {
         {[["ต้นทุนวัตถุดิบ/ขวด","฿420"],["บรรจุภัณฑ์","฿180"],["ต้นทุนรวม","฿600"],["ราคาขายแนะนำ (×4.8)","฿2,900"]].map(([n,v],i) => (
           <div key={n} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < 3 ? `1px solid ${C.line}` : "none" }}>
             <span style={{ color: C.ink, fontSize: 13, fontWeight: i === 3 ? 700 : 400 }}>{n}</span>
-            <span style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: i === 3 ? C.red : C.ink }}>{v}</span>
+            <span style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: i === 3 ? C.brand : C.ink }}>{v}</span>
           </div>
         ))}
       </Card>
@@ -867,7 +869,7 @@ export default function App() {
               return (
                 <button key={n.id} onClick={() => go(n.id)}
                   className="flex items-center gap-2 rounded-full transition-all"
-                  style={{ background: active ? C.red : "transparent", padding: active ? "10px 16px" : "10px 12px" }}>
+                  style={{ background: active ? C.brand : "transparent", padding: active ? "10px 16px" : "10px 12px" }}>
                   <n.icon size={20} style={{ color: active ? "#fff" : "#9AA0A6" }} />
                   {active && <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{n.label}</span>}
                 </button>

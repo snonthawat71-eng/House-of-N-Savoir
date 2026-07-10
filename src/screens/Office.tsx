@@ -89,7 +89,7 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
             <div className="mt-3 flex items-end gap-2" style={{ height: 80 }}>
               {months.map((m) => (
                 <div key={m.label} className="flex flex-1 flex-col items-center gap-1">
-                  <div className="w-full rounded-t-lg" style={{ height: Math.max(4, (m.total / max) * 64), background: m.total > 0 ? C.red : C.line }} />
+                  <div className="w-full rounded-t-lg" style={{ height: Math.max(4, (m.total / max) * 64), background: m.total > 0 ? C.brand : C.line }} />
                   <span style={{ fontFamily: mono, fontSize: 9, color: C.sub }}>{m.label}</span>
                 </div>
               ))}
@@ -233,7 +233,7 @@ function QuoteFields({ onDone }: { onDone: () => void }) {
         <datalist id="q-customers">{customers.map((c) => <option key={c.id} value={c.name} />)}</datalist>
       </Field>
       <LineItemsEditor items={items} onChange={setItems} />
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]"><FileText size={16} /> {busy ? "กำลังบันทึก…" : `บันทึก · ${baht(itemsTotal(items))}`}</Button>
     </div>
   );

@@ -61,7 +61,7 @@ export default function ProductsScreen() {
           <Plus size={16} /> เพิ่มสินค้าใหม่
         </button>
       )}
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
 
       {loading ? (
         <div className="flex justify-center py-10 text-muted-foreground"><Loader2 size={22} className="animate-spin" /></div>
@@ -146,7 +146,7 @@ function ProductFields({ initial, onDone }: { initial: Product; onDone: () => vo
         <Field label="ราคาขาย (฿)"><input value={f.retail ?? ""} onChange={(e) => set("retail", num(e.target.value))} inputMode="numeric" placeholder="2900" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       </div>
       <Field label="คงเหลือ (ชิ้น)"><input value={f.stock ?? 0} onChange={(e) => set("stock", num(e.target.value) ?? 0)} inputMode="numeric" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
     </div>
   );

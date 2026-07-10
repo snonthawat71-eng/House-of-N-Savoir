@@ -1,9 +1,9 @@
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { ArrowUpRight } from "lucide-react";
 
-const C = { ink: "#111214", red: "#E5322A", sub: "#9AA0A6" };
-const disp = "'Plus Jakarta Sans', system-ui, sans-serif";
-const sans = "'Inter', system-ui, sans-serif";
+const C = { ink: "#111214", brand: "#014BAA", red: "#E5322A", sub: "#9AA0A6" };
+const disp = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
+const sans = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
 
 /**
  * แถบแจ้งเตือนเมื่อมีเวอร์ชันใหม่ของแอป
@@ -31,7 +31,7 @@ export default function UpdatePrompt() {
         </button>
         <button onClick={() => updateServiceWorker(true)}
           className="rounded-full flex items-center gap-1"
-          style={{ background: C.red, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 16px", border: "none" }}>
+          style={{ background: C.brand, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 16px", border: "none" }}>
           อัปเดต <ArrowUpRight size={14} />
         </button>
       </div>

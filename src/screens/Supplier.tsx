@@ -198,7 +198,7 @@ function SupplierFields({ initial, onDone }: { initial: Supplier | null; onDone:
       <Field label="เบอร์โทร"><input value={f.phone} onChange={(e) => set("phone", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="วันหมดอายุสัญญา (แจ้งเตือนก่อนหมด)"><input type="date" value={f.contract_end} onChange={(e) => set("contract_end", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="โน้ต"><input value={f.note} onChange={(e) => set("note", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
     </div>
   );
@@ -229,7 +229,7 @@ function POFields({ suppliers, onDone }: { suppliers: Supplier[]; onDone: () => 
         <datalist id="po-suppliers">{suppliers.map((s) => <option key={s.id} value={s.name} />)}</datalist>
       </Field>
       <LineItemsEditor items={items} onChange={setItems} freeText />
-      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : `บันทึก PO · ${baht(itemsTotal(items))}`}</Button>
     </div>
   );

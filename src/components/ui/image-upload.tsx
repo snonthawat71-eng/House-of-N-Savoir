@@ -55,7 +55,7 @@ export function ImageUpload({ value, onChange, folder = "misc" }: {
           PNG, JPG, SVG หรือ GIF
         </div>
       </button>
-      {err && <p className="mt-2 text-xs text-primary">{err}</p>}
+      {err && <p className="mt-2 text-xs text-destructive">{err}</p>}
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
     </div>
   );

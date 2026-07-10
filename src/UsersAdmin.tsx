@@ -6,12 +6,13 @@ import { useAuth } from "./lib/auth";
 
 const C = {
   bg: "#F1F2F4", card: "#FFFFFF", ink: "#111214",
-  sub: "#8A8F98", line: "#EAECEF", red: "#E5322A", redSoft: "#FDECEA",
+  sub: "#8A8F98", line: "#EAECEF", brand: "#014BAA", brandSoft: "#E7EEF7",
+  red: "#E5322A", redSoft: "#FDECEA",
   green: "#16A45C", greenSoft: "#E7F5EE",
 };
 const SHADOW_SM = "0 1px 2px rgba(17,18,20,.05), 0 4px 12px rgba(17,18,20,.05)";
-const disp = "'Plus Jakarta Sans', system-ui, sans-serif";
-const sans = "'Inter', system-ui, sans-serif";
+const disp = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
+const sans = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "เจ้าของ",
@@ -115,7 +116,7 @@ export default function UsersAdmin() {
       {/* ฟอร์มเชิญ */}
       <div className="rounded-3xl p-4 mt-2" style={{ background: C.card, boxShadow: SHADOW_SM }}>
         <div className="flex items-center gap-2 mb-3" style={{ color: C.ink }}>
-          <UserPlus size={17} style={{ color: C.red }} />
+          <UserPlus size={17} style={{ color: C.brand }} />
           <span style={{ fontFamily: disp, fontSize: 15, fontWeight: 700 }}>เชิญผู้ใช้ใหม่</span>
         </div>
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="อีเมล Google"
