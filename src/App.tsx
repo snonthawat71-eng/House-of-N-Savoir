@@ -149,12 +149,27 @@ export default function App() {
   const [step, setStep] = useState("google");
   const [roleDemo, setRole] = useState("owner");
   const [screen, setScreen] = useState(() => {
-    // จำหน้าล่าสุดไว้ (ยกเว้นโซนลับ Connect ที่ต้องใส่รหัสใหม่)
+    // กลับหน้าเดิมเฉพาะถ้าออกจากแอปไม่เกิน 10 นาที (ยกเว้นโซนลับ Connect)
+    const RESUME_MS = 10 * 60 * 1000;
+    const within = Date.now() - Number(localStorage.getItem("ns_left_at") || 0) <= RESUME_MS;
     const s = localStorage.getItem("ns_screen");
-    return s && !["connect", "portal", "audit", "users", "formula", "products"].includes(s) ? s : "modules";
+    return within && s && !["connect", "portal", "audit", "users", "formula", "products"].includes(s) ? s : "modules";
   });
   const [history, setHistory] = useState<string[]>([]);
   useEffect(() => { localStorage.setItem("ns_screen", screen); }, [screen]);
+
+  // บันทึกเวลา "ออกจากแอป" ไว้ + ล้างสถานะ B2C ถ้าปิดแอปนานเกิน 10 นาที
+  useEffect(() => {
+    const RESUME_MS = 10 * 60 * 1000;
+    if (Date.now() - Number(localStorage.getItem("ns_left_at") || 0) > RESUME_MS) {
+      ["b2c_channel", "b2c_shop", "b2c_sub"].forEach((k) => localStorage.removeItem(k));
+    }
+    const mark = () => localStorage.setItem("ns_left_at", String(Date.now()));
+    const onVis = () => { if (document.hidden) mark(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", mark);
+    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", mark); };
+  }, []);
   const [rolePick, setRolePick] = useState(false);
 
   // รหัสเข้า N SAVOIR CONNECT (ล็อกอีกชั้นสำหรับเจ้าของ)
