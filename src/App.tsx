@@ -386,10 +386,10 @@ export default function App() {
   );
 
   const MODULES = [
-    { id: "office", name: "Office", icon: Building2, sub: "เอกสาร · สถิติ" },
-    { id: "b2b", name: "B2B", icon: Handshake, sub: "ลูกค้า · ออเดอร์" },
     { id: "b2c", name: "B2C", icon: Store, sub: "สต็อก · ฝากขาย" },
+    { id: "b2b", name: "B2B", icon: Handshake, sub: "ลูกค้า · ออเดอร์" },
     { id: "supplier", name: "Supplier", icon: Factory, sub: "PO · สัญญา" },
+    { id: "office", name: "Office", icon: Building2, sub: "เอกสาร · สถิติ" },
   ];
 
   /* ---------- MODULES = หน้าแรกหลังล็อกอิน (โลโก้ + ชื่อผู้ใช้ + 4 การ์ด + CONNECT) ---------- */
