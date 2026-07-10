@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Loader2, ArrowLeft, ShieldCheck, FlaskConical, Trash2, X } from "lucide-react";
+import { Plus, Loader2, ShieldCheck, FlaskConical, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle } from "../lib/ui";
 import { Field } from "./B2B";
+import { Modal, DetailActions } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 type Line = { ingredient: string; pct: number };
 type Formula = {
@@ -12,124 +14,120 @@ type Formula = {
   cost_material: number; cost_packaging: number; multiplier: number; note: string | null;
 };
 
+type ModalState = { k: "form"; item: Formula | null } | { k: "view"; item: Formula } | null;
+
 export default function FormulaLab() {
   const [list, setList] = useState<Formula[]>([]);
-  const [openF, setOpenF] = useState<Formula | null>(null);
-  const [editing, setEditing] = useState<Formula | null | "new">(null);
+  const [modal, setModal] = useState<ModalState>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("formulas")
-      .select("id,name,product_sku,lines,cost_material,cost_packaging,multiplier,note")
-      .order("name");
+    const { data } = await supabase.from("formulas").select("id,name,product_sku,lines,cost_material,cost_packaging,multiplier,note").order("name");
     setList((data as Formula[]) || []);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "formula-lab", entityId: "screen" }); }, [load]);
-  useBackHandler(editing !== null || openF !== null, () => { if (editing !== null) setEditing(null); else setOpenF(null); });
+  useBackHandler(modal !== null, () => setModal(null));
 
-  // เปิดดูสูตร = บันทึก log ทุกครั้ง (ข้อมูลลับสุดยอด)
+  const close = () => setModal(null);
+  const done = () => { setModal(null); load(); };
+
   function openFormula(f: Formula) {
-    logAudit({ action: "view", entity: "formula", entityId: f.name });
-    setOpenF(f);
+    logAudit({ action: "view", entity: "formula", entityId: f.name }); // ลับสุดยอด — บันทึกทุกการเปิดดู
+    setModal({ k: "view", item: f });
   }
-
-  if (editing) {
-    return <FormulaForm initial={editing === "new" ? null : editing} onDone={() => { setEditing(null); setOpenF(null); load(); }} />;
-  }
-
-  if (openF) {
-    const totalPct = (openF.lines || []).reduce((s, l) => s + (Number(l.pct) || 0), 0);
-    const costTotal = (Number(openF.cost_material) || 0) + (Number(openF.cost_packaging) || 0);
-    const price = costTotal * (Number(openF.multiplier) || 0);
-    return (
-      <div className="px-5 pb-32">
-        <div className="rounded-3xl p-4 mt-2 flex items-center gap-3" style={{ background: C.ink }}>
-          <ShieldCheck size={22} style={{ color: C.red }} />
-          <div>
-            <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: "#fff" }}>{openF.name}</div>
-            <div style={{ fontSize: 11, color: "#9AA0A6" }}>การเข้าดูครั้งนี้ถูกบันทึกใน Audit Log แล้ว</div>
-          </div>
-        </div>
-
-        <div className="px-1 mb-3 mt-6" style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: C.ink }}>สูตรผสมกลิ่น</div>
-        <div className="rounded-3xl p-4" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-          {(openF.lines || []).map((l, i, a) => (
-            <div key={i} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < a.length - 1 ? `1px solid ${C.line}` : "none" }}>
-              <span style={{ color: C.ink, fontSize: 13 }}>{l.ingredient}</span>
-              <span style={{ fontFamily: mono, fontSize: 13, color: C.red, fontWeight: 700 }}>{l.pct}%</span>
-            </div>
-          ))}
-          <div className="flex items-center justify-between pt-2.5 mt-1" style={{ borderTop: `1px solid ${C.line}` }}>
-            <span style={{ color: C.sub, fontSize: 12 }}>รวม</span>
-            <span style={{ fontFamily: mono, fontSize: 13, color: totalPct === 100 ? C.green : C.sub, fontWeight: 700 }}>{totalPct}%</span>
-          </div>
-        </div>
-
-        <div className="px-1 mb-3 mt-6" style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: C.ink }}>คำนวณต้นทุน → ราคา</div>
-        <div className="rounded-3xl p-4" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-          {[
-            ["ต้นทุนวัตถุดิบ/ขวด", baht(openF.cost_material)],
-            ["บรรจุภัณฑ์", baht(openF.cost_packaging)],
-            ["ต้นทุนรวม", baht(costTotal)],
-            [`ราคาขายแนะนำ (×${openF.multiplier})`, baht(Math.round(price))],
-          ].map(([n, v], i) => (
-            <div key={String(n)} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < 3 ? `1px solid ${C.line}` : "none" }}>
-              <span style={{ color: C.ink, fontSize: 13, fontWeight: i === 3 ? 700 : 400 }}>{n}</span>
-              <span style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: i === 3 ? C.red : C.ink }}>{v}</span>
-            </div>
-          ))}
-        </div>
-
-        <button onClick={() => setEditing(openF)} className="w-full rounded-2xl py-4 mt-4" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
-          แก้ไขสูตรนี้
-        </button>
-      </div>
-    );
+  async function del(f: Formula) {
+    if (!confirm("ลบสูตรนี้ถาวร?")) return;
+    await supabase.from("formulas").delete().eq("id", f.id);
+    await logAudit({ action: "delete", entity: "formula", entityId: f.name });
+    done();
   }
 
   return (
     <div className="px-5 pb-32">
-      <div className="rounded-3xl p-4 mt-2 flex items-center gap-3" style={{ background: C.ink }}>
+      <div className="mt-2 flex items-center gap-3 rounded-3xl p-4" style={{ background: C.ink }}>
         <ShieldCheck size={22} style={{ color: C.red }} />
         <div>
-          <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: "#fff" }}>พื้นที่ลับสุดยอด</div>
-          <div style={{ fontSize: 11, color: "#9AA0A6" }}>ทุกการเข้าดูถูกบันทึกใน Audit Log</div>
+          <div className="font-disp text-[15px] font-bold text-white">พื้นที่ลับสุดยอด</div>
+          <div className="text-[11px]" style={{ color: "#9AA0A6" }}>ทุกการเข้าดูถูกบันทึกใน Audit Log</div>
         </div>
       </div>
 
-      <div className="px-1 mb-3 mt-6 flex items-center justify-between">
-        <span style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: C.ink }}>สูตรทั้งหมด ({list.length})</span>
-        <button onClick={() => setEditing("new")} className="rounded-full flex items-center gap-1 px-3 py-1.5" style={{ background: C.red, color: "#fff", fontSize: 12, fontWeight: 600 }}>
-          <Plus size={13} /> สูตรใหม่
-        </button>
+      <div className="mb-3 mt-6 flex items-center justify-between px-1">
+        <span className="font-disp text-base font-bold text-foreground">สูตรทั้งหมด ({list.length})</span>
+        <button onClick={() => setModal({ k: "form", item: null })} className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white"><Plus size={13} /> สูตรใหม่</button>
       </div>
       {loading ? (
-        <div className="flex justify-center py-10" style={{ color: C.sub }}><Loader2 size={22} className="animate-spin" /></div>
+        <div className="flex justify-center py-10 text-muted-foreground"><Loader2 size={22} className="animate-spin" /></div>
       ) : list.length === 0 ? (
-        <p style={{ color: C.sub, fontSize: 13 }} className="px-1">ยังไม่มีสูตร — กด "สูตรใหม่" เพื่อสร้าง</p>
+        <p className="px-1 text-[13px] text-muted-foreground">ยังไม่มีสูตร — กด "สูตรใหม่" เพื่อสร้าง</p>
       ) : (
         list.map((f) => (
-          <div key={f.id} onClick={() => openFormula(f)} className="rounded-3xl p-4 mb-2.5 flex items-center gap-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.redSoft }}>
+          <div key={f.id} onClick={() => openFormula(f)} className="mb-2.5 flex cursor-pointer items-center gap-3 rounded-3xl bg-card p-4 shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: C.redSoft }}>
               <FlaskConical size={20} style={{ color: C.red }} />
             </div>
-            <div className="flex-1 min-w-0">
-              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>{f.name}</div>
-              <div style={{ color: C.sub, fontSize: 11.5 }}>
-                {(f.lines || []).length} ส่วนผสม{f.product_sku ? ` · ${f.product_sku}` : ""}
-              </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-disp text-[15px] font-bold text-foreground">{f.name}</div>
+              <div className="text-[11.5px] text-muted-foreground">{(f.lines || []).length} ส่วนผสม{f.product_sku ? ` · ${f.product_sku}` : ""}</div>
             </div>
           </div>
         ))
       )}
+
+      {/* ดูสูตร */}
+      <Modal open={modal?.k === "view"} onClose={close} title="สูตร (ลับสุดยอด)">
+        {modal?.k === "view" && <FormulaView f={modal.item} onEdit={() => setModal({ k: "form", item: modal.item })} onDelete={() => del(modal.item)} />}
+      </Modal>
+
+      {/* เพิ่ม/แก้สูตร */}
+      <Modal open={modal?.k === "form"} onClose={close} title={modal?.k === "form" && modal.item ? "แก้ไขสูตร" : "สร้างสูตรใหม่"}>
+        {modal?.k === "form" && <FormulaFields initial={modal.item} onDone={done} />}
+      </Modal>
     </div>
   );
 }
 
-function FormulaForm({ initial, onDone }: { initial: Formula | null; onDone: () => void }) {
+function FormulaView({ f, onEdit, onDelete }: { f: Formula; onEdit: () => void; onDelete: () => void }) {
+  const totalPct = (f.lines || []).reduce((s, l) => s + (Number(l.pct) || 0), 0);
+  const costTotal = (Number(f.cost_material) || 0) + (Number(f.cost_packaging) || 0);
+  const price = costTotal * (Number(f.multiplier) || 0);
+  return (
+    <div className="pb-2">
+      <div className="mb-1 font-disp text-xl font-extrabold text-foreground">{f.name}</div>
+      {f.product_sku && <div className="mb-3 text-xs text-muted-foreground" style={{ fontFamily: mono }}>{f.product_sku}</div>}
+
+      <div className="mt-2 mb-2 font-disp text-sm font-bold text-foreground">สูตรผสมกลิ่น</div>
+      <div className="rounded-2xl bg-secondary p-4">
+        {(f.lines || []).map((l, i, a) => (
+          <div key={i} className="flex items-center justify-between py-2" style={{ borderBottom: i < a.length - 1 ? `1px solid ${C.line}` : "none" }}>
+            <span className="text-[13px] text-foreground">{l.ingredient}</span>
+            <span className="text-[13px] font-bold" style={{ fontFamily: mono, color: C.red }}>{l.pct}%</span>
+          </div>
+        ))}
+        <div className="flex items-center justify-between pt-2" style={{ borderTop: `1px solid ${C.line}` }}>
+          <span className="text-xs text-muted-foreground">รวม</span>
+          <span className="text-[13px] font-bold" style={{ fontFamily: mono, color: totalPct === 100 ? C.green : C.sub }}>{totalPct}%</span>
+        </div>
+      </div>
+
+      <div className="mt-4 mb-2 font-disp text-sm font-bold text-foreground">ต้นทุน → ราคา</div>
+      <div className="rounded-2xl bg-secondary p-4">
+        {[["ต้นทุนวัตถุดิบ/ขวด", baht(f.cost_material)], ["บรรจุภัณฑ์", baht(f.cost_packaging)], ["ต้นทุนรวม", baht(costTotal)], [`ราคาขายแนะนำ (×${f.multiplier})`, baht(Math.round(price))]].map(([n, v], i) => (
+          <div key={String(n)} className="flex items-center justify-between py-2" style={{ borderBottom: i < 3 ? `1px solid ${C.line}` : "none" }}>
+            <span className="text-[13px]" style={{ color: C.ink, fontWeight: i === 3 ? 700 : 400 }}>{n}</span>
+            <span className="font-disp text-sm font-bold" style={{ color: i === 3 ? C.red : C.ink }}>{v}</span>
+          </div>
+        ))}
+      </div>
+      <DetailActions onEdit={onEdit} onDelete={onDelete} />
+    </div>
+  );
+}
+
+function FormulaFields({ initial, onDone }: { initial: Formula | null; onDone: () => void }) {
   const [f, setF] = useState({
     name: initial?.name || "", product_sku: initial?.product_sku || "",
     cost_material: initial?.cost_material ?? 0, cost_packaging: initial?.cost_packaging ?? 0,
@@ -140,7 +138,6 @@ function FormulaForm({ initial, onDone }: { initial: Formula | null; onDone: () 
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   const set = (k: string, v: any) => setF((s) => ({ ...s, [k]: v }));
   const num = (v: string) => Number(v.replace(/[^\d.]/g, "")) || 0;
-
   const totalPct = lines.reduce((s, l) => s + (Number(l.pct) || 0), 0);
   const costTotal = f.cost_material + f.cost_packaging;
 
@@ -161,58 +158,36 @@ function FormulaForm({ initial, onDone }: { initial: Formula | null; onDone: () 
     await logAudit({ action: initial ? "update" : "create", entity: "formula", entityId: f.name });
     onDone();
   }
-  async function remove() {
-    if (!initial || !confirm("ลบสูตรนี้ถาวร?")) return;
-    await supabase.from("formulas").delete().eq("id", initial.id);
-    await logAudit({ action: "delete", entity: "formula", entityId: initial.name });
-    onDone();
-  }
 
   return (
-    <div className="px-5 pb-32">
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">
-        {initial ? "แก้ไขสูตร" : "สร้างสูตรใหม่"}
-      </div>
+    <div className="pb-4">
       <Field label="ชื่อสูตร/กลิ่น"><input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น Nuit de Vétiver" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="ผูกกับสินค้า (SKU · ไม่บังคับ)"><input value={f.product_sku} onChange={(e) => set("product_sku", e.target.value)} placeholder="NS-EDP-001" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-
-      <Field label={`ส่วนผสม (% รวมตอนนี้ ${totalPct}%)`}>
+      <Field label={`ส่วนผสม (รวมตอนนี้ ${totalPct}%)`}>
         {lines.map((l, i) => (
-          <div key={i} className="flex items-center gap-2 rounded-2xl px-4 py-2.5 mb-2" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <span className="flex-1" style={{ color: C.ink, fontSize: 13 }}>{l.ingredient}</span>
-            <span style={{ fontFamily: mono, color: C.red, fontSize: 13, fontWeight: 700 }}>{l.pct}%</span>
+          <div key={i} className="mb-2 flex items-center gap-2 rounded-2xl bg-card px-4 py-2.5 shadow-sm">
+            <span className="flex-1 text-[13px] text-foreground">{l.ingredient}</span>
+            <span className="text-[13px] font-bold" style={{ fontFamily: mono, color: C.red }}>{l.pct}%</span>
             <button onClick={() => setLines(lines.filter((_, x) => x !== i))}><X size={14} style={{ color: C.sub }} /></button>
           </div>
         ))}
         <div className="flex gap-2">
-          <input value={ing} onChange={(e) => setIng(e.target.value)} placeholder="ชื่อวัตถุดิบ เช่น Vetiver Haiti" className="flex-1 rounded-2xl px-3 py-3" style={inputStyle} />
-          <input value={pct} onChange={(e) => setPct(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" placeholder="%" className="rounded-2xl px-2 py-3 text-center" style={{ ...inputStyle, width: 64 }} />
-          <button onClick={addLine} className="rounded-2xl flex items-center justify-center shrink-0" style={{ width: 44, background: C.ink }}>
-            <Plus size={16} style={{ color: "#fff" }} />
-          </button>
+          <input value={ing} onChange={(e) => setIng(e.target.value)} placeholder="ชื่อวัตถุดิบ" className="flex-1 rounded-2xl px-3 py-3" style={inputStyle} />
+          <input value={pct} onChange={(e) => setPct(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" placeholder="%" className="w-16 rounded-2xl px-2 py-3 text-center" style={inputStyle} />
+          <button onClick={addLine} className="flex w-11 shrink-0 items-center justify-center rounded-2xl bg-ink"><Plus size={16} className="text-white" /></button>
         </div>
       </Field>
-
       <div className="grid grid-cols-2 gap-3">
         <Field label="ต้นทุนวัตถุดิบ/ขวด (฿)"><input value={f.cost_material || ""} onChange={(e) => set("cost_material", num(e.target.value))} inputMode="numeric" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
         <Field label="บรรจุภัณฑ์ (฿)"><input value={f.cost_packaging || ""} onChange={(e) => set("cost_packaging", num(e.target.value))} inputMode="numeric" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       </div>
       <Field label="ตัวคูณราคาขาย (เช่น 4.8)"><input value={f.multiplier || ""} onChange={(e) => set("multiplier", num(e.target.value))} inputMode="decimal" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-
-      <div className="rounded-2xl px-4 py-3 mb-3 flex items-center justify-between" style={{ background: C.redSoft }}>
-        <span style={{ color: C.ink, fontSize: 13, fontWeight: 600 }}>ต้นทุนรวม {baht(costTotal)} → ราคาแนะนำ</span>
-        <span style={{ fontFamily: disp, fontSize: 16, fontWeight: 800, color: C.red }}>{baht(Math.round(costTotal * f.multiplier))}</span>
+      <div className="mb-3 flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: C.redSoft }}>
+        <span className="text-[13px] font-semibold text-foreground">ต้นทุนรวม {baht(costTotal)} → ราคาแนะนำ</span>
+        <span className="font-disp text-base font-extrabold" style={{ color: C.red }}>{baht(Math.round(costTotal * f.multiplier))}</span>
       </div>
-
-      {err && <p style={{ color: C.red, fontSize: 12 }} className="mb-2">{err}</p>}
-      <button onClick={save} disabled={busy} className="w-full rounded-2xl py-4" style={{ background: C.red, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
-        {busy ? "กำลังบันทึก…" : "บันทึกสูตร"}
-      </button>
-      {initial && (
-        <button onClick={remove} className="w-full rounded-2xl py-3 mt-3 flex items-center justify-center gap-2" style={{ background: C.redSoft, color: C.red, fontWeight: 600, fontSize: 14 }}>
-          <Trash2 size={15} /> ลบสูตร
-        </button>
-      )}
+      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึกสูตร"}</Button>
     </div>
   );
 }

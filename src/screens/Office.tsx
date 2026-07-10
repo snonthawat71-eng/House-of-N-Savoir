@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Loader2, ArrowLeft, FileText, Printer, Upload, ChevronRight } from "lucide-react";
+import { Plus, Loader2, FileText, Printer, Upload, ChevronRight } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle, fmtDate } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
 import { Field } from "./B2B";
+import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 type Quote = { id: string; number: string; customer_name: string; items: LineItem[]; total: number; status: string; created_at: string };
 
@@ -16,12 +18,14 @@ const Q_STATUS: Record<string, [string, string, string]> = {
   expired: ["หมดอายุ", "#F1F2F4", "#8A8F98"],
 };
 
+type ModalState = { k: "quoteForm" } | { k: "quoteView"; item: Quote } | null;
+
 export default function Office({ go, finance }: { go: (s: string) => void; finance: boolean }) {
-  const [view, setView] = useState<"main" | "quote">("main");
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [custTotal, setCustTotal] = useState(0);
   const [custNew, setCustNew] = useState(0);
   const [months, setMonths] = useState<{ label: string; total: number }[]>([]);
+  const [modal, setModal] = useState<ModalState>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -37,7 +41,6 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
     setQuotes((q.data as Quote[]) || []);
     setCustTotal(c1.count || 0);
     setCustNew(c2.count || 0);
-    // รวมยอดขายรายเดือน 6 เดือน
     const buckets: { label: string; total: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(); d.setMonth(d.getMonth() - i);
@@ -53,33 +56,39 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "screen", entityId: "office" }); }, [load]);
-  useBackHandler(view === "quote", () => setView("main"));
+  useBackHandler(modal !== null, () => setModal(null));
 
-  if (view === "quote") return <QuoteForm onDone={() => { setView("main"); load(); }} />;
-
+  const close = () => setModal(null);
+  const done = () => { setModal(null); load(); };
   const max = Math.max(...months.map((m) => m.total), 1);
 
   async function setQuoteStatus(q: Quote, status: string) {
     await supabase.from("quotations").update({ status }).eq("id", q.id);
     await logAudit({ action: "update", entity: "quotation", entityId: q.number, oldValue: q.status, newValue: status });
+    setModal((m) => (m && m.k === "quoteView" ? { k: "quoteView", item: { ...m.item, status } } : m));
     load();
+  }
+  async function delQuote(q: Quote) {
+    if (!confirm("ลบใบเสนอราคานี้?")) return;
+    await supabase.from("quotations").delete().eq("id", q.id);
+    await logAudit({ action: "delete", entity: "quotation", entityId: q.number });
+    done();
   }
 
   return (
     <div className="px-5 pb-32">
       {loading ? (
-        <div className="flex justify-center py-10" style={{ color: C.sub }}><Loader2 size={22} className="animate-spin" /></div>
+        <div className="flex justify-center py-10 text-muted-foreground"><Loader2 size={22} className="animate-spin" /></div>
       ) : (
         <>
-          {/* ยอดขาย 6 เดือน (จากออเดอร์จริง) */}
-          <div className="rounded-3xl p-4 mt-2" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <div style={{ color: C.sub, fontSize: 12 }}>ยอดขายรวม 6 เดือน (จากออเดอร์)</div>
-            <div style={{ fontFamily: disp, fontWeight: 800, fontSize: 24, color: C.ink }} className="mt-0.5">
+          <div className="mt-2 rounded-3xl bg-card p-4 shadow-sm">
+            <div className="text-xs text-muted-foreground">ยอดขายรวม 6 เดือน (จากออเดอร์)</div>
+            <div className="mt-0.5 font-disp text-2xl font-extrabold text-foreground">
               {finance ? baht(months.reduce((s, m) => s + m.total, 0)) : "ซ่อน (เฉพาะผู้มีสิทธิ์การเงิน)"}
             </div>
-            <div className="flex items-end gap-2 mt-3" style={{ height: 80 }}>
+            <div className="mt-3 flex items-end gap-2" style={{ height: 80 }}>
               {months.map((m) => (
-                <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+                <div key={m.label} className="flex flex-1 flex-col items-center gap-1">
                   <div className="w-full rounded-t-lg" style={{ height: Math.max(4, (m.total / max) * 64), background: m.total > 0 ? C.red : C.line }} />
                   <span style={{ fontFamily: mono, fontSize: 9, color: C.sub }}>{m.label}</span>
                 </div>
@@ -87,70 +96,83 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
             </div>
           </div>
 
-          {/* ฐานลูกค้า */}
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <div className="rounded-3xl p-4" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-              <div style={{ fontFamily: disp, fontWeight: 800, fontSize: 26, color: C.ink }}>{custTotal}</div>
-              <div style={{ color: C.sub, fontSize: 11 }}>ลูกค้าทั้งหมด (ชุดกลาง)</div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-3xl bg-card p-4 shadow-sm">
+              <div className="font-disp text-2xl font-extrabold text-foreground">{custTotal}</div>
+              <div className="text-[11px] text-muted-foreground">ลูกค้าทั้งหมด (ชุดกลาง)</div>
             </div>
-            <div className="rounded-3xl p-4" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-              <div style={{ fontFamily: disp, fontWeight: 800, fontSize: 26, color: C.green }}>+{custNew}</div>
-              <div style={{ color: C.sub, fontSize: 11 }}>ใหม่เดือนนี้</div>
+            <div className="rounded-3xl bg-card p-4 shadow-sm">
+              <div className="font-disp text-2xl font-extrabold text-green-600">+{custNew}</div>
+              <div className="text-[11px] text-muted-foreground">ใหม่เดือนนี้</div>
             </div>
           </div>
 
-          {/* นำเข้า Excel */}
-          <div onClick={() => go("import")} className="rounded-3xl p-4 mt-3 flex items-center justify-between" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+          <div onClick={() => go("import")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
-                <Upload size={20} style={{ color: C.ink }} />
-              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary"><Upload size={20} className="text-foreground" /></div>
               <div>
-                <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>นำเข้าจาก Excel/CSV</div>
-                <div style={{ fontSize: 11, color: C.sub }}>อัปโหลดไฟล์สินค้า/ลูกค้าเข้าระบบ</div>
+                <div className="font-disp text-[15px] font-bold text-foreground">นำเข้าจาก Excel/CSV</div>
+                <div className="text-[11px] text-muted-foreground">อัปโหลดไฟล์สินค้า/ลูกค้าเข้าระบบ</div>
               </div>
             </div>
-            <ChevronRight size={18} style={{ color: C.sub }} />
+            <ChevronRight size={18} className="text-muted-foreground" />
           </div>
 
-          {/* ใบเสนอราคา */}
-          <div className="px-1 mb-3 mt-6 flex items-center justify-between">
-            <span style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: C.ink }}>ใบเสนอราคา</span>
-            <button onClick={() => setView("quote")} className="rounded-full flex items-center gap-1 px-3 py-1.5" style={{ background: C.ink, color: "#fff", fontSize: 12, fontWeight: 600 }}>
-              <Plus size={13} /> สร้าง
-            </button>
+          <div className="mb-3 mt-6 flex items-center justify-between px-1">
+            <span className="font-disp text-base font-bold text-foreground">ใบเสนอราคา</span>
+            <button onClick={() => setModal({ k: "quoteForm" })} className="flex items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"><Plus size={13} /> สร้าง</button>
           </div>
-          {quotes.length === 0 && <p style={{ color: C.sub, fontSize: 13 }} className="px-1">ยังไม่มีใบเสนอราคา</p>}
+          {quotes.length === 0 && <p className="px-1 text-[13px] text-muted-foreground">ยังไม่มีใบเสนอราคา</p>}
           {quotes.map((q) => {
             const st = Q_STATUS[q.status] || Q_STATUS.draft;
             return (
-              <div key={q.id} className="rounded-3xl p-4 mb-2.5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+              <div key={q.id} onClick={() => setModal({ k: "quoteView", item: q })} className="mb-2.5 cursor-pointer rounded-3xl bg-card p-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>{q.customer_name}</span>
-                  <span style={{ fontFamily: disp, fontSize: 15, fontWeight: 800, color: C.ink }}>{baht(q.total)}</span>
+                  <span className="font-disp text-[15px] font-bold text-foreground">{q.customer_name}</span>
+                  <span className="font-disp text-[15px] font-extrabold text-foreground">{baht(q.total)}</span>
                 </div>
-                <div style={{ color: C.sub, fontSize: 12 }} className="mt-1">
-                  <span style={{ fontFamily: mono }}>{q.number}</span> · {fmtDate(q.created_at)}
-                </div>
-                <div className="flex items-center gap-2 mt-2.5">
-                  <select value={q.status} onChange={(e) => setQuoteStatus(q, e.target.value)}
-                    className="rounded-xl px-3 py-2" style={{ background: st[1], color: st[2], border: "none", outline: "none", fontSize: 12, fontWeight: 700 }}>
-                    {Object.entries(Q_STATUS).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}
-                  </select>
-                  <button onClick={() => printQuote(q)} className="rounded-xl px-3 py-2 flex items-center gap-1.5" style={{ background: C.ink, color: "#fff", fontSize: 12, fontWeight: 600 }}>
-                    <Printer size={13} /> PDF
-                  </button>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground" style={{ fontFamily: mono }}>{q.number}</span>
+                  <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: st[1], color: st[2] }}>{st[0]}</span>
                 </div>
               </div>
             );
           })}
         </>
       )}
+
+      <Modal open={modal?.k === "quoteForm"} onClose={close} title="สร้างใบเสนอราคา">
+        {modal?.k === "quoteForm" && <QuoteFields onDone={done} />}
+      </Modal>
+
+      <Modal open={modal?.k === "quoteView"} onClose={close} title="รายละเอียดใบเสนอราคา">
+        {modal?.k === "quoteView" && (
+          <div className="pb-2">
+            <div className="mb-1 font-disp text-xl font-extrabold text-foreground">{modal.item.customer_name}</div>
+            <div className="mb-3 text-xs text-muted-foreground" style={{ fontFamily: mono }}>{modal.item.number} · {fmtDate(modal.item.created_at)}</div>
+            {(modal.item.items || []).map((i, n) => (
+              <div key={n} className="flex items-center justify-between border-b border-border py-2 text-[13px]">
+                <span className="text-foreground">{i.name} ×{i.qty}</span>
+                <span className="font-disp font-bold">{baht(i.qty * i.price)}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between py-3">
+              <span className="font-disp font-bold text-foreground">รวม</span>
+              <span className="font-disp text-lg font-extrabold text-foreground">{baht(modal.item.total)}</span>
+            </div>
+            <Button onClick={() => printQuote(modal.item)} className="w-full rounded-2xl bg-ink py-5 hover:bg-ink/90"><Printer size={16} /> พิมพ์ / บันทึกเป็น PDF</Button>
+            <div className="mt-3 text-[13px] text-muted-foreground">เปลี่ยนสถานะ</div>
+            <select value={modal.item.status} onChange={(e) => setQuoteStatus(modal.item, e.target.value)} className="mt-1 w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+              {Object.entries(Q_STATUS).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}
+            </select>
+            <DetailActions onDelete={() => delQuote(modal.item)} />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
 
-/* พิมพ์ใบเสนอราคาเป็น PDF (เปิดหน้าพิมพ์ → Save as PDF) */
 function printQuote(q: Quote) {
   logAudit({ action: "view", entity: "quotation-pdf", entityId: q.number });
   const rows = (q.items || []).map((i, n) =>
@@ -182,7 +204,7 @@ function printQuote(q: Quote) {
 const esc = (s: string) => String(s || "").replace(/</g, "&lt;");
 const money = (n: number) => "฿" + Number(n || 0).toLocaleString("th-TH");
 
-function QuoteForm({ onDone }: { onDone: () => void }) {
+function QuoteFields({ onDone }: { onDone: () => void }) {
   const [customer, setCustomer] = useState("");
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
   const [items, setItems] = useState<LineItem[]>([]);
@@ -205,17 +227,14 @@ function QuoteForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="px-5 pb-32">
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">สร้างใบเสนอราคา</div>
+    <div className="pb-4">
       <Field label="ลูกค้า">
         <input list="q-customers" value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="เลือกหรือพิมพ์ชื่อ" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
         <datalist id="q-customers">{customers.map((c) => <option key={c.id} value={c.name} />)}</datalist>
       </Field>
       <LineItemsEditor items={items} onChange={setItems} />
-      {err && <p style={{ color: C.red, fontSize: 12 }} className="mb-2">{err}</p>}
-      <button onClick={save} disabled={busy} className="w-full rounded-2xl py-4 mt-2 flex items-center justify-center gap-2" style={{ background: C.red, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
-        <FileText size={16} /> {busy ? "กำลังบันทึก…" : `บันทึกใบเสนอราคา · ${baht(itemsTotal(items))}`}
-      </button>
+      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]"><FileText size={16} /> {busy ? "กำลังบันทึก…" : `บันทึก · ${baht(itemsTotal(items))}`}</Button>
     </div>
   );
 }

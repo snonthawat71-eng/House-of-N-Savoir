@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Loader2, ArrowLeft, Truck, Trash2, RotateCcw } from "lucide-react";
+import { Plus, Loader2, Truck, RotateCcw } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle, fmtDate } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
+import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 type Customer = { id: string; name: string; contact: string | null; phone: string | null; credit_terms: string | null; note: string | null };
 type Order = { id: string; customer_name: string | null; status: string; items: LineItem[]; total: number; created_at: string };
@@ -20,12 +22,20 @@ const ORDER_STATUS: Record<string, [string, string, string]> = {
   cancelled: ["ยกเลิก", C.bg, C.sub],
 };
 
+type ModalState =
+  | { k: "custForm"; item: Customer | null }
+  | { k: "custView"; item: Customer }
+  | { k: "orderForm" }
+  | { k: "orderView"; item: Order }
+  | { k: "sampleForm" }
+  | { k: "sampleView"; item: Sample }
+  | null;
+
 export default function B2B() {
-  const [view, setView] = useState<"main" | "customer" | "order" | "sample">("main");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [samples, setSamples] = useState<Sample[]>([]);
-  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
+  const [modal, setModal] = useState<ModalState>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -42,48 +52,65 @@ export default function B2B() {
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "screen", entityId: "b2b" }); }, [load]);
-  useBackHandler(view !== "main", () => { setEditCustomer(null); setView("main"); });
+  useBackHandler(modal !== null, () => setModal(null));
 
-  const Sect = ({ children, action }: { children?: any; action?: any }) => (
-    <div className="px-1 mb-3 mt-6 flex items-center justify-between">
-      <span style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: C.ink }}>{children}</span>{action}
-    </div>
-  );
-  const AddBtn = ({ onClick }: { onClick: () => void }) => (
-    <button onClick={onClick} className="rounded-full flex items-center gap-1 px-3 py-1.5"
-      style={{ background: C.ink, color: "#fff", fontSize: 12, fontWeight: 600 }}>
-      <Plus size={13} /> เพิ่ม
-    </button>
-  );
+  const close = () => setModal(null);
+  const done = () => { setModal(null); load(); };
 
-  if (view === "customer") return <CustomerForm initial={editCustomer} onDone={() => { setEditCustomer(null); setView("main"); load(); }} />;
-  if (view === "order") return <OrderForm customers={customers} onDone={() => { setView("main"); load(); }} />;
-  if (view === "sample") return <SampleForm customers={customers} onDone={() => { setView("main"); load(); }} />;
-
-  async function cycleOrderStatus(o: Order, status: string) {
+  async function delCustomer(c: Customer) {
+    if (!confirm("ลบลูกค้ารายนี้?")) return;
+    await supabase.from("customers").delete().eq("id", c.id);
+    await logAudit({ action: "delete", entity: "customer", entityId: c.name });
+    done();
+  }
+  async function setOrderStatus(o: Order, status: string) {
     await supabase.from("orders").update({ status, updated_at: new Date().toISOString() }).eq("id", o.id);
     await logAudit({ action: "update", entity: "order", entityId: o.id, oldValue: o.status, newValue: status });
+    setModal((m) => (m && m.k === "orderView" ? { k: "orderView", item: { ...m.item, status } } : m));
     load();
   }
-  async function cycleSampleStatus(s: Sample, status: string) {
+  async function delOrder(o: Order) {
+    if (!confirm("ลบออเดอร์นี้?")) return;
+    await supabase.from("orders").delete().eq("id", o.id);
+    await logAudit({ action: "delete", entity: "order", entityId: o.id });
+    done();
+  }
+  async function setSampleStatus(s: Sample, status: string) {
     await supabase.from("samples").update({ status }).eq("id", s.id);
     await logAudit({ action: "update", entity: "sample", entityId: s.id, oldValue: s.status, newValue: status });
+    setModal((m) => (m && m.k === "sampleView" ? { k: "sampleView", item: { ...m.item, status } } : m));
     load();
   }
+  async function delSample(s: Sample) {
+    if (!confirm("ลบรายการตัวอย่างนี้?")) return;
+    await supabase.from("samples").delete().eq("id", s.id);
+    await logAudit({ action: "delete", entity: "sample", entityId: s.id });
+    done();
+  }
+
+  const Sect = ({ children, onAdd }: { children?: any; onAdd?: () => void }) => (
+    <div className="mb-3 mt-6 flex items-center justify-between px-1">
+      <span className="font-disp text-base font-bold text-foreground">{children}</span>
+      {onAdd && (
+        <button onClick={onAdd} className="flex items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
+          <Plus size={13} /> เพิ่ม
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="px-5 pb-32">
       {loading ? (
-        <div className="flex justify-center py-10" style={{ color: C.sub }}><Loader2 size={22} className="animate-spin" /></div>
+        <div className="flex justify-center py-10 text-muted-foreground"><Loader2 size={22} className="animate-spin" /></div>
       ) : (
         <>
-          <Sect action={<AddBtn onClick={() => setView("customer")} />}>ลูกค้าค้าส่ง ({customers.length})</Sect>
+          <Sect onAdd={() => setModal({ k: "custForm", item: null })}>ลูกค้าค้าส่ง ({customers.length})</Sect>
           {customers.length === 0 && <Empty text="ยังไม่มีลูกค้า — กด เพิ่ม เพื่อสร้างรายแรก" />}
           {customers.map((c) => (
-            <div key={c.id} onClick={() => { setEditCustomer(c); setView("customer"); }}
-              className="rounded-3xl p-4 mb-2.5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-              <div style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: C.ink }}>{c.name}</div>
-              <div className="flex gap-4 mt-1.5 flex-wrap" style={{ fontSize: 12, color: C.sub }}>
+            <div key={c.id} onClick={() => setModal({ k: "custView", item: c })} className="mb-2.5 cursor-pointer rounded-3xl bg-card p-4 shadow-sm">
+              <div className="font-disp text-base font-bold text-foreground">{c.name}</div>
+              <div className="mt-1.5 flex flex-wrap gap-4 text-xs text-muted-foreground">
                 {c.contact && <span>ติดต่อ {c.contact}</span>}
                 {c.phone && <span>{c.phone}</span>}
                 {c.credit_terms && <span>เครดิต {c.credit_terms}</span>}
@@ -91,45 +118,37 @@ export default function B2B() {
             </div>
           ))}
 
-          <Sect action={<AddBtn onClick={() => setView("order")} />}>ออเดอร์</Sect>
+          <Sect onAdd={() => setModal({ k: "orderForm" })}>ออเดอร์</Sect>
           {orders.length === 0 && <Empty text="ยังไม่มีออเดอร์" />}
           {orders.map((o) => {
             const st = ORDER_STATUS[o.status] || ORDER_STATUS.pending;
             return (
-              <div key={o.id} className="rounded-3xl p-4 mb-2.5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+              <div key={o.id} onClick={() => setModal({ k: "orderView", item: o })} className="mb-2.5 cursor-pointer rounded-3xl bg-card p-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>{o.customer_name || "-"}</span>
-                  <span style={{ fontFamily: disp, fontSize: 15, fontWeight: 800, color: C.ink }}>{baht(o.total)}</span>
+                  <span className="font-disp text-[15px] font-bold text-foreground">{o.customer_name || "-"}</span>
+                  <span className="font-disp text-[15px] font-extrabold text-foreground">{baht(o.total)}</span>
                 </div>
-                <div style={{ color: C.sub, fontSize: 12 }} className="mt-1">
-                  {(o.items || []).map((i) => `${i.name}×${i.qty}`).join(" · ") || "-"} · {fmtDate(o.created_at)}
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{fmtDate(o.created_at)}</span>
+                  <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: st[1], color: st[2] }}>{st[0]}</span>
                 </div>
-                <select value={o.status} onChange={(e) => cycleOrderStatus(o, e.target.value)}
-                  className="mt-2.5 rounded-xl px-3 py-2" style={{ background: st[1], color: st[2], border: "none", outline: "none", fontSize: 12, fontWeight: 700 }}>
-                  {Object.entries(ORDER_STATUS).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}
-                </select>
               </div>
             );
           })}
 
-          <Sect action={<AddBtn onClick={() => setView("sample")} />}>ตัวอย่างที่ส่งแล้ว · tracking</Sect>
+          <Sect onAdd={() => setModal({ k: "sampleForm" })}>ตัวอย่างที่ส่งแล้ว · tracking</Sect>
           {samples.length === 0 && <Empty text="ยังไม่มีตัวอย่างที่ส่ง" />}
           {samples.map((s) => (
-            <div key={s.id} className="rounded-3xl p-4 mb-2.5" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+            <div key={s.id} onClick={() => setModal({ k: "sampleView", item: s })} className="mb-2.5 cursor-pointer rounded-3xl bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span style={{ color: C.ink, fontWeight: 700, fontSize: 14 }}>{s.customer_name}</span>
-                <select value={s.status} onChange={(e) => cycleSampleStatus(s, e.target.value)}
-                  className="rounded-full px-2.5 py-1"
-                  style={{
-                    background: s.status === "ตอบรับแล้ว" ? C.greenSoft : s.status === "ปฏิเสธ" ? C.redSoft : C.bg,
-                    color: s.status === "ตอบรับแล้ว" ? C.green : s.status === "ปฏิเสธ" ? C.red : C.sub,
-                    border: "none", outline: "none", fontSize: 11, fontWeight: 600,
-                  }}>
-                  <option>รอผล</option><option>ตอบรับแล้ว</option><option>ปฏิเสธ</option>
-                </select>
+                <span className="text-sm font-bold text-foreground">{s.customer_name}</span>
+                <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  style={{ background: s.status === "ตอบรับแล้ว" ? C.greenSoft : s.status === "ปฏิเสธ" ? C.redSoft : C.bg, color: s.status === "ตอบรับแล้ว" ? C.green : s.status === "ปฏิเสธ" ? C.red : C.sub }}>
+                  {s.status}
+                </span>
               </div>
-              <div style={{ color: C.sub, fontSize: 12 }} className="mt-1">{s.item}</div>
-              <div className="flex items-center gap-3 mt-2" style={{ fontSize: 12, color: C.sub }}>
+              <div className="mt-1 text-xs text-muted-foreground">{s.item}</div>
+              <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Truck size={13} /> {fmtDate(s.sent_date)}</span>
                 {s.tracking && <span style={{ fontFamily: mono }}>{s.tracking}</span>}
               </div>
@@ -140,41 +159,100 @@ export default function B2B() {
           {orders.filter((o) => o.status === "returned" || o.status === "claim").length === 0
             ? <Empty text="ไม่มีรายการคืน/เคลมเปิดอยู่" />
             : orders.filter((o) => o.status === "returned" || o.status === "claim").map((o) => (
-              <div key={o.id} className="rounded-2xl p-3.5 mb-2 flex items-center gap-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-                <RotateCcw size={16} style={{ color: C.red }} />
-                <span style={{ color: C.ink, fontSize: 13, fontWeight: 600 }} className="flex-1">{o.customer_name}</span>
-                <span style={{ color: C.red, fontSize: 12, fontWeight: 700 }}>{ORDER_STATUS[o.status][0]}</span>
+              <div key={o.id} onClick={() => setModal({ k: "orderView", item: o })} className="mb-2 flex cursor-pointer items-center gap-3 rounded-2xl bg-card p-3.5 shadow-sm">
+                <RotateCcw size={16} className="text-primary" />
+                <span className="flex-1 text-[13px] font-semibold text-foreground">{o.customer_name}</span>
+                <span className="text-xs font-bold text-primary">{ORDER_STATUS[o.status][0]}</span>
               </div>
             ))}
         </>
       )}
+
+      {/* ---------- Popups ---------- */}
+      <Modal open={modal?.k === "custForm"} onClose={close} title={modal?.k === "custForm" && modal.item ? "แก้ไขลูกค้า" : "เพิ่มลูกค้า B2B"}>
+        {modal?.k === "custForm" && <CustomerFields initial={modal.item} onDone={done} />}
+      </Modal>
+
+      <Modal open={modal?.k === "custView"} onClose={close} title="รายละเอียดลูกค้า">
+        {modal?.k === "custView" && (
+          <div className="pb-2">
+            <div className="mb-1 font-disp text-xl font-extrabold text-foreground">{modal.item.name}</div>
+            <DetailRow label="ผู้ติดต่อ">{modal.item.contact || "-"}</DetailRow>
+            <DetailRow label="เบอร์โทร">{modal.item.phone || "-"}</DetailRow>
+            <DetailRow label="เครดิต">{modal.item.credit_terms || "-"}</DetailRow>
+            <DetailRow label="โน้ต">{modal.item.note || "-"}</DetailRow>
+            <DetailActions onEdit={() => setModal({ k: "custForm", item: modal.item })} onDelete={() => delCustomer(modal.item)} />
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={modal?.k === "orderForm"} onClose={close} title="สร้างออเดอร์ B2B">
+        {modal?.k === "orderForm" && <OrderFields customers={customers} onDone={done} />}
+      </Modal>
+
+      <Modal open={modal?.k === "orderView"} onClose={close} title="รายละเอียดออเดอร์">
+        {modal?.k === "orderView" && (
+          <div className="pb-2">
+            <div className="mb-1 font-disp text-xl font-extrabold text-foreground">{modal.item.customer_name}</div>
+            <div className="mb-3 text-xs text-muted-foreground">{fmtDate(modal.item.created_at)}</div>
+            {(modal.item.items || []).map((i, n) => (
+              <div key={n} className="flex items-center justify-between border-b border-border py-2 text-[13px]">
+                <span className="text-foreground">{i.name} ×{i.qty}</span>
+                <span className="font-disp font-bold">{baht(i.qty * i.price)}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between py-3">
+              <span className="font-disp font-bold text-foreground">รวม</span>
+              <span className="font-disp text-lg font-extrabold text-foreground">{baht(modal.item.total)}</span>
+            </div>
+            <div className="text-[13px] text-muted-foreground">เปลี่ยนสถานะ</div>
+            <select value={modal.item.status} onChange={(e) => setOrderStatus(modal.item, e.target.value)}
+              className="mt-1 w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+              {Object.entries(ORDER_STATUS).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}
+            </select>
+            <DetailActions onDelete={() => delOrder(modal.item)} />
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={modal?.k === "sampleForm"} onClose={close} title="บันทึกตัวอย่างที่ส่ง">
+        {modal?.k === "sampleForm" && <SampleFields customers={customers} onDone={done} />}
+      </Modal>
+
+      <Modal open={modal?.k === "sampleView"} onClose={close} title="รายละเอียดตัวอย่าง">
+        {modal?.k === "sampleView" && (
+          <div className="pb-2">
+            <div className="mb-1 font-disp text-xl font-extrabold text-foreground">{modal.item.customer_name}</div>
+            <DetailRow label="รายการ">{modal.item.item}</DetailRow>
+            <DetailRow label="วันที่ส่ง">{fmtDate(modal.item.sent_date)}</DetailRow>
+            <DetailRow label="Tracking"><span style={{ fontFamily: mono }}>{modal.item.tracking || "-"}</span></DetailRow>
+            <div className="mt-3 text-[13px] text-muted-foreground">สถานะ</div>
+            <select value={modal.item.status} onChange={(e) => setSampleStatus(modal.item, e.target.value)}
+              className="mt-1 w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+              <option>รอผล</option><option>ตอบรับแล้ว</option><option>ปฏิเสธ</option>
+            </select>
+            <DetailActions onDelete={() => delSample(modal.item)} />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
 
 function Empty({ text }: { text: string }) {
-  return <p style={{ color: C.sub, fontSize: 13 }} className="px-1 py-3">{text}</p>;
-}
-
-function FormShell({ title, children }: { title: string; onBack?: () => void; children?: any }) {
-  return (
-    <div className="px-5 pb-32">
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">{title}</div>
-      {children}
-    </div>
-  );
+  return <p className="px-1 py-3 text-[13px] text-muted-foreground">{text}</p>;
 }
 
 export function Field({ label, children }: { label: string; children?: any }) {
   return (
     <div className="mb-3">
-      <div style={{ color: C.sub, fontSize: 12 }} className="mb-1">{label}</div>
+      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
       {children}
     </div>
   );
 }
 
-function CustomerForm({ initial, onDone }: { initial: Customer | null; onDone: () => void }) {
+function CustomerFields({ initial, onDone }: { initial: Customer | null; onDone: () => void }) {
   const [f, setF] = useState({ name: initial?.name || "", contact: initial?.contact || "", phone: initial?.phone || "", credit_terms: initial?.credit_terms || "", note: initial?.note || "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -191,34 +269,21 @@ function CustomerForm({ initial, onDone }: { initial: Customer | null; onDone: (
     await logAudit({ action: initial ? "update" : "create", entity: "customer", entityId: f.name, newValue: payload });
     onDone();
   }
-  async function remove() {
-    if (!initial || !confirm("ลบลูกค้ารายนี้?")) return;
-    await supabase.from("customers").delete().eq("id", initial.id);
-    await logAudit({ action: "delete", entity: "customer", entityId: initial.name });
-    onDone();
-  }
 
   return (
-    <FormShell title={initial ? "แก้ไขลูกค้า" : "เพิ่มลูกค้า B2B"} onBack={onDone}>
+    <div className="pb-4">
       <Field label="ชื่อลูกค้า/บริษัท"><input value={f.name} onChange={(e) => set("name", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="ชื่อผู้ติดต่อ"><input value={f.contact} onChange={(e) => set("contact", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="เบอร์โทร"><input value={f.phone} onChange={(e) => set("phone", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="เครดิต (เช่น 30 วัน)"><input value={f.credit_terms} onChange={(e) => set("credit_terms", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="โน้ต"><input value={f.note} onChange={(e) => set("note", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      {err && <p style={{ color: C.red, fontSize: 12 }} className="mb-2">{err}</p>}
-      <button onClick={save} disabled={busy} className="w-full rounded-2xl py-4" style={{ background: C.red, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
-        {busy ? "กำลังบันทึก…" : "บันทึก"}
-      </button>
-      {initial && (
-        <button onClick={remove} className="w-full rounded-2xl py-3 mt-3 flex items-center justify-center gap-2" style={{ background: C.redSoft, color: C.red, fontWeight: 600, fontSize: 14 }}>
-          <Trash2 size={15} /> ลบลูกค้า
-        </button>
-      )}
-    </FormShell>
+      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+    </div>
   );
 }
 
-function OrderForm({ customers, onDone }: { customers: Customer[]; onDone: () => void }) {
+function OrderFields({ customers, onDone }: { customers: Customer[]; onDone: () => void }) {
   const [customer, setCustomer] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -237,22 +302,19 @@ function OrderForm({ customers, onDone }: { customers: Customer[]; onDone: () =>
   }
 
   return (
-    <FormShell title="สร้างออเดอร์ B2B" onBack={onDone}>
+    <div className="pb-4">
       <Field label="ลูกค้า">
-        <input list="b2b-customers" value={customer} onChange={(e) => setCustomer(e.target.value)}
-          placeholder="เลือกหรือพิมพ์ชื่อ" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+        <input list="b2b-customers" value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="เลือกหรือพิมพ์ชื่อ" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
         <datalist id="b2b-customers">{customers.map((c) => <option key={c.id} value={c.name} />)}</datalist>
       </Field>
       <LineItemsEditor items={items} onChange={setItems} />
-      {err && <p style={{ color: C.red, fontSize: 12 }} className="mb-2">{err}</p>}
-      <button onClick={save} disabled={busy} className="w-full rounded-2xl py-4 mt-2" style={{ background: C.red, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
-        {busy ? "กำลังบันทึก…" : `บันทึกออเดอร์ · ${baht(itemsTotal(items))}`}
-      </button>
-    </FormShell>
+      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : `บันทึกออเดอร์ · ${baht(itemsTotal(items))}`}</Button>
+    </div>
   );
 }
 
-function SampleForm({ customers, onDone }: { customers: Customer[]; onDone: () => void }) {
+function SampleFields({ customers, onDone }: { customers: Customer[]; onDone: () => void }) {
   const [f, setF] = useState({ customer_name: "", item: "", tracking: "", sent_date: new Date().toISOString().slice(0, 10) });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -268,7 +330,7 @@ function SampleForm({ customers, onDone }: { customers: Customer[]; onDone: () =
   }
 
   return (
-    <FormShell title="บันทึกตัวอย่างที่ส่ง" onBack={onDone}>
+    <div className="pb-4">
       <Field label="ลูกค้า">
         <input list="b2b-customers2" value={f.customer_name} onChange={(e) => set("customer_name", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
         <datalist id="b2b-customers2">{customers.map((c) => <option key={c.id} value={c.name} />)}</datalist>
@@ -276,10 +338,8 @@ function SampleForm({ customers, onDone }: { customers: Customer[]; onDone: () =
       <Field label="รายการ (เช่น Bois d'Encre ×3)"><input value={f.item} onChange={(e) => set("item", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="วันที่ส่ง"><input type="date" value={f.sent_date} onChange={(e) => set("sent_date", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="เลข tracking"><input value={f.tracking} onChange={(e) => set("tracking", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      {err && <p style={{ color: C.red, fontSize: 12 }} className="mb-2">{err}</p>}
-      <button onClick={save} disabled={busy} className="w-full rounded-2xl py-4" style={{ background: C.red, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
-        {busy ? "กำลังบันทึก…" : "บันทึก"}
-      </button>
-    </FormShell>
+      {err && <p className="mb-2 text-xs text-primary">{err}</p>}
+      <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+    </div>
   );
 }

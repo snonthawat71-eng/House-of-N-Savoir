@@ -7,6 +7,7 @@ import { useBackHandler } from "../lib/nav";
 import { C, disp, inputStyle } from "../lib/ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 
 type Location = { id: string; name: string; kind: string };
 type StockRow = { id: string; location_id: string; product_id: string; qty: number; sold: number; returned: number; products?: { name: string; sku: string } };
@@ -28,6 +29,7 @@ export default function B2C() {
   const [open, setOpen] = useState<string | null>(null);
   const [addName, setAddName] = useState("");
   const [campName, setCampName] = useState("");
+  const [popup, setPopup] = useState<null | "loc" | "camp">(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -46,7 +48,9 @@ export default function B2C() {
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "screen", entityId: "b2c" }); }, [load]);
-  useBackHandler(channel !== null, () => { setChannel(null); setOpen(null); });
+  useBackHandler(popup !== null || channel !== null, () => {
+    if (popup) setPopup(null); else { setChannel(null); setOpen(null); }
+  });
 
   const locsOfKind = (kind: string) => locations.filter((l) => l.kind === kind);
   const itemsOf = (locId: string) => stock.filter((s) => s.location_id === locId);
@@ -68,13 +72,13 @@ export default function B2C() {
     if (!addName.trim()) return;
     await supabase.from("stock_locations").insert({ name: addName.trim(), kind });
     await logAudit({ action: "create", entity: "location", entityId: addName });
-    setAddName(""); load();
+    setAddName(""); setPopup(null); load();
   }
   async function addCampaign() {
     if (!campName.trim()) return;
     await supabase.from("campaigns").insert({ name: campName.trim() });
     await logAudit({ action: "create", entity: "campaign", entityId: campName });
-    setCampName(""); load();
+    setCampName(""); setPopup(null); load();
   }
   async function toggleCampaign(cp: Campaign) {
     await supabase.from("campaigns").update({ status: cp.status === "active" ? "done" : "active" }).eq("id", cp.id);
@@ -146,10 +150,17 @@ export default function B2C() {
           );
         })}
 
-        <div className="mt-1 flex gap-2">
-          <input value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={`เพิ่มจุดใหม่ใน ${meta.label}`} className="flex-1 rounded-2xl px-4 py-3" style={inputStyle} />
-          <Button onClick={() => addLocation(channel)} className="rounded-2xl bg-ink px-5 hover:bg-ink/90">เพิ่ม</Button>
-        </div>
+        <button onClick={() => { setAddName(""); setPopup("loc"); }} className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-sm font-bold text-white">
+          <Plus size={16} /> เพิ่มจุด/สาขาใน {meta.label}
+        </button>
+
+        <Modal open={popup === "loc"} onClose={() => setPopup(null)} title={`เพิ่มจุดใน ${meta.label}`}>
+          <div className="pb-4">
+            <div className="mb-1 text-xs text-muted-foreground">ชื่อจุด/สาขา</div>
+            <input autoFocus value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="เช่น Central Chidlom" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+            <Button onClick={() => addLocation(channel)} className="mt-3 w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -173,7 +184,10 @@ export default function B2C() {
         ))}
       </div>
 
-      <div className="mb-3 mt-7 px-1 font-disp text-base font-bold text-foreground">การตลาด · แคมเปญ</div>
+      <div className="mb-3 mt-7 flex items-center justify-between px-1">
+        <span className="font-disp text-base font-bold text-foreground">การตลาด · แคมเปญ</span>
+        <button onClick={() => { setCampName(""); setPopup("camp"); }} className="flex items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"><Plus size={13} /> เพิ่ม</button>
+      </div>
       {campaigns.length === 0 && <p className="mb-2 px-1 text-[13px] text-muted-foreground">ยังไม่มีแคมเปญ</p>}
       {campaigns.map((cp) => (
         <Card key={cp.id} className="mb-2 flex items-center gap-3 p-3.5">
@@ -185,14 +199,17 @@ export default function B2C() {
           </button>
         </Card>
       ))}
-      <div className="flex gap-2">
-        <input value={campName} onChange={(e) => setCampName(e.target.value)} placeholder="เพิ่มแคมเปญใหม่…" className="flex-1 rounded-2xl px-4 py-3" style={inputStyle} />
-        <Button onClick={addCampaign} className="rounded-2xl bg-ink px-5 hover:bg-ink/90">เพิ่ม</Button>
-      </div>
-
       <div className="mt-3 flex items-center gap-1 px-1 text-[11px] text-muted-foreground">
         <ChevronRight size={12} /> แตะการ์ดช่องทางเพื่อจัดการสต็อกในช่องทางนั้น
       </div>
+
+      <Modal open={popup === "camp"} onClose={() => setPopup(null)} title="เพิ่มแคมเปญ">
+        <div className="pb-4">
+          <div className="mb-1 text-xs text-muted-foreground">ชื่อแคมเปญ</div>
+          <input autoFocus value={campName} onChange={(e) => setCampName(e.target.value)} placeholder="เช่น โปรเดือนนี้" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+          <Button onClick={addCampaign} className="mt-3 w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
+        </div>
+      </Modal>
     </div>
   );
 }
