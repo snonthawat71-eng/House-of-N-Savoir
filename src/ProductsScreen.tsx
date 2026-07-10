@@ -7,6 +7,7 @@ import { useBackHandler } from "./lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle } from "./lib/ui";
 import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { Field } from "./screens/B2B";
 
 type Product = {
   id?: string; sku: string; name: string; type: string | null;
@@ -135,20 +136,16 @@ function ProductFields({ initial, onDone }: { initial: Product; onDone: () => vo
     onDone();
   }
 
-  const F = ({ label, children }: { label: string; children?: any }) => (
-    <div className="mb-3"><div className="mb-1 text-xs text-muted-foreground">{label}</div>{children}</div>
-  );
-
   return (
     <div className="pb-4">
-      <F label="รหัสสินค้า (SKU)"><input value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder="NS-EDP-001" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></F>
-      <F label="ชื่อสินค้า"><input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nuit de Vétiver" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></F>
-      <F label="ประเภท"><input value={f.type || ""} onChange={(e) => set("type", e.target.value)} placeholder="Eau de Parfum 50ml" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></F>
+      <Field label="รหัสสินค้า (SKU)"><input value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder="NS-EDP-001" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      <Field label="ชื่อสินค้า"><input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nuit de Vétiver" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      <Field label="ประเภท"><input value={f.type || ""} onChange={(e) => set("type", e.target.value)} placeholder="Eau de Parfum 50ml" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <F label="ต้นทุน (฿)"><input value={f.cost ?? ""} onChange={(e) => set("cost", num(e.target.value))} inputMode="numeric" placeholder="420" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></F>
-        <F label="ราคาขาย (฿)"><input value={f.retail ?? ""} onChange={(e) => set("retail", num(e.target.value))} inputMode="numeric" placeholder="2900" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></F>
+        <Field label="ต้นทุน (฿)"><input value={f.cost ?? ""} onChange={(e) => set("cost", num(e.target.value))} inputMode="numeric" placeholder="420" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+        <Field label="ราคาขาย (฿)"><input value={f.retail ?? ""} onChange={(e) => set("retail", num(e.target.value))} inputMode="numeric" placeholder="2900" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       </div>
-      <F label="คงเหลือ (ชิ้น)"><input value={f.stock ?? 0} onChange={(e) => set("stock", num(e.target.value) ?? 0)} inputMode="numeric" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></F>
+      <Field label="คงเหลือ (ชิ้น)"><input value={f.stock ?? 0} onChange={(e) => set("stock", num(e.target.value) ?? 0)} inputMode="numeric" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       {err && <p className="mb-2 text-xs text-primary">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
     </div>
