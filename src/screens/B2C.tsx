@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Plus, Loader2, MapPin, Minus, TrendingUp, Store, Boxes, Globe, RefreshCcw,
-  ChevronRight, Copy, Phone, Check, Store as StoreIcon, Package, Trash2,
+  ChevronRight, Copy, Phone, Check, Store as StoreIcon, Package, Trash2, Pencil,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -198,24 +198,28 @@ export default function B2C() {
     const monthLabel = now.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
     return (
       <div className="px-5 pb-32">
-        {/* หัวร้าน — โลโก้ใหญ่โปร่ง + ข้อมูลด้านข้าง (ไม่มีการ์ดรอง) */}
-        <div className="mt-3 flex items-start gap-4">
+        {/* หัวร้าน — โลโก้ใหญ่โปร่ง + ข้อมูลด้านข้าง (ไม่มีการ์ดรอง) + ปุ่มแก้ไขมุมขวา */}
+        <div className="relative mt-3 flex items-start gap-4">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden">
             {shop.logo_url ? <img src={shop.logo_url} alt="" className="h-full w-full object-contain" /> : <StoreIcon size={44} className="text-muted-foreground" />}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pr-10">
             <div className="font-disp text-lg font-extrabold text-foreground">{shop.shop_name || shop.name}</div>
-            <div className="mt-0.5 text-[11px] text-muted-foreground"><b className="text-foreground">รหัสสาขา</b> {shop.branch_code || "-"}</div>
-            <div className="text-[11px] text-muted-foreground"><b className="text-foreground">สาขา</b> {shop.branch_name || "-"}</div>
-            <button onClick={() => { setEditShop(shop); setPopup("shopForm"); }} className="mt-1.5 text-[11px] font-bold text-primary">แก้ไขข้อมูลร้าน</button>
+            {shop.branch_code && <div className="mt-0.5 text-[11px] text-muted-foreground"><b className="text-foreground">รหัสสาขา</b> {shop.branch_code}</div>}
+            {shop.branch_name && <div className="text-[11px] text-muted-foreground"><b className="text-foreground">สาขา</b> {shop.branch_name}</div>}
           </div>
+          <button onClick={() => { setEditShop(shop); setPopup("shopForm"); }} aria-label="แก้ไข"
+            className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-foreground">
+            <Pencil size={16} />
+          </button>
         </div>
 
-        {/* ข้อมูลติดต่อ — ไม่มีการ์ดรอง ตัวเล็ก หัวข้อ bold */}
+        {/* ข้อมูลติดต่อ — ไม่มีการ์ดรอง ตัวเล็ก หัวข้อ bold · ซ่อนช่องที่ว่าง */}
         <div className="mt-5 space-y-3">
-          <ContactLine label="ที่อยู่ + เลขผู้เสียภาษี" value={[shop.address, shop.tax_id].filter(Boolean).join(" · ") || "-"} copy={[shop.address, shop.tax_id].filter(Boolean).join(" ")} />
-          <ContactLine label="เบอร์ติดต่อ" value={shop.phone || "-"} call={shop.phone || undefined} />
-          <ContactLine label="อีเมล" value={shop.email || "-"} copy={shop.email || undefined} />
+          {shop.address && <ContactLine label="ที่อยู่" value={shop.address} copy={shop.address} />}
+          {shop.tax_id && <ContactLine label="เลขผู้เสียภาษี" value={shop.tax_id} copy={shop.tax_id} />}
+          {shop.email && <ContactLine label="อีเมล" value={shop.email} copy={shop.email} />}
+          {shop.phone && <ContactLine label="เบอร์ติดต่อ" value={shop.phone} call={shop.phone} />}
         </div>
 
         {/* ยอดขาย — fintech */}
