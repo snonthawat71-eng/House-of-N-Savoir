@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Home, Package, Bell, User, Search, Lock, ShieldCheck, ChevronRight,
   Building2, Handshake, Store, Factory, FlaskConical, ScrollText,
@@ -167,6 +167,14 @@ export default function App() {
   // role: โหมดเดโมใช้ตัวสลับ / โหมดจริงใช้ role จากฐานข้อมูล
   const role = demo ? roleDemo : (auth.profile?.role ?? "sales");
   const P = ROLES[role as keyof typeof ROLES] || ROLES.sales;
+
+  // แถบดำด้านบน (theme-color/พื้นหลัง) เฉพาะหน้า Overview เท่านั้น หน้าอื่นเป็นสีอ่อน
+  const darkTop = screen === "modules";
+  useEffect(() => {
+    const color = darkTop ? "#111214" : "#F1F2F4";
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color);
+    document.body.style.background = color;
+  }, [darkTop]);
   const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
   // ตัวจัดการย้อนกลับของหน้าย่อย (ปิดฟอร์ม/มุมมองย่อยก่อนออกจากหน้า)
   const backHandlerRef = useRef<(() => void) | null>(null);
