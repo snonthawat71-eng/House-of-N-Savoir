@@ -21,6 +21,7 @@ import FormulaLabReal from "./screens/FormulaLab";
 import DashboardReal from "./screens/Dashboard";
 import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
+import Overview from "./screens/Overview";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -135,35 +136,6 @@ function Line() {
         <circle key={i} cx={p[0]} cy={p[1]} r="4" fill={C.red} stroke="#fff" strokeWidth="2" />
       ))}
     </svg>
-  );
-}
-
-/* ---------------- carousel (เลื่อนทีละใบ + จุดไข่ปลา) ---------------- */
-function Carousel({ children }: { children?: any }) {
-  const items = React.Children.toArray(children);
-  const ref = useRef<HTMLDivElement>(null);
-  const [idx, setIdx] = useState(0);
-  const onScroll = () => {
-    const el = ref.current;
-    if (!el) return;
-    setIdx(Math.round(el.scrollLeft / el.clientWidth));
-  };
-  return (
-    <div>
-      <div ref={ref} onScroll={onScroll} className="flex overflow-x-auto"
-        style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-        {items.map((c, i) => (
-          <div key={i} className="shrink-0 w-full px-5" style={{ scrollSnapAlign: "center" }}>{c}</div>
-        ))}
-      </div>
-      {items.length > 1 && (
-        <div className="flex justify-center gap-1.5 mt-3">
-          {items.map((_, i) => (
-            <span key={i} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 3, background: i === idx ? C.red : C.line, transition: "all .2s" }} />
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -392,99 +364,6 @@ export default function App() {
     { id: "office", name: "Office", icon: Building2, sub: "เอกสาร · สถิติ" },
   ];
 
-  /* ---------- MODULES = หน้าแรกหลังล็อกอิน (โลโก้ + ชื่อผู้ใช้ + 4 การ์ด + CONNECT) ---------- */
-  const ModulesScreen = () => {
-    const visible = MODULES.filter((m) => P.mods.includes(m.id));
-    const displayName = demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้");
-    const email = demo ? "demo@nsavoir.app" : (auth.session?.user?.email || "");
-    const isAdmin = role === "owner" || role === "dev";
-    return (
-      <div className="pb-16">
-        {/* หัวดำคลุมด้านบน (ไม่มีขอบมน · กินพื้นที่ status bar) */}
-        <div style={{ background: C.ink, paddingTop: "calc(48px + env(safe-area-inset-top))" }} className="px-6 pb-24">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center justify-center rounded-2xl"
-              style={{ width: 46, height: 46, background: "#fff", color: C.ink, fontFamily: disp, fontWeight: 800, fontSize: 24 }}>
-              N
-            </div>
-            <div className="rounded-full flex items-center justify-center" style={{ width: 40, height: 40, background: "#1E1F22" }}>
-              <Bell size={18} style={{ color: "#9AA0A6" }} />
-            </div>
-          </div>
-          <div style={{ color: C.red, fontFamily: disp, fontSize: 13, fontWeight: 700 }}>House of N Savoir</div>
-          <div style={{ fontFamily: disp, fontSize: 27, fontWeight: 800, color: "#fff", letterSpacing: -0.5, marginTop: 2 }}>{displayName}</div>
-          <div style={{ color: "#8A8F98", fontSize: 12, marginTop: 5 }}>{email} · {P.name}</div>
-        </div>
-
-        {/* การ์ดเลื่อนทีละใบ (ซ้อนทับหัวดำครึ่งหนึ่ง) + จุดไข่ปลา */}
-        <div className="-mt-16">
-          <Carousel>
-            {isAdmin && (
-              <div onClick={openConnect} className="rounded-3xl px-5 py-6 flex items-center justify-between" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-                <div className="min-w-0">
-                  <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink }}>N Savoir Connect</div>
-                  <div style={{ color: C.sub, fontSize: 12.5, marginTop: 3 }}>ระบบจัดการสำหรับผู้บริหาร</div>
-                </div>
-                <div className="flex items-center justify-center rounded-2xl shrink-0 ml-4" style={{ width: 50, height: 50, background: C.redSoft }}>
-                  <Lock size={23} style={{ color: C.red }} />
-                </div>
-              </div>
-            )}
-            <div className="rounded-3xl px-5 py-6 flex items-center justify-between" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-              <div className="min-w-0">
-                <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: C.ink }}>กิจกรรมล่าสุด</div>
-                <div style={{ color: C.sub, fontSize: 12.5, marginTop: 3 }}>เร็ว ๆ นี้</div>
-              </div>
-              <div className="flex items-center justify-center rounded-2xl shrink-0 ml-4" style={{ width: 50, height: 50, background: C.bg }}>
-                <LayoutGrid size={23} style={{ color: C.ink }} />
-              </div>
-            </div>
-          </Carousel>
-        </div>
-
-        {/* เนื้อหาที่เหลือ */}
-        <div className="px-5 mt-6">
-          {/* แถบค้นหา + ปุ่ม filter */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ background: C.card, boxShadow: SHADOW_SM }}>
-              <Search size={16} style={{ color: C.sub }} />
-              <span style={{ color: C.sub, fontSize: 13 }}>ค้นหาทั้งระบบ…</span>
-            </div>
-            <button className="rounded-2xl flex items-center justify-center" style={{ width: 46, height: 46, background: C.ink }}>
-              <SlidersHorizontal size={16} style={{ color: "#fff" }} />
-            </button>
-          </div>
-
-          {/* 4 การ์ดหมวดงาน — เฉพาะที่มีสิทธิ์ */}
-          <div className="grid grid-cols-2 gap-3">
-            {visible.map((m) => (
-              <div key={m.id} onClick={() => go(m.id)} className="rounded-3xl p-5"
-                style={{ background: C.card, boxShadow: SHADOW_SM }}>
-                <div className="flex items-center justify-center rounded-2xl mb-4"
-                  style={{ width: 48, height: 48, background: C.bg, color: C.ink }}>
-                  <m.icon size={23} />
-                </div>
-                <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: C.ink }}>{m.name}</div>
-                <div style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>{m.sub}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Dashboard — สำหรับทุกคน */}
-          <div onClick={() => go("home")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
-            style={{ background: C.card, boxShadow: SHADOW_SM }}>
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44, background: C.bg }}>
-                <LayoutGrid size={20} style={{ color: C.ink }} />
-              </div>
-              <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Dashboard</div>
-            </div>
-            <ChevronRight size={18} style={{ color: C.sub }} />
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   /* ---------- ป๊อปอัพใส่รหัสเข้า Connect ---------- */
   const PinModal = () => pinOpen && (
@@ -914,7 +793,19 @@ export default function App() {
   const isNavScreen = NAV.some((n) => n.id === screen);
   const Body = () => {
     switch (screen) {
-      case "modules": return <ModulesScreen />;
+      case "modules": return (
+        <Overview
+          brand="House of N Savoir"
+          displayName={demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้")}
+          email={demo ? "demo@nsavoir.app" : (auth.session?.user?.email || "")}
+          roleName={P.name}
+          isAdmin={role === "owner" || role === "dev"}
+          modules={MODULES.filter((m) => P.mods.includes(m.id))}
+          onModule={go}
+          onDashboard={() => go("home")}
+          onConnect={openConnect}
+        />
+      );
       case "home": return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
       case "office": return demo ? <Office /> : <OfficeReal go={go} finance={P.finance} />;
       case "b2b": return demo ? <B2BScreen /> : <B2BReal />;
