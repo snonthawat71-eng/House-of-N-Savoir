@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
+import { NavCtx } from "./lib/nav";
 import MfaGate from "./MfaGate";
 import UsersAdmin from "./UsersAdmin";
 import ProductsScreen from "./ProductsScreen";
@@ -167,16 +168,22 @@ export default function App() {
   const role = demo ? roleDemo : (auth.profile?.role ?? "sales");
   const P = ROLES[role as keyof typeof ROLES] || ROLES.sales;
   const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
+  // ตัวจัดการย้อนกลับของหน้าย่อย (ปิดฟอร์ม/มุมมองย่อยก่อนออกจากหน้า)
+  const backHandlerRef = useRef<(() => void) | null>(null);
+  const registerBack = (fn: (() => void) | null) => { backHandlerRef.current = fn; };
+
   // โซน Connect: เดินไปมาภายในไม่ต้องใส่รหัสซ้ำ — จะล็อกใหม่เมื่อ "ออกจากโซน" เท่านั้น
   const CONNECT_AREA = ["connect", "portal", "audit", "users", "formula", "products"];
   const go = (s) => {
+    backHandlerRef.current = null;
     if (!CONNECT_AREA.includes(s)) setConnectUnlocked(false);
     setHistory((h) => (s === screen ? h : [...h, screen]));
     setScreen(s);
     window.scrollTo(0, 0);
   };
-  // ปุ่มย้อนกลับ = กลับหน้าก่อนหน้าจริง (ไม่ใช่เด้งกลับหน้าแรก)
+  // ปุ่มย้อนกลับ: ถ้าหน้าย่อยมีมุมมองเปิดอยู่ให้ปิดก่อน ไม่งั้นกลับหน้าก่อนหน้า
   const goBack = () => {
+    if (backHandlerRef.current) { backHandlerRef.current(); return; }
     setHistory((h) => {
       const prev = h.length ? h[h.length - 1] : "modules";
       if (!CONNECT_AREA.includes(prev)) setConnectUnlocked(false);
@@ -829,7 +836,9 @@ export default function App() {
       <style>{FONTS}</style>
       {/* หน้าแรก (หมวดงาน) ไม่มีหัวข้อและไม่มีแถบเมนู */}
       {screen !== "modules" && <Header title={titleMap[screen] || "N SAVOIR"} back={screen !== "home" && !isNavScreen} />}
-      <Body />
+      <NavCtx.Provider value={{ registerBack }}>
+        <Body />
+      </NavCtx.Provider>
       <RolePicker />
       <PinModal />
 

@@ -3,6 +3,7 @@ import { Plus, Loader2, MapPin, Minus, TrendingUp, ArrowLeft, Store, Boxes, Glob
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
+import { useBackHandler } from "../lib/nav";
 import { C, disp, inputStyle } from "../lib/ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export default function B2C() {
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "screen", entityId: "b2c" }); }, [load]);
+  useBackHandler(channel !== null, () => { setChannel(null); setOpen(null); });
 
   const locsOfKind = (kind: string) => locations.filter((l) => l.kind === kind);
   const itemsOf = (locId: string) => stock.filter((s) => s.location_id === locId);
@@ -87,10 +89,7 @@ export default function B2C() {
     const locs = locsOfKind(channel);
     return (
       <div className="px-5 pb-32">
-        <button onClick={() => { setChannel(null); setOpen(null); }} className="mt-2 mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <ArrowLeft size={18} /> กลับ
-        </button>
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mt-2 mb-4 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.1)]">
             <meta.icon size={22} className="text-primary" />
           </div>

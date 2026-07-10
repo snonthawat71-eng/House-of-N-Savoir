@@ -3,6 +3,7 @@ import { Plus, Loader2, Lock, ArrowLeft, Trash2 } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./lib/auth";
 import { logAudit } from "./lib/audit";
+import { useBackHandler } from "./lib/nav";
 
 const C = {
   bg: "#F1F2F4", card: "#FFFFFF", ink: "#111214",
@@ -43,6 +44,7 @@ export default function ProductsScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useBackHandler(editing !== null, () => setEditing(null));
 
   if (editing) {
     return <ProductForm initial={editing} onBack={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />;
@@ -152,10 +154,7 @@ function ProductForm({ initial, onBack, onSaved }: { initial: Product; onBack: (
 
   return (
     <div className="px-5 pb-32">
-      <button onClick={onBack} className="flex items-center gap-2 mt-2 mb-4" style={{ color: C.sub, fontSize: 14 }}>
-        <ArrowLeft size={18} /> กลับ
-      </button>
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mb-4">
+      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">
         {isNew ? "เพิ่มสินค้าใหม่" : "แก้ไขสินค้า"}
       </div>
 

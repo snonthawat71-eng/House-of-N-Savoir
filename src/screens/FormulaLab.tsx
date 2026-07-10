@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Plus, Loader2, ArrowLeft, ShieldCheck, FlaskConical, Trash2, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
+import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle } from "../lib/ui";
 import { Field } from "./B2B";
 
@@ -27,6 +28,7 @@ export default function FormulaLab() {
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "formula-lab", entityId: "screen" }); }, [load]);
+  useBackHandler(editing !== null || openF !== null, () => { if (editing !== null) setEditing(null); else setOpenF(null); });
 
   // เปิดดูสูตร = บันทึก log ทุกครั้ง (ข้อมูลลับสุดยอด)
   function openFormula(f: Formula) {
@@ -44,10 +46,7 @@ export default function FormulaLab() {
     const price = costTotal * (Number(openF.multiplier) || 0);
     return (
       <div className="px-5 pb-32">
-        <button onClick={() => setOpenF(null)} className="flex items-center gap-2 mt-2 mb-4" style={{ color: C.sub, fontSize: 14 }}>
-          <ArrowLeft size={18} /> กลับ
-        </button>
-        <div className="rounded-3xl p-4 flex items-center gap-3" style={{ background: C.ink }}>
+        <div className="rounded-3xl p-4 mt-2 flex items-center gap-3" style={{ background: C.ink }}>
           <ShieldCheck size={22} style={{ color: C.red }} />
           <div>
             <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: "#fff" }}>{openF.name}</div>
@@ -171,10 +170,7 @@ function FormulaForm({ initial, onDone }: { initial: Formula | null; onDone: () 
 
   return (
     <div className="px-5 pb-32">
-      <button onClick={onDone} className="flex items-center gap-2 mt-2 mb-4" style={{ color: C.sub, fontSize: 14 }}>
-        <ArrowLeft size={18} /> กลับ
-      </button>
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mb-4">
+      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">
         {initial ? "แก้ไขสูตร" : "สร้างสูตรใหม่"}
       </div>
       <Field label="ชื่อสูตร/กลิ่น"><input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น Nuit de Vétiver" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>

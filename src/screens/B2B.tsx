@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Plus, Loader2, ArrowLeft, Truck, Trash2, RotateCcw } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
+import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle, fmtDate } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
 
@@ -41,6 +42,7 @@ export default function B2B() {
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "screen", entityId: "b2b" }); }, [load]);
+  useBackHandler(view !== "main", () => { setEditCustomer(null); setView("main"); });
 
   const Sect = ({ children, action }: { children?: any; action?: any }) => (
     <div className="px-1 mb-3 mt-6 flex items-center justify-between">
@@ -154,13 +156,10 @@ function Empty({ text }: { text: string }) {
   return <p style={{ color: C.sub, fontSize: 13 }} className="px-1 py-3">{text}</p>;
 }
 
-function FormShell({ title, onBack, children }: { title: string; onBack: () => void; children?: any }) {
+function FormShell({ title, children }: { title: string; onBack?: () => void; children?: any }) {
   return (
     <div className="px-5 pb-32">
-      <button onClick={onBack} className="flex items-center gap-2 mt-2 mb-4" style={{ color: C.sub, fontSize: 14 }}>
-        <ArrowLeft size={18} /> กลับ
-      </button>
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mb-4">{title}</div>
+      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">{title}</div>
       {children}
     </div>
   );

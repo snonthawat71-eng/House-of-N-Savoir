@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Plus, Loader2, ArrowLeft, CalendarClock, FileText, Trash2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
+import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle, fmtDate, daysUntil } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
 import { Field } from "./B2B";
@@ -35,6 +36,7 @@ export default function SupplierScreen() {
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "screen", entityId: "supplier" }); }, [load]);
+  useBackHandler(view !== "main", () => { setEditSup(null); setView("main"); });
 
   if (view === "supplier") return <SupplierForm initial={editSup} onDone={() => { setEditSup(null); setView("main"); load(); }} />;
   if (view === "po") return <POForm suppliers={suppliers} onDone={() => { setView("main"); load(); }} />;
@@ -138,10 +140,7 @@ function SupplierForm({ initial, onDone }: { initial: Supplier | null; onDone: (
 
   return (
     <div className="px-5 pb-32">
-      <button onClick={onDone} className="flex items-center gap-2 mt-2 mb-4" style={{ color: C.sub, fontSize: 14 }}>
-        <ArrowLeft size={18} /> กลับ
-      </button>
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mb-4">{initial ? "แก้ไขผู้ผลิต" : "เพิ่มผู้ผลิต"}</div>
+      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">{initial ? "แก้ไขผู้ผลิต" : "เพิ่มผู้ผลิต"}</div>
       <Field label="ชื่อผู้ผลิต"><input value={f.name} onChange={(e) => set("name", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="วัตถุดิบ/สินค้า"><input value={f.material} onChange={(e) => set("material", e.target.value)} placeholder="เช่น หัวน้ำหอม / ขวดแก้ว" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="ผู้ติดต่อ"><input value={f.contact} onChange={(e) => set("contact", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
@@ -183,10 +182,7 @@ function POForm({ suppliers, onDone }: { suppliers: Supplier[]; onDone: () => vo
 
   return (
     <div className="px-5 pb-32">
-      <button onClick={onDone} className="flex items-center gap-2 mt-2 mb-4" style={{ color: C.sub, fontSize: 14 }}>
-        <ArrowLeft size={18} /> กลับ
-      </button>
-      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mb-4">เปิดใบสั่งซื้อ (PO)</div>
+      <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: C.ink }} className="mt-2 mb-4">เปิดใบสั่งซื้อ (PO)</div>
       <Field label="ผู้ผลิต">
         <input list="po-suppliers" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="เลือกหรือพิมพ์ชื่อ" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
         <datalist id="po-suppliers">{suppliers.map((s) => <option key={s.id} value={s.name} />)}</datalist>
