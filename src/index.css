@@ -4,6 +4,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== ตัวแปรธีมของ shadcn/ui (สีหลัก = แดงแบรนด์) ===== */
+@layer base {
+  :root {
+    --background: 220 13% 96%;
+    --foreground: 220 9% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 9% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 9% 8%;
+    --primary: 2 79% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 94%;
+    --secondary-foreground: 220 9% 8%;
+    --muted: 220 13% 94%;
+    --muted-foreground: 220 5% 56%;
+    --accent: 220 13% 94%;
+    --accent-foreground: 220 9% 8%;
+    --destructive: 2 79% 53%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 92%;
+    --input: 220 13% 92%;
+    --ring: 2 79% 53%;
+    --radius: 1rem;
+  }
+  .dark {
+    --background: 220 8% 7%;
+    --foreground: 0 0% 98%;
+    --card: 220 8% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 220 8% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 2 79% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 6% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 6% 16%;
+    --muted-foreground: 220 5% 65%;
+    --accent: 220 6% 16%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 2 79% 53%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 6% 18%;
+    --input: 220 6% 18%;
+    --ring: 2 79% 53%;
+  }
+}
+
 html,
 body,
 #root {
