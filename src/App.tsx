@@ -148,28 +148,12 @@ export default function App() {
   const [authedDemo, setAuthed] = useState(false);
   const [step, setStep] = useState("google");
   const [roleDemo, setRole] = useState("owner");
-  const [screen, setScreen] = useState(() => {
-    // กลับหน้าเดิมเฉพาะถ้าออกจากแอปไม่เกิน 10 นาที (ยกเว้นโซนลับ Connect)
-    const RESUME_MS = 10 * 60 * 1000;
-    const within = Date.now() - Number(localStorage.getItem("ns_left_at") || 0) <= RESUME_MS;
-    const s = localStorage.getItem("ns_screen");
-    return within && s && !["connect", "portal", "audit", "users", "formula", "products"].includes(s) ? s : "modules";
-  });
+  // สลับแอป = ไม่โหลดหน้าใหม่ (React จำสถานะเอง อยู่หน้าเดิม)
+  // ปัดปิดแอป/โหลดใหม่ = cold start = เริ่มที่ Overview เสมอ
+  const [screen, setScreen] = useState("modules");
   const [history, setHistory] = useState<string[]>([]);
-  useEffect(() => { localStorage.setItem("ns_screen", screen); }, [screen]);
-
-  // บันทึกเวลา "ออกจากแอป" ไว้ + ล้างสถานะ B2C ถ้าปิดแอปนานเกิน 10 นาที
-  useEffect(() => {
-    const RESUME_MS = 10 * 60 * 1000;
-    if (Date.now() - Number(localStorage.getItem("ns_left_at") || 0) > RESUME_MS) {
-      ["b2c_channel", "b2c_shop", "b2c_sub"].forEach((k) => localStorage.removeItem(k));
-    }
-    const mark = () => localStorage.setItem("ns_left_at", String(Date.now()));
-    const onVis = () => { if (document.hidden) mark(); };
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("pagehide", mark);
-    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", mark); };
-  }, []);
+  // เคลียร์สถานะ B2C ที่ค้างใน localStorage เดิม (ให้ cold start สะอาด)
+  useEffect(() => { ["b2c_channel", "b2c_shop", "b2c_sub", "ns_screen", "ns_left_at"].forEach((k) => localStorage.removeItem(k)); }, []);
   const [rolePick, setRolePick] = useState(false);
 
   // รหัสเข้า N SAVOIR CONNECT (ล็อกอีกชั้นสำหรับเจ้าของ)
