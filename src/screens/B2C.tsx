@@ -205,8 +205,14 @@ export default function B2C() {
           </div>
           <div className="min-w-0 flex-1 pr-10">
             <div className="font-disp text-lg font-extrabold text-foreground">{shop.shop_name || shop.name}</div>
-            {shop.branch_code && <div className="mt-0.5 text-[11px] text-muted-foreground"><b className="text-foreground">รหัสสาขา</b> {shop.branch_code}</div>}
-            {shop.branch_name && <div className="text-[11px] text-muted-foreground"><b className="text-foreground">สาขา</b> {shop.branch_name}</div>}
+            {shop.branch_name && <div className="mt-0.5 text-[11px] text-muted-foreground"><b className="text-foreground">สาขา</b> {shop.branch_name}</div>}
+            {shop.branch_code && <div className="text-[11px] text-muted-foreground"><b className="text-foreground">รหัสสาขา</b> {shop.branch_code}</div>}
+            {shop.phone && (
+              <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <b className="text-foreground">เบอร์โทร</b> {shop.phone}
+                <a href={`tel:${shop.phone}`} className="flex h-6 w-6 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.1)] text-primary"><Phone size={12} /></a>
+              </div>
+            )}
           </div>
           <button onClick={() => { setEditShop(shop); setPopup("shopForm"); }} aria-label="แก้ไข"
             className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-foreground">
@@ -219,7 +225,6 @@ export default function B2C() {
           {shop.address && <ContactLine label="ที่อยู่" value={shop.address} copy={shop.address} />}
           {shop.tax_id && <ContactLine label="เลขผู้เสียภาษี" value={shop.tax_id} copy={shop.tax_id} />}
           {shop.email && <ContactLine label="อีเมล" value={shop.email} copy={shop.email} />}
-          {shop.phone && <ContactLine label="เบอร์ติดต่อ" value={shop.phone} call={shop.phone} />}
         </div>
 
         {/* ยอดขาย — fintech */}
@@ -283,16 +288,27 @@ export default function B2C() {
         <div className="mb-3 mt-2 px-1 font-disp text-base font-bold text-foreground">ร้านฝากขาย ({shops.length})</div>
         <div className="grid grid-cols-2 gap-3">
           {shops.map((s) => (
-            <Card key={s.id} onClick={() => { setSub(null); setShopId(s.id); }} className="flex cursor-pointer flex-col items-center p-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center overflow-hidden">
-                {s.logo_url ? <img src={s.logo_url} alt="" className="h-full w-full object-contain" /> : <StoreIcon size={34} className="text-muted-foreground" />}
+            <Card key={s.id} onClick={() => { setSub(null); setShopId(s.id); }} className="cursor-pointer overflow-hidden p-0">
+              <div className="relative aspect-[4/3] w-full bg-secondary">
+                {s.logo_url ? (
+                  <>
+                    <img src={s.logo_url} aria-hidden alt="" className="absolute inset-0 h-full w-full scale-125 object-cover blur-2xl" />
+                    <div className="absolute inset-0 flex items-center justify-center p-3">
+                      <img src={s.logo_url} alt="" className="max-h-full max-w-full object-contain" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center"><StoreIcon size={38} className="text-muted-foreground" /></div>
+                )}
               </div>
-              <div className="mt-2 w-full truncate font-disp text-[15px] font-extrabold text-foreground">{s.shop_name || s.name}</div>
-              <div className="w-full truncate text-[11px] text-muted-foreground">{s.branch_name || "สาขาหลัก"}</div>
+              <div className="px-3 py-3 text-center">
+                <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{s.shop_name || s.name}</div>
+                <div className="truncate text-[11px] text-muted-foreground">{s.branch_name || "สาขาหลัก"}</div>
+              </div>
             </Card>
           ))}
           <button onClick={() => { setEditShop(null); setPopup("shopForm"); }}
-            className="flex min-h-[128px] flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-muted-foreground">
+            className="flex min-h-[172px] flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-muted-foreground">
             <Plus size={22} /><span className="text-[13px] font-semibold">เพิ่มร้าน</span>
           </button>
         </div>
