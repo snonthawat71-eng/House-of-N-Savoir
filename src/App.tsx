@@ -148,8 +148,13 @@ export default function App() {
   const [authedDemo, setAuthed] = useState(false);
   const [step, setStep] = useState("google");
   const [roleDemo, setRole] = useState("owner");
-  const [screen, setScreen] = useState("modules");
+  const [screen, setScreen] = useState(() => {
+    // จำหน้าล่าสุดไว้ (ยกเว้นโซนลับ Connect ที่ต้องใส่รหัสใหม่)
+    const s = localStorage.getItem("ns_screen");
+    return s && !["connect", "portal", "audit", "users", "formula", "products"].includes(s) ? s : "modules";
+  });
   const [history, setHistory] = useState<string[]>([]);
+  useEffect(() => { localStorage.setItem("ns_screen", screen); }, [screen]);
   const [rolePick, setRolePick] = useState(false);
 
   // รหัสเข้า N SAVOIR CONNECT (ล็อกอีกชั้นสำหรับเจ้าของ)
