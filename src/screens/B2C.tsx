@@ -289,14 +289,9 @@ export default function B2C() {
         <div className="grid grid-cols-2 gap-3">
           {shops.map((s) => (
             <Card key={s.id} onClick={() => { setSub(null); setShopId(s.id); }} className="cursor-pointer overflow-hidden p-0">
-              <div className="relative aspect-[4/3] w-full bg-secondary">
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-secondary">
                 {s.logo_url ? (
-                  <>
-                    <img src={s.logo_url} aria-hidden alt="" className="absolute inset-0 h-full w-full scale-125 object-cover blur-2xl" />
-                    <div className="absolute inset-0 flex items-center justify-center p-3">
-                      <img src={s.logo_url} alt="" className="max-h-full max-w-full object-contain" />
-                    </div>
-                  </>
+                  <img src={s.logo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center"><StoreIcon size={38} className="text-muted-foreground" /></div>
                 )}
