@@ -42,9 +42,9 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 export default function B2C() {
-  const [channel, setChannel] = useState<string | null>(null);
-  const [shopId, setShopId] = useState<string | null>(null);
-  const [sub, setSub] = useState<string | null>(null);
+  const [channel, setChannel] = useState<string | null>(() => sessionStorage.getItem("b2c_channel") || null);
+  const [shopId, setShopId] = useState<string | null>(() => sessionStorage.getItem("b2c_shop") || null);
+  const [sub, setSub] = useState<string | null>(() => sessionStorage.getItem("b2c_sub") || null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string; sku: string; retail: number | null }[]>([]);
@@ -57,6 +57,11 @@ export default function B2C() {
   const [addName, setAddName] = useState("");
   const [campName, setCampName] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // จำหน้าล่าสุดใน session (สลับแอปยังอยู่ / ปิดจริงเริ่มใหม่)
+  useEffect(() => { channel ? sessionStorage.setItem("b2c_channel", channel) : sessionStorage.removeItem("b2c_channel"); }, [channel]);
+  useEffect(() => { shopId ? sessionStorage.setItem("b2c_shop", shopId) : sessionStorage.removeItem("b2c_shop"); }, [shopId]);
+  useEffect(() => { sub ? sessionStorage.setItem("b2c_sub", sub) : sessionStorage.removeItem("b2c_sub"); }, [sub]);
 
   const load = useCallback(async () => {
     setLoading(true);

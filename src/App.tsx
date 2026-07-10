@@ -148,11 +148,14 @@ export default function App() {
   const [authedDemo, setAuthed] = useState(false);
   const [step, setStep] = useState("google");
   const [roleDemo, setRole] = useState("owner");
-  // สลับแอป = ไม่โหลดหน้าใหม่ (React จำสถานะเอง อยู่หน้าเดิม)
-  // ปัดปิดแอป/โหลดใหม่ = cold start = เริ่มที่ Overview เสมอ
-  const [screen, setScreen] = useState("modules");
+  // ใช้ sessionStorage: สลับแอป = session เดิม (อยู่หน้าเดิม) / ปัดปิดแอป = จบ session (เริ่ม Overview)
+  const [screen, setScreen] = useState(() => {
+    const s = sessionStorage.getItem("ns_screen");
+    return s && !["connect", "portal", "audit", "users", "formula", "products"].includes(s) ? s : "modules";
+  });
   const [history, setHistory] = useState<string[]>([]);
-  // เคลียร์สถานะ B2C ที่ค้างใน localStorage เดิม (ให้ cold start สะอาด)
+  useEffect(() => { sessionStorage.setItem("ns_screen", screen); }, [screen]);
+  // ล้าง localStorage เก่าที่เคยใช้ (ย้ายมา sessionStorage แล้ว)
   useEffect(() => { ["b2c_channel", "b2c_shop", "b2c_sub", "ns_screen", "ns_left_at"].forEach((k) => localStorage.removeItem(k)); }, []);
   const [rolePick, setRolePick] = useState(false);
 
