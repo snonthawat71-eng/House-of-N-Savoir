@@ -45,7 +45,7 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
               <div className="font-disp text-[19px] font-extrabold text-foreground">N Savoir Connect</div>
               <div className="mt-1 text-[12.5px] text-muted-foreground">ระบบจัดการสำหรับผู้บริหาร</div>
             </div>
-            <div className="ml-4 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.1)]">
+            <div className="ml-4 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl">
               <Lock size={23} className="text-primary" />
             </div>
           </Card>
@@ -55,7 +55,7 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
             <div className="font-disp text-[19px] font-extrabold text-foreground">กิจกรรมล่าสุด</div>
             <div className="mt-1 text-[12.5px] text-muted-foreground">เร็ว ๆ นี้</div>
           </div>
-          <div className="ml-4 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-secondary">
+          <div className="ml-4 flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl">
             <LayoutGrid size={23} className="text-foreground" />
           </div>
         </Card>
@@ -77,7 +77,7 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
         <div className="grid grid-cols-2 gap-3">
           {modules.map((m) => (
             <Card key={m.id} onClick={() => onModule(m.id)} className="cursor-pointer p-5">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-foreground">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-foreground">
                 <m.icon size={23} />
               </div>
               <div className="font-disp text-lg font-bold text-foreground">{m.name}</div>
@@ -89,7 +89,7 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
         {/* Dashboard */}
         <Card onClick={onDashboard} className="mt-3 flex cursor-pointer items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl">
               <LayoutGrid size={20} className="text-foreground" />
             </div>
             <div className="font-disp text-[15px] font-bold text-foreground">Dashboard</div>

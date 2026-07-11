@@ -66,7 +66,7 @@ export default function FormulaLab() {
       ) : (
         list.map((f) => (
           <div key={f.id} onClick={() => openFormula(f)} className="mb-2.5 flex cursor-pointer items-center gap-3 rounded-3xl bg-card p-4 shadow-sm">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: C.brandSoft }}>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl">
               <FlaskConical size={20} style={{ color: C.brand }} />
             </div>
             <div className="min-w-0 flex-1">
