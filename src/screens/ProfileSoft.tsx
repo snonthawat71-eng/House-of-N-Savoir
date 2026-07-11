@@ -13,15 +13,16 @@ const S = {
   brand: "#014BAA",
   brandSoft: "#E7EEF7",
 };
-const SHADOW = "0 10px 30px rgba(83,80,120,.10)";
-const SHADOW_SM = "0 6px 16px rgba(83,80,120,.08)";
+// เงานุ่มแบบ glow (เด่นขึ้น) — จุดที่ผู้ใช้ชอบ
+const SHADOW = "0 14px 36px rgba(60,58,110,.13), 0 3px 10px rgba(60,58,110,.06)";
+const SHADOW_SM = "0 8px 22px rgba(60,58,110,.10)";
 const disp = "'Urbanist','Noto Sans Thai',system-ui,sans-serif";
 
-function Tile({ icon: Icon, label }: { icon: any; label: string }) {
+// ไอคอนลัดแบบ "ไม่มีพื้นรอง" — ลอยอยู่บนการ์ด ไม่มีไทล์ขาวรองแต่ละอัน
+function QuickIcon({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <button className="flex flex-1 flex-col items-center gap-2 rounded-3xl py-4"
-      style={{ background: S.card, boxShadow: SHADOW_SM }}>
-      <Icon size={22} strokeWidth={1.8} style={{ color: S.ink }} />
+    <button className="flex flex-1 flex-col items-center gap-2 py-1">
+      <Icon size={23} strokeWidth={1.8} style={{ color: S.ink }} />
       <span style={{ color: S.sub, fontSize: 12.5, fontWeight: 600 }}>{label}</span>
     </button>
   );
@@ -72,12 +73,12 @@ export default function ProfileSoft() {
         </button>
       </div>
 
-      {/* ---------- quick actions ---------- */}
-      <div className="mt-6 flex gap-3">
-        <Tile icon={Bell} label="แจ้งเตือน" />
-        <Tile icon={Palette} label="ธีม" />
-        <Tile icon={Search} label="ค้นหา" />
-        <Tile icon={Settings} label="ตั้งค่า" />
+      {/* ---------- quick actions: การ์ด glow + ไอคอนไม่มีพื้นรอง ---------- */}
+      <div className="mt-6 flex rounded-[26px] px-2 py-5" style={{ background: S.card, boxShadow: SHADOW }}>
+        <QuickIcon icon={Bell} label="แจ้งเตือน" />
+        <QuickIcon icon={Palette} label="ธีม" />
+        <QuickIcon icon={Search} label="ค้นหา" />
+        <QuickIcon icon={Settings} label="ตั้งค่า" />
       </div>
 
       {/* ---------- settings list ---------- */}
