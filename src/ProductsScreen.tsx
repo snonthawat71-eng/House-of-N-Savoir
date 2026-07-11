@@ -7,7 +7,8 @@ import { useBackHandler } from "./lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle } from "./lib/ui";
 import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Field } from "./screens/B2B";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 
 type Product = {
   id?: string; sku: string; name: string; type: string | null;
@@ -138,15 +139,14 @@ function ProductFields({ initial, onDone }: { initial: Product; onDone: () => vo
 
   return (
     <div className="pb-4">
-      <Field label="รหัสสินค้า (SKU)"><input value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder="NS-EDP-001" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      <Field label="ชื่อสินค้า"><input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nuit de Vétiver" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      <Field label="ประเภท"><input value={f.type || ""} onChange={(e) => set("type", e.target.value)} placeholder="Eau de Parfum 50ml" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      <FormField label="รหัสสินค้า (SKU)"><Input value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder="NS-EDP-001" /></FormField>
+      <FormField label="ชื่อสินค้า"><Input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nuit de Vétiver" /></FormField>
+      <FormField label="ประเภท"><Input value={f.type || ""} onChange={(e) => set("type", e.target.value)} placeholder="Eau de Parfum 50ml" /></FormField>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="ต้นทุน (฿)"><input value={f.cost ?? ""} onChange={(e) => set("cost", num(e.target.value))} inputMode="numeric" placeholder="420" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-        <Field label="ราคาขาย (฿)"><input value={f.retail ?? ""} onChange={(e) => set("retail", num(e.target.value))} inputMode="numeric" placeholder="2900" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+        <FormField label="ต้นทุน (฿)"><Input value={f.cost ?? ""} onChange={(e) => set("cost", num(e.target.value))} inputMode="numeric" placeholder="420" /></FormField>
+        <FormField label="ราคาขาย (฿)"><Input value={f.retail ?? ""} onChange={(e) => set("retail", num(e.target.value))} inputMode="numeric" placeholder="2900" /></FormField>
       </div>
-      <Field label="คงเหลือ (ชิ้น)"><input value={f.stock ?? 0} onChange={(e) => set("stock", num(e.target.value) ?? 0)} inputMode="numeric" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
-      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
+      <FormField label="คงเหลือ (ชิ้น)" error={err}><Input value={f.stock ?? 0} onChange={(e) => set("stock", num(e.target.value) ?? 0)} inputMode="numeric" /></FormField>
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
     </div>
   );
