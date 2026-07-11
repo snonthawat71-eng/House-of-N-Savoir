@@ -121,12 +121,12 @@ export default function UsersAdmin() {
         </div>
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="อีเมล Google"
           inputMode="email"
-          className="w-full rounded-2xl px-4 py-3 mb-2" style={{ background: C.bg, border: "none", outline: "none", fontSize: 14, color: C.ink }} />
+          className="w-full rounded-2xl px-4 py-3 mb-2" style={{ background: C.card, border: "1px solid " + C.line, outline: "none", fontSize: 14, color: C.ink }} />
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อเล่น (ไม่บังคับ)"
-          className="w-full rounded-2xl px-4 py-3 mb-2" style={{ background: C.bg, border: "none", outline: "none", fontSize: 14, color: C.ink }} />
+          className="w-full rounded-2xl px-4 py-3 mb-2" style={{ background: C.card, border: "1px solid " + C.line, outline: "none", fontSize: 14, color: C.ink }} />
         <div className="flex gap-2">
           <select value={role} onChange={(e) => setRole(e.target.value)}
-            className="flex-1 rounded-2xl px-4 py-3" style={{ background: C.bg, border: "none", outline: "none", fontSize: 14, color: C.ink }}>
+            className="flex-1 rounded-2xl px-4 py-3" style={{ background: C.card, border: "1px solid " + C.line, outline: "none", fontSize: 14, color: C.ink }}>
             {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </select>
           <button onClick={invite} disabled={busy}
@@ -169,7 +169,7 @@ export default function UsersAdmin() {
               </div>
               <div className="flex items-center gap-2 mt-3">
                 <select value={inv.role} onChange={(e) => changeRole(inv, e.target.value)}
-                  className="flex-1 rounded-xl px-3 py-2" style={{ background: C.bg, border: "none", outline: "none", fontSize: 13, color: C.ink }}>
+                  className="flex-1 rounded-xl px-3 py-2" style={{ background: C.card, border: "1px solid " + C.line, outline: "none", fontSize: 13, color: C.ink }}>
                   {roleOpts.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
                 {isSelf ? (

@@ -18,7 +18,7 @@ export const mono = "'Space Mono', ui-monospace, monospace";
 export const baht = (n: number | null | undefined) =>
   n == null ? "-" : "฿" + Number(n).toLocaleString("th-TH");
 export const inputStyle = {
-  background: C.bg, border: "none", outline: "none", fontSize: 14, color: C.ink,
+  background: C.card, border: "1px solid " + C.line, outline: "none", fontSize: 14, color: C.ink,
 } as const;
 export const fmtDate = (iso?: string | null) => {
   if (!iso) return "-";

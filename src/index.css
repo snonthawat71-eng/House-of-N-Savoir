@@ -63,3 +63,11 @@ body {
   background: #111214;
   -webkit-font-smoothing: antialiased;
 }
+
+/* โฟกัสช่องกรอกทุกฟอร์ม → ขอบ + วงแหวนน้ำเงินแบรนด์ (มาตรฐานเดียวกันทั้งแอป) */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.15);
+}
