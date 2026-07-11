@@ -247,7 +247,7 @@ export default function B2C() {
         {/* สต็อก — แถบกด เข้าไปอีกหน้า */}
         <button onClick={() => setSub("stock")} className="mt-6 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl"><Package size={20} className="text-foreground" /></div>
+            <div className="shrink-0"><Package size={26} strokeWidth={1.8} className="text-foreground" /></div>
             <div className="text-left">
               <div className="font-disp text-[15px] font-bold text-foreground">สต็อกสินค้า</div>
               <div className="text-[11px] text-muted-foreground">{rows.length} รายการ · รวม {totalOf(shop.id)} ชิ้น</div>
@@ -321,7 +321,7 @@ export default function B2C() {
     return (
       <div className="px-5 pb-32">
         <div className="mt-2 mb-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl"><meta.icon size={22} className="text-primary" /></div>
+          <div className="shrink-0"><meta.icon size={30} strokeWidth={1.8} className="text-primary" /></div>
           <div>
             <div className="font-disp text-xl font-extrabold text-foreground">{meta.label}</div>
             <div className="text-xs text-muted-foreground">{meta.sub} · รวม {kindTotal(channel)} ชิ้น</div>
@@ -379,7 +379,7 @@ export default function B2C() {
         {CHANNELS.map((c) => (
           <Card key={c.kind} onClick={() => { setShopId(null); setSub(null); setChannel(c.kind); }} className="cursor-pointer p-5">
             <div className="flex items-center justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-foreground"><c.icon size={22} /></div>
+              <div className="shrink-0 text-foreground"><c.icon size={30} strokeWidth={1.8} /></div>
               <span className="font-disp text-2xl font-extrabold text-foreground">{kindTotal(c.kind)}</span>
             </div>
             <div className="mt-3 font-disp text-[15px] font-bold text-foreground">{c.label}</div>

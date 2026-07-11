@@ -109,7 +109,7 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
 
           <div onClick={() => go("import")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl"><Upload size={20} className="text-foreground" /></div>
+              <div className="shrink-0"><Upload size={26} strokeWidth={1.8} className="text-foreground" /></div>
               <div>
                 <div className="font-disp text-[15px] font-bold text-foreground">นำเข้าจาก Excel/CSV</div>
                 <div className="text-[11px] text-muted-foreground">อัปโหลดไฟล์สินค้า/ลูกค้าเข้าระบบ</div>

@@ -440,8 +440,8 @@ export default function App() {
       <div onClick={() => go("products")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
         style={{ background: C.card, boxShadow: SHADOW_SM }}>
         <div className="flex items-center gap-3">
-          <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44 }}>
-            <Package size={20} style={{ color: C.ink }} />
+          <div className="shrink-0">
+            <Package size={26} strokeWidth={1.8} style={{ color: C.ink }} />
           </div>
           <div>
             <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Main Stock</div>
@@ -456,8 +456,8 @@ export default function App() {
         <div onClick={() => go("portal")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
           style={{ background: C.card, boxShadow: SHADOW_SM }}>
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44 }}>
-              <SlidersHorizontal size={20} style={{ color: C.ink }} />
+            <div className="shrink-0">
+              <SlidersHorizontal size={26} strokeWidth={1.8} style={{ color: C.ink }} />
             </div>
             <div>
               <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Portal</div>
@@ -491,8 +491,8 @@ export default function App() {
         <div onClick={() => go("audit")} className="rounded-3xl p-4 mt-2 flex items-center justify-between"
           style={{ background: C.card, boxShadow: SHADOW_SM }}>
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44 }}>
-              <ScrollText size={20} style={{ color: C.ink }} />
+            <div className="shrink-0">
+              <ScrollText size={26} strokeWidth={1.8} style={{ color: C.ink }} />
             </div>
             <div>
               <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Audit Log</div>
@@ -506,8 +506,8 @@ export default function App() {
         <div onClick={() => go("users")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
           style={{ background: C.card, boxShadow: SHADOW_SM }}>
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl flex items-center justify-center" style={{ width: 44, height: 44 }}>
-              <User size={20} style={{ color: C.ink }} />
+            <div className="shrink-0">
+              <User size={26} strokeWidth={1.8} style={{ color: C.ink }} />
             </div>
             <div>
               <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>กำหนดสิทธิ์ · จัดการผู้ใช้งาน</div>
