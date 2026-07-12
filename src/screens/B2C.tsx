@@ -2,17 +2,30 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus, Loader2, MapPin, Minus, TrendingUp, Store, Boxes, Globe, RefreshCcw,
   ChevronRight, Copy, Phone, Check, Store as StoreIcon, Package, Trash2, Pencil,
+  Tag, Lock, ArrowLeft,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/auth";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
-import { C, baht, inputStyle } from "../lib/ui";
+import { C, baht, mono, inputStyle } from "../lib/ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Field } from "./B2B";
+
+// ประเภทสินค้า (สำหรับ dropdown + filter ในหน้า Product List)
+const PRODUCT_TYPES = ["Interior Spray", "Eau De Parfum", "Diffuser", "Candle"] as const;
+
+type Brand = { id: string; name: string; logo_url: string | null };
+type CatalogProduct = {
+  id: string; brand_id: string | null; sku: string; name: string;
+  type: string | null; size: string | null; image_url: string | null;
+  cost: number | null; retail: number | null;
+};
+type ProdModal = { k: "add" } | { k: "view"; item: CatalogProduct } | { k: "form"; item: CatalogProduct } | null;
 
 type Location = {
   id: string; name: string; kind: string; updated_at?: string;
@@ -27,8 +40,13 @@ const CHANNELS: { kind: string; label: string; sub: string; icon: LucideIcon }[]
   { kind: "consign", label: "Consignment", sub: "ฝากขาย · เช็คยอด/ของคืน", icon: RefreshCcw },
   { kind: "online", label: "Online", sub: "พร้อมขายออนไลน์", icon: Globe },
   { kind: "store", label: "Shop", sub: "หน้าร้าน", icon: Store },
-  { kind: "warehouse", label: "Product Stock", sub: "คลังสินค้า", icon: Boxes },
+  { kind: "warehouse", label: "Product List", sub: "แคตตาล็อกสินค้าตามแบรนด์", icon: Boxes },
 ];
+
+function CostVal({ v }: { v: number | null }) {
+  if (v == null) return <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: C.redSoft, color: C.red }}><Lock size={11} /> ลับ</span>;
+  return <>{baht(v)}</>;
+}
 
 function CopyBtn({ text }: { text: string }) {
   const [ok, setOk] = useState(false);
@@ -42,17 +60,26 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 export default function B2C() {
+  const auth = useAuth();
+  const canEdit = ["owner", "dev", "manager"].includes(auth.profile?.role || "");
+
   const [channel, setChannel] = useState<string | null>(() => sessionStorage.getItem("b2c_channel") || null);
   const [shopId, setShopId] = useState<string | null>(() => sessionStorage.getItem("b2c_shop") || null);
   const [sub, setSub] = useState<string | null>(() => sessionStorage.getItem("b2c_sub") || null);
+  const [brandId, setBrandId] = useState<string | null>(() => sessionStorage.getItem("b2c_brand") || null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string; sku: string; retail: number | null }[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [popup, setPopup] = useState<null | "camp" | "shopForm" | "loc" | "monthly">(null);
   const [itemModal, setItemModal] = useState<StockRow | "add" | null>(null);
+  const [brandModal, setBrandModal] = useState<Brand | "add" | null>(null);
+  const [prodModal, setProdModal] = useState<ProdModal>(null);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [editShop, setEditShop] = useState<Location | null>(null);
   const [addName, setAddName] = useState("");
   const [campName, setCampName] = useState("");
@@ -62,19 +89,23 @@ export default function B2C() {
   useEffect(() => { channel ? sessionStorage.setItem("b2c_channel", channel) : sessionStorage.removeItem("b2c_channel"); }, [channel]);
   useEffect(() => { shopId ? sessionStorage.setItem("b2c_shop", shopId) : sessionStorage.removeItem("b2c_shop"); }, [shopId]);
   useEffect(() => { sub ? sessionStorage.setItem("b2c_sub", sub) : sessionStorage.removeItem("b2c_sub"); }, [sub]);
+  useEffect(() => { brandId ? sessionStorage.setItem("b2c_brand", brandId) : sessionStorage.removeItem("b2c_brand"); }, [brandId]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [l, s, p, cp] = await Promise.all([
+    const [l, s, p, cp, br] = await Promise.all([
       supabase.from("stock_locations").select("id,name,kind,updated_at,shop_name,branch_code,branch_name,address,tax_id,phone,email,logo_url").order("updated_at", { ascending: false }),
       supabase.from("stock_items").select("id,location_id,product_id,qty,sold,returned, products(name,sku)"),
-      supabase.from("products_view").select("id,name,sku,retail").order("name"),
+      supabase.from("products_view").select("id,name,sku,type,size,image_url,brand_id,cost,retail").order("name"),
       supabase.from("campaigns").select("id,name,channel,status").order("created_at", { ascending: false }),
+      supabase.from("brands").select("id,name,logo_url").order("name"),
     ]);
     setLocations((l.data as Location[]) || []);
     setStock((s.data as any) || []);
     setProducts((p.data as any) || []);
+    setCatalog((p.data as CatalogProduct[]) || []);
     setCampaigns((cp.data as Campaign[]) || []);
+    setBrands((br.data as Brand[]) || []);
     setLoading(false);
   }, []);
 
@@ -85,11 +116,14 @@ export default function B2C() {
   }, []);
   useEffect(() => { if (shopId) loadSales(shopId); else setSales([]); }, [shopId, loadSales]);
 
-  useBackHandler(popup !== null || itemModal !== null || sub !== null || shopId !== null || channel !== null, () => {
+  useBackHandler(popup !== null || itemModal !== null || brandModal !== null || prodModal !== null || sub !== null || shopId !== null || brandId !== null || channel !== null, () => {
     if (popup) setPopup(null);
     else if (itemModal) setItemModal(null);
+    else if (prodModal) setProdModal(null);
+    else if (brandModal) setBrandModal(null);
     else if (sub) setSub(null);
     else if (shopId) setShopId(null);
+    else if (brandId) { setBrandId(null); setTypeFilter("all"); }
     else { setChannel(null); setOpen(null); }
   });
 
@@ -149,6 +183,18 @@ export default function B2C() {
     if (!confirm("ลบร้านนี้?")) return;
     await supabase.from("stock_locations").delete().eq("id", l.id);
     setShopId(null); load();
+  }
+  async function delBrand(b: Brand) {
+    if (!confirm(`ลบแบรนด์ "${b.name}"? สินค้าในแบรนด์นี้จะไม่ถูกลบ แต่จะไม่มีแบรนด์`)) return;
+    await supabase.from("brands").delete().eq("id", b.id);
+    await logAudit({ action: "delete", entity: "brand", entityId: b.name });
+    setBrandId(null); setBrandModal(null); load();
+  }
+  async function delProduct(p: CatalogProduct) {
+    if (!confirm("ลบสินค้านี้?")) return;
+    await supabase.from("products").delete().eq("id", p.id);
+    await logAudit({ action: "delete", entity: "product", entityId: p.sku, oldValue: p });
+    setProdModal(null); load();
   }
 
   if (loading) return <div className="flex justify-center py-10 text-muted-foreground"><Loader2 size={22} className="animate-spin" /></div>;
@@ -314,6 +360,132 @@ export default function B2C() {
     );
   }
 
+  /* ===== Product List: แคตตาล็อกสินค้าตามแบรนด์ (แทนหน้า Product Stock เดิม) ===== */
+  if (channel === "warehouse") {
+    const brand = brandId ? brands.find((b) => b.id === brandId) : null;
+
+    // --- หน้าแบรนด์: ลิสต์สินค้า + filter ประเภท ---
+    if (brand) {
+      const prods = catalog.filter((p) => p.brand_id === brand.id);
+      const shown = typeFilter === "all" ? prods : prods.filter((p) => p.type === typeFilter);
+      return (
+        <div className="px-5 pb-32">
+          {/* หัวแบรนด์ + ปุ่มเพิ่มสินค้ามุมขวาบน */}
+          <div className="relative mb-4 mt-3 flex items-center gap-3 pr-24">
+            <button onClick={() => { setBrandId(null); setTypeFilter("all"); }} aria-label="ย้อนกลับ" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground"><ArrowLeft size={17} /></button>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-secondary">
+              {brand.logo_url ? <img src={brand.logo_url} alt="" className="h-full w-full object-cover" /> : <Tag size={22} className="text-muted-foreground" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-disp text-xl font-extrabold text-foreground">{brand.name}</div>
+              <div className="text-[11px] text-muted-foreground">{prods.length} สินค้า</div>
+            </div>
+            {canEdit && (
+              <div className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-2">
+                <button onClick={() => setBrandModal(brand)} aria-label="แก้ไขแบรนด์" className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-foreground"><Pencil size={15} /></button>
+                <button onClick={() => setProdModal({ k: "add" })} aria-label="เพิ่มสินค้า" className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white"><Plus size={20} /></button>
+              </div>
+            )}
+          </div>
+
+          {/* filter ประเภทสินค้า */}
+          <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+            {["all", ...PRODUCT_TYPES].map((t) => (
+              <button key={t} onClick={() => setTypeFilter(t)} className="shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors"
+                style={typeFilter === t ? { background: C.ink, color: "#fff" } : { background: C.card, color: C.sub, border: "1px solid " + C.line }}>
+                {t === "all" ? "ทั้งหมด" : t}
+              </button>
+            ))}
+          </div>
+
+          {/* การ์ดสินค้า 2 คอลัมน์ (ดีไซน์เหมือน consignment) */}
+          {shown.length === 0 ? (
+            <p className="py-10 text-center text-[13px] text-muted-foreground">{prods.length === 0 ? "ยังไม่มีสินค้าในแบรนด์นี้" : "ไม่มีสินค้าประเภทนี้"}</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {shown.map((p) => (
+                <Card key={p.id} onClick={() => setProdModal({ k: "view", item: p })} className="cursor-pointer overflow-hidden p-0">
+                  <div className="relative aspect-square w-full overflow-hidden bg-secondary">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center"><Package size={34} className="text-muted-foreground" /></div>
+                    )}
+                    {p.type && <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">{p.type}</span>}
+                  </div>
+                  <div className="px-3 py-3">
+                    <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{p.name}</div>
+                    <div className="truncate text-[10.5px] text-muted-foreground" style={{ fontFamily: mono }}>{p.sku}</div>
+                    <div className="mt-1.5 font-disp text-[15px] font-bold text-foreground">{baht(p.retail)}</div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {canEdit && (
+            <button onClick={() => delBrand(brand)} className="mt-8 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบแบรนด์นี้</button>
+          )}
+
+          {/* ดูรายละเอียดสินค้า */}
+          <Modal open={prodModal?.k === "view"} onClose={() => setProdModal(null)} title="รายละเอียดสินค้า">
+            {prodModal?.k === "view" && (
+              <div className="pb-2">
+                {prodModal.item.image_url && <img src={prodModal.item.image_url} alt="" className="mb-3 h-44 w-full rounded-2xl bg-secondary object-contain" />}
+                <div className="mb-1 font-disp text-xl font-extrabold text-foreground">{prodModal.item.name}</div>
+                <div className="mb-2 text-xs text-muted-foreground" style={{ fontFamily: mono }}>{prodModal.item.sku}</div>
+                <DetailRow label="แบรนด์">{brand.name}</DetailRow>
+                <DetailRow label="ประเภท">{prodModal.item.type || "-"}</DetailRow>
+                <DetailRow label="ขนาด">{prodModal.item.size || "-"}</DetailRow>
+                {canEdit && <DetailRow label="ราคาต้นทุน"><CostVal v={prodModal.item.cost} /></DetailRow>}
+                <DetailRow label="ราคาขาย">{baht(prodModal.item.retail)}</DetailRow>
+                {canEdit && <DetailActions onEdit={() => setProdModal({ k: "form", item: prodModal.item })} onDelete={() => delProduct(prodModal.item)} />}
+              </div>
+            )}
+          </Modal>
+
+          {/* เพิ่ม/แก้ไขสินค้า */}
+          <Modal open={prodModal?.k === "add" || prodModal?.k === "form"} onClose={() => setProdModal(null)} title={prodModal?.k === "form" ? "แก้ไขสินค้า" : "เพิ่มสินค้า"}>
+            {(prodModal?.k === "add" || prodModal?.k === "form") && (
+              <ProductForm brand={brand} initial={prodModal.k === "form" ? prodModal.item : null} onDone={() => { setProdModal(null); load(); }} />
+            )}
+          </Modal>
+        </div>
+      );
+    }
+
+    // --- หน้ารายชื่อแบรนด์ (การ์ดใหญ่ 2 ต่อแถว) ---
+    return (
+      <div className="px-5 pb-32">
+        <div className="mb-3 mt-2 px-1 font-disp text-base font-bold text-foreground">แบรนด์ ({brands.length})</div>
+        <div className="grid grid-cols-2 gap-3">
+          {brands.map((b) => (
+            <Card key={b.id} onClick={() => { setTypeFilter("all"); setBrandId(b.id); }} className="cursor-pointer overflow-hidden p-0">
+              <div className="relative aspect-square w-full overflow-hidden bg-secondary">
+                {b.logo_url ? (
+                  <img src={b.logo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center"><Tag size={40} className="text-muted-foreground" /></div>
+                )}
+              </div>
+              <div className="px-3 py-3.5 text-center">
+                <div className="truncate font-disp text-[16px] font-extrabold text-foreground">{b.name}</div>
+                <div className="text-[11px] text-muted-foreground">{catalog.filter((p) => p.brand_id === b.id).length} สินค้า</div>
+              </div>
+            </Card>
+          ))}
+          <button onClick={() => setBrandModal("add")} className="flex min-h-[196px] flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-muted-foreground">
+            <Plus size={24} /><span className="text-[13px] font-semibold">เพิ่มแบรนด์</span>
+          </button>
+        </div>
+
+        <Modal open={brandModal !== null} onClose={() => setBrandModal(null)} title={brandModal && brandModal !== "add" ? "แก้ไขแบรนด์" : "เพิ่มแบรนด์"}>
+          {brandModal !== null && <BrandForm initial={brandModal === "add" ? null : brandModal} onDone={() => { setBrandModal(null); load(); }} />}
+        </Modal>
+      </div>
+    );
+  }
+
   /* ===== ช่องทางอื่น ===== */
   if (channel) {
     const meta = CHANNELS.find((c) => c.kind === channel)!;
@@ -380,7 +552,7 @@ export default function B2C() {
           <Card key={c.kind} onClick={() => { setShopId(null); setSub(null); setChannel(c.kind); }} className="cursor-pointer p-5">
             <div className="flex items-center justify-between">
               <div className="shrink-0 text-foreground"><c.icon size={30} strokeWidth={1.8} /></div>
-              <span className="font-disp text-2xl font-extrabold text-foreground">{kindTotal(c.kind)}</span>
+              <span className="font-disp text-2xl font-extrabold text-foreground">{c.kind === "warehouse" ? catalog.length : kindTotal(c.kind)}</span>
             </div>
             <div className="mt-3 font-disp text-[15px] font-bold text-foreground">{c.label}</div>
             <div className="text-[11px] text-muted-foreground">{c.sub}</div>
@@ -482,6 +654,90 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
         </div>
       ) : null}
     </Modal>
+  );
+}
+
+/* ฟอร์มเพิ่ม/แก้ไขแบรนด์ — มีแค่รูป + ชื่อ */
+function BrandForm({ initial, onDone }: { initial: Brand | null; onDone: () => void }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [logo, setLogo] = useState(initial?.logo_url || "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function save() {
+    if (!name.trim()) { setErr("ต้องมีชื่อแบรนด์"); return; }
+    setBusy(true);
+    const payload = { name: name.trim(), logo_url: logo || null };
+    const { error } = initial
+      ? await supabase.from("brands").update(payload).eq("id", initial.id)
+      : await supabase.from("brands").insert(payload);
+    if (error) { setErr(error.message); setBusy(false); return; }
+    await logAudit({ action: initial ? "update" : "create", entity: "brand", entityId: name.trim() });
+    onDone();
+  }
+
+  return (
+    <div className="pb-4">
+      <Field label="รูปแบรนด์"><ImageUpload value={logo} onChange={setLogo} folder="brands" /></Field>
+      <Field label="ชื่อแบรนด์"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น N SAVOIR" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
+      <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+    </div>
+  );
+}
+
+/* ฟอร์มเพิ่ม/แก้ไขสินค้าในแบรนด์ */
+function ProductForm({ brand, initial, onDone }: { brand: Brand; initial: CatalogProduct | null; onDone: () => void }) {
+  const isNew = !initial;
+  const [image, setImage] = useState(initial?.image_url || "");
+  const [sku, setSku] = useState(initial?.sku || "");
+  const [name, setName] = useState(initial?.name || "");
+  const [type, setType] = useState(initial?.type || "");
+  const [size, setSize] = useState(initial?.size || "");
+  const [cost, setCost] = useState<string>(initial?.cost != null ? String(initial.cost) : "");
+  const [retail, setRetail] = useState<string>(initial?.retail != null ? String(initial.retail) : "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(/[^\d.]/g, "")) || 0);
+
+  async function save() {
+    if (!sku.trim() || !name.trim()) { setErr("ต้องมีรหัสสินค้า (SKU) และชื่อสินค้า"); return; }
+    setBusy(true);
+    const payload = {
+      brand_id: brand.id, sku: sku.trim(), name: name.trim(),
+      type: type || null, size: size.trim() || null, image_url: image || null,
+      cost: num(cost), retail: num(retail), updated_at: new Date().toISOString(),
+    };
+    const { error } = isNew
+      ? await supabase.from("products").insert(payload)
+      : await supabase.from("products").update(payload).eq("id", initial!.id);
+    if (error) { setErr("บันทึกไม่สำเร็จ: " + error.message); setBusy(false); return; }
+    await logAudit({ action: isNew ? "create" : "update", entity: "product", entityId: sku.trim(), newValue: payload });
+    onDone();
+  }
+
+  return (
+    <div className="pb-4">
+      <Field label="รูปสินค้า"><ImageUpload value={image} onChange={setImage} folder="products" /></Field>
+      <Field label="ชื่อแบรนด์">
+        <input value={brand.name} disabled readOnly className="w-full cursor-not-allowed rounded-2xl px-4 py-3 opacity-70" style={inputStyle} />
+      </Field>
+      <Field label="รหัสสินค้า (SKU)"><input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="NS-EDP-001" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      <Field label="ชื่อสินค้า"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nuit de Vétiver" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      <Field label="ประเภทสินค้า">
+        <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+          <option value="">เลือกประเภท…</option>
+          {PRODUCT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </Field>
+      <Field label="ขนาดสินค้า"><input value={size} onChange={(e) => setSize(e.target.value)} placeholder="เช่น 50ml, 220g" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="ราคาต้นทุน (฿)"><input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="numeric" placeholder="420" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+        <Field label="ราคาขาย (฿)"><input value={retail} onChange={(e) => setRetail(e.target.value)} inputMode="numeric" placeholder="2900" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      </div>
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
+      <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+    </div>
   );
 }
 
