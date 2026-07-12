@@ -854,7 +854,9 @@ export default function App() {
       {/* หน้าแรก (หมวดงาน) ไม่มีหัวข้อและไม่มีแถบเมนู */}
       {screen !== "modules" && <Header title={titleMap[screen] || "N SAVOIR"} back={screen !== "home" && !isNavScreen} />}
       <NavCtx.Provider value={{ registerBack }}>
-        <Body />
+        {/* เรียกเป็นฟังก์ชัน (ไม่ใช่ <Body/>) เพื่อไม่ให้หน้าจอ+ฟอร์มถูก mount ใหม่
+            ทุกครั้งที่ App re-render เช่นตอนสลับแอปแล้ว Supabase ต่ออายุ token */}
+        {Body()}
       </NavCtx.Provider>
       <RolePicker />
       <PinModal />
