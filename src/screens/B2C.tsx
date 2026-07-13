@@ -906,7 +906,7 @@ function StockManageModal({ kind, rows, catalog, onClose, onMove }: {
     if (!sel) return;
     const q = Number(qty) || 0;
     if (q <= 0) return;
-    onMove(sel, kind as "cut" | "return", q, date);
+    onMove(sel, kind as "cut" | "return", q, date || new Date().toISOString().slice(0, 10));
     setSel(null); setQty("");
   }
 
@@ -921,9 +921,12 @@ function StockManageModal({ kind, rows, catalog, onClose, onMove }: {
             <div className="font-disp text-lg font-extrabold text-foreground">{sel.products?.name || cp(sel.product_id)?.name}</div>
             <div className="mb-3 text-[12px] text-muted-foreground">คงเหลือ {sel.qty} ชิ้น</div>
             <Field label={kind === "cut" ? "วันที่ตัด" : "วันที่คืน"}>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+              <div className="relative min-w-0">
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-4 py-3 pr-9" style={inputStyle} />
+                {date && <button type="button" onClick={() => setDate("")} aria-label="ล้าง" className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-secondary text-muted-foreground"><X size={13} /></button>}
+              </div>
             </Field>
-            <div className="mb-1 text-xs text-muted-foreground">จำนวน{kind === "cut" ? "ที่ตัด" : "ที่คืน"}</div>
+            <div className="mb-1 mt-4 text-xs text-muted-foreground">จำนวน{kind === "cut" ? "ที่ตัด" : "ที่คืน"}</div>
             <input value={qty} onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="0"
               className="mb-4 w-full rounded-2xl py-4 text-center font-disp font-extrabold" style={{ ...inputStyle, fontSize: 40 }} />
             <Button onClick={confirm} className="w-full rounded-2xl py-6 text-[15px]">ยืนยัน{kind === "cut" ? "ตัดสต็อก" : "คืนสินค้า"}</Button>
