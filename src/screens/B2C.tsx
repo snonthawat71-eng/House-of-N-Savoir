@@ -789,16 +789,16 @@ function SendStockForm({ brands, catalog, onSubmit }: {
 
   return (
     <div className="pb-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
         <Field label="วันที่ส่งสินค้า">
-          <div className="relative">
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl px-4 py-3 pr-9" style={inputStyle} />
+          <div className="relative min-w-0">
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-3 py-3 pr-8 text-[13px]" style={inputStyle} />
             {date && <ClearBtn onClick={() => setDate("")} />}
           </div>
         </Field>
         <Field label="เวลาส่ง">
-          <div className="relative">
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-2xl px-4 py-3 pr-9" style={inputStyle} />
+          <div className="relative min-w-0">
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-3 py-3 pr-8 text-[13px]" style={inputStyle} />
             {time && <ClearBtn onClick={() => setTime("")} />}
           </div>
         </Field>
