@@ -181,18 +181,6 @@ export default function B2C() {
     toast.success("เอาสินค้าออกจากร้านแล้ว");
     setItemModal(null); load();
   }
-  async function recordSale(row: StockRow) {
-    if (!row.product_id) { toast.error("สินค้านี้ถูกลบออกจาก Product List แล้ว"); return; }
-    const prod = products.find((p) => p.id === row.product_id);
-    const amount = prod?.retail || 0;
-    const { error } = await supabase.from("consignment_sales").insert({ location_id: row.location_id, product_id: row.product_id, product_name: row.products?.name, qty: 1, amount });
-    if (error) { toast.error("บันทึกการขายไม่สำเร็จ"); return; }
-    await supabase.from("stock_items").update({ sold: row.sold + 1, qty: Math.max(0, row.qty - 1) }).eq("id", row.id);
-    await touchLoc(row.location_id);
-    if (shopId) loadSales(shopId);
-    toast.success("บันทึกการขายแล้ว");
-    load();
-  }
   async function addProductTo(locId: string, productId: string) {
     if (!productId) return;
     const { error } = await supabase.from("stock_items").upsert({ location_id: locId, product_id: productId, qty: 0 }, { onConflict: "location_id,product_id" });
@@ -357,7 +345,7 @@ export default function B2C() {
           state={itemModal} onClose={() => setItemModal(null)}
           products={products.filter((p) => !rows.some((r) => r.product_id === p.id))}
           onAdd={(pid) => addProductTo(shop.id, pid)}
-          onSave={saveItem} onRemove={removeItem} onSell={recordSale}
+          onSave={saveItem} onRemove={removeItem}
         />
       </div>
     );
@@ -850,14 +838,13 @@ function ContactLine({ label, value, copy, call }: { label: string; value: strin
 }
 
 /* popup เพิ่ม/แก้ไขรายการสต็อกในร้าน */
-function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }: {
+function ItemModal({ state, onClose, products, onAdd, onSave, onRemove }: {
   state: StockRow | "add" | null;
   onClose: () => void;
   products: { id: string; name: string }[];
   onAdd: (productId: string) => void;
   onSave: (row: StockRow, vals: { shop_code: string }) => void;
   onRemove: (row: StockRow) => void;
-  onSell: (row: StockRow) => void;
 }) {
   const isAdd = state === "add";
   const row = isAdd ? null : (state as StockRow | null);
@@ -888,7 +875,6 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
           <Field label="รหัสสินค้า (เฉพาะร้านนี้)">
             <input value={shopCode} onChange={(e) => setShopCode(e.target.value)} placeholder="รหัสตามร้าน" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
           </Field>
-          <button onClick={() => onSell(row)} className="mb-3 w-full rounded-2xl bg-[hsl(var(--primary)/0.1)] py-3 text-sm font-bold text-primary">ขาย +1 (บันทึกยอดขาย + ตัดสต็อก)</button>
           <Button onClick={() => onSave(row, { shop_code: shopCode.trim() })} className="w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
           <button onClick={() => onRemove(row)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary py-3 text-sm font-semibold text-muted-foreground"><Trash2 size={15} /> เอาออกจากร้าน</button>
         </div>
