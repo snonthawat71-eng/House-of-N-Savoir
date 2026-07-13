@@ -238,7 +238,7 @@ export default function B2C() {
     const shownRows = typeFilter === "all" ? rows : rows.filter((r) => catalog.find((c) => c.id === r.product_id)?.type === typeFilter);
     return (
       <div className="px-5 pb-32">
-        <div className="mb-3 mt-2 font-disp text-xl font-extrabold text-foreground">สต็อกสินค้า · {shop.shop_name || shop.name}</div>
+        <div className="mb-3 mt-2 font-disp text-xl font-extrabold text-foreground">รายการสินค้าทั้งหมดของร้าน {shop.shop_name || shop.name}</div>
 
         {/* filter ประเภท */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
@@ -264,7 +264,6 @@ export default function B2C() {
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><Package size={34} className="text-muted-foreground" /></div>
                     )}
-                    <span className="absolute right-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">คงเหลือ {r.qty}</span>
                     {cp?.type && <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">{cp.type}</span>}
                   </div>
                   <div className="px-3 py-3">
