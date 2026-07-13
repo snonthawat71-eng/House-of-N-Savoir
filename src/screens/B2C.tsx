@@ -147,7 +147,7 @@ export default function B2C() {
     await touchLoc(row.location_id);
     load();
   }
-  async function saveItem(row: StockRow, vals: { qty: number; sold: number; returned: number; shop_code: string }) {
+  async function saveItem(row: StockRow, vals: { shop_code: string }) {
     await supabase.from("stock_items").update(vals).eq("id", row.id);
     await touchLoc(row.location_id);
     await logAudit({ action: "update", entity: "stock", entityId: row.products?.sku, newValue: vals });
@@ -708,28 +708,21 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
   onClose: () => void;
   products: { id: string; name: string }[];
   onAdd: (productId: string) => void;
-  onSave: (row: StockRow, vals: { qty: number; sold: number; returned: number; shop_code: string }) => void;
+  onSave: (row: StockRow, vals: { shop_code: string }) => void;
   onRemove: (row: StockRow) => void;
   onSell: (row: StockRow) => void;
 }) {
   const isAdd = state === "add";
   const row = isAdd ? null : (state as StockRow | null);
   const [pid, setPid] = useState("");
-  const [qty, setQty] = useState(row?.qty ?? 0);
-  const [sold, setSold] = useState(row?.sold ?? 0);
-  const [returned, setReturned] = useState(row?.returned ?? 0);
   const [shopCode, setShopCode] = useState(row?.shop_code ?? "");
 
   // sync เมื่อเปิดรายการใหม่
   const key = row?.id || (isAdd ? "add" : "none");
   useEffect(() => {
-    setPid(""); setQty(row?.qty ?? 0); setSold(row?.sold ?? 0); setReturned(row?.returned ?? 0); setShopCode(row?.shop_code ?? "");
+    setPid(""); setShopCode(row?.shop_code ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-
-  const numInput = (v: number, setV: (n: number) => void) => (
-    <input value={v} onChange={(e) => setV(Number(e.target.value.replace(/\D/g, "")) || 0)} inputMode="numeric" className="w-full rounded-2xl px-4 py-3 text-center" style={inputStyle} />
-  );
 
   return (
     <Modal open={state !== null} onClose={onClose} title={isAdd ? "เพิ่มสินค้าเข้าร้าน" : "แก้ไขรายการ"}>
@@ -748,13 +741,8 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
           <Field label="รหัสสินค้า (เฉพาะร้านนี้)">
             <input value={shopCode} onChange={(e) => setShopCode(e.target.value)} placeholder="รหัสตามร้าน" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
           </Field>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="คงเหลือ">{numInput(qty, setQty)}</Field>
-            <Field label="ขายแล้ว">{numInput(sold, setSold)}</Field>
-            <Field label="คืน">{numInput(returned, setReturned)}</Field>
-          </div>
           <button onClick={() => onSell(row)} className="mb-3 w-full rounded-2xl bg-[hsl(var(--primary)/0.1)] py-3 text-sm font-bold text-primary">ขาย +1 (บันทึกยอดขาย + ตัดสต็อก)</button>
-          <Button onClick={() => onSave(row, { qty, sold, returned, shop_code: shopCode.trim() })} className="w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
+          <Button onClick={() => onSave(row, { shop_code: shopCode.trim() })} className="w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
           <button onClick={() => onRemove(row)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary py-3 text-sm font-semibold text-muted-foreground"><Trash2 size={15} /> เอาออกจากร้าน</button>
         </div>
       ) : null}
