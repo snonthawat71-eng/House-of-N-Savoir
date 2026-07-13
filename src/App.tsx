@@ -438,21 +438,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main Stock (สินค้ากลาง) */}
-      <div onClick={() => go("products")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
-        style={{ background: C.card, boxShadow: SHADOW_SM }}>
-        <div className="flex items-center gap-3">
-          <div className="shrink-0">
-            <Package size={26} strokeWidth={1.8} style={{ color: C.ink }} />
-          </div>
-          <div>
-            <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 700, color: C.ink }}>Main Stock</div>
-            <div style={{ fontSize: 11, color: C.sub }}>คลังสินค้ากลาง · คีย์ครั้งเดียว ใช้ทั้งระบบ</div>
-          </div>
-        </div>
-        <ChevronRight size={18} style={{ color: C.sub }} />
-      </div>
-
       {/* Portal — เฉพาะเจ้าของ/Dev */}
       {P.audit && (
         <div onClick={() => go("portal")} className="rounded-3xl p-4 mt-3 flex items-center justify-between"
