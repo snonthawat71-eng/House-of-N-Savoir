@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import { Plus, Loader2, Check, ChevronDown, ChevronUp, PartyPopper, X, CalendarDays } from "lucide-react";
+import { Plus, Loader2, Check, ChevronDown, ChevronUp, PartyPopper, X } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { logAudit } from "../lib/audit";
@@ -92,7 +92,11 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
     );
   }
 
-  const timeLabel = now.due_time ? hhmm(now.due_time) : "วันนี้";
+  // วันที่โชว์จุดเดียวบนการ์ดนี้: วันนี้ = "วันนี้ · เวลา" / เลยกำหนด = วันที่จริงสีแดง
+  const dateLabel = overdue
+    ? new Date(now.due_date + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" })
+    : "วันนี้";
+  const timeLabel = now.due_time ? hhmm(now.due_time) : "";
 
   return (
     <div className="w-full rounded-2xl bg-card shadow-sm">
@@ -106,9 +110,9 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
           {checking && <Check size={17} strokeWidth={2.5} className="text-white" />}
         </button>
         <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-          <span className="shrink-0 font-disp text-[15px] font-extrabold tabular-nums"
+          <span className="shrink-0 font-disp text-[14px] font-extrabold tabular-nums"
             style={{ color: overdue ? C.red : C.brand }}>
-            {overdue ? "เลยกำหนด" : timeLabel}
+            {dateLabel}{timeLabel && ` · ${timeLabel}`}
           </span>
           <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-foreground">{now.title}</span>
         </button>
@@ -210,47 +214,37 @@ export default function NotesScreen() {
     const creator = memberOf(t.created_by);
     const late = !t.done && t.due_date < today;
     return (
-      <div className="mb-2.5 rounded-2xl bg-card p-4 shadow-sm"
+      <div className="mb-2.5 flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 shadow-sm"
         style={highlight ? { border: `1.5px solid ${C.brand}` } : undefined}>
-        {/* แถวบน: วันที่ซ้าย · คนเกี่ยวข้องขวา */}
-        <div className="mb-2.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
-          <CalendarDays size={12} className="shrink-0" />
-          <span style={late ? { color: C.red, fontWeight: 700 } : undefined}>
-            {new Date(t.due_date + "T00:00:00").toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" })}
-          </span>
-          {late && (
-            <span className="rounded-full px-2 py-0.5 font-disp text-[9px] font-extrabold"
-              style={{ background: C.redSoft, color: C.red }}>เลยกำหนด</span>
+        {/* ปุ่ม check (หน้าเวลา) · เวลา · ชื่องาน — ไม่ใส่วันที่ (หัวกลุ่มบอกวันอยู่แล้ว) */}
+        <button onClick={() => toggleDone(t)} aria-label="ติ๊กเสร็จ"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+          style={t.done ? { background: C.brand, borderColor: C.brand } : { borderColor: "#C9CDD3", background: "transparent" }}>
+          {t.done && <Check size={16} strokeWidth={3} className="text-white" />}
+        </button>
+        <span className="shrink-0 font-disp text-[14px] font-extrabold tabular-nums"
+          style={{ color: t.done ? C.sub : late ? C.red : C.brand }}>
+          {hhmm(t.due_time) || "--:--"}
+        </span>
+        <button onClick={() => setModal({ k: "form", item: t })} className="min-w-0 flex-1 text-left">
+          <div className={"text-[13.5px] font-bold " + (t.done ? "text-muted-foreground line-through" : "text-foreground")}>{t.title}</div>
+          {(who || byOther || t.detail) && (
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+              {who && (
+                <span className="inline-flex items-center gap-1">
+                  <span className="flex h-[17px] w-[17px] items-center justify-center rounded-full font-disp text-[8.5px] font-extrabold text-white"
+                    style={{ background: avaColor(who.id) }}>{memberName(who).slice(0, 1).toUpperCase()}</span>
+                  {t.assigned_to === me ? "ของฉัน" : memberName(who)}
+                </span>
+              )}
+              {byOther && creator && (
+                <span className="rounded-full px-2 py-0.5 font-disp text-[9px] font-extrabold"
+                  style={{ background: "#FEF3C7", color: "#B45309" }}>{memberName(creator)}มอบให้</span>
+              )}
+              {t.detail && <span className="truncate">{t.detail}</span>}
+            </div>
           )}
-          <span className="flex-1" />
-          {byOther && creator && (
-            <span className="rounded-full px-2 py-0.5 font-disp text-[9px] font-extrabold"
-              style={{ background: "#FEF3C7", color: "#B45309" }}>{memberName(creator)}มอบให้</span>
-          )}
-          {who && (
-            <span className="inline-flex items-center gap-1">
-              <span className="flex h-[17px] w-[17px] items-center justify-center rounded-full font-disp text-[8.5px] font-extrabold text-white"
-                style={{ background: avaColor(who.id) }}>{memberName(who).slice(0, 1).toUpperCase()}</span>
-              {t.assigned_to === me ? "ของฉัน" : memberName(who)}
-            </span>
-          )}
-        </div>
-        {/* แถวล่าง: ปุ่ม check (หน้าเวลา) · เวลา · ชื่องาน */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => toggleDone(t)} aria-label="ติ๊กเสร็จ"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-            style={t.done ? { background: C.brand, borderColor: C.brand } : { borderColor: "#C9CDD3", background: "transparent" }}>
-            {t.done && <Check size={16} strokeWidth={3} className="text-white" />}
-          </button>
-          <span className="shrink-0 font-disp text-[14px] font-extrabold tabular-nums"
-            style={{ color: t.done ? C.sub : late ? C.red : C.brand }}>
-            {hhmm(t.due_time) || "--:--"}
-          </span>
-          <button onClick={() => setModal({ k: "form", item: t })} className="min-w-0 flex-1 text-left">
-            <div className={"text-[13.5px] font-bold " + (t.done ? "text-muted-foreground line-through" : "text-foreground")}>{t.title}</div>
-            {t.detail && <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">{t.detail}</div>}
-          </button>
-        </div>
+        </button>
       </div>
     );
   };
