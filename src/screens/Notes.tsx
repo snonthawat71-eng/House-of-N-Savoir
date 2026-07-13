@@ -63,13 +63,16 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
 
   const toggle = () => setOpen((o) => { localStorage.setItem("ns_todo_open", o ? "0" : "1"); return !o; });
 
+  const [checking, setChecking] = useState(false);
   async function checkDone(t: Todo) {
+    if (checking) return;
+    setChecking(true); // ติ๊กทึบให้เห็นก่อน แล้วค่อยเด้งงานถัดไป
     const { error } = await supabase.from("todos")
       .update({ done: true, done_at: new Date().toISOString() }).eq("id", t.id);
-    if (error) { toast.error("บันทึกไม่สำเร็จ"); return; }
+    if (error) { toast.error("บันทึกไม่สำเร็จ"); setChecking(false); return; }
     await logAudit({ action: "update", entity: "todo", entityId: t.title, newValue: { done: true } });
     toast.success("เสร็จแล้ว 1 งาน");
-    setItems((s) => s.filter((x) => x.id !== t.id));
+    setTimeout(() => { setItems((s) => s.filter((x) => x.id !== t.id)); setChecking(false); }, 250);
   }
 
   if (!isSupabaseConfigured || !me || !loaded) return null;
@@ -97,8 +100,10 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
       <div className="flex items-center gap-3 px-4 py-3">
         <button onClick={() => checkDone(now)} aria-label="ทำเสร็จแล้ว"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-          style={{ borderColor: overdue ? C.red : C.brand, background: "transparent" }}>
-          <Check size={17} strokeWidth={2.5} style={{ color: overdue ? C.red : C.brand }} />
+          style={checking
+            ? { background: C.brand, borderColor: C.brand }
+            : { borderColor: "#C9CDD3", background: "transparent" }}>
+          {checking && <Check size={17} strokeWidth={2.5} className="text-white" />}
         </button>
         <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
           <span className="shrink-0 font-disp text-[15px] font-extrabold tabular-nums"
