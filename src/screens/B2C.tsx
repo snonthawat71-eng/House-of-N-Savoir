@@ -220,6 +220,7 @@ export default function B2C() {
     setSendModal(false); load(); if (shopId) loadRecords(shopId);
   }
   // ตัดสต็อก / คืนสินค้า: บันทึกประวัติ + ลดจำนวนในสต็อกร้าน
+  // ตัดสต็อก = ขายออก → บันทึกยอดขายด้วย (รวมเข้ายอดรายเดือน + ทั้งหมดอัตโนมัติ)
   async function moveStock(row: StockRow, kind: "cut" | "return", qty: number, movedAt: string) {
     if (!shopId || qty <= 0) return;
     const take = Math.min(qty, row.qty);
@@ -228,11 +229,21 @@ export default function B2C() {
     if (error) { toast.error(label + "ไม่สำเร็จ"); return; }
     const patch: any = { qty: Math.max(0, row.qty - take) };
     if (kind === "return") patch.returned = (row.returned || 0) + take;
+    if (kind === "cut") {
+      const cp = catalog.find((c) => c.id === row.product_id);
+      patch.sold = (row.sold || 0) + take;
+      const { error: saleErr } = await supabase.from("consignment_sales").insert({
+        location_id: shopId, product_id: row.product_id,
+        product_name: row.products?.name || cp?.name || null,
+        qty: take, amount: (cp?.retail || 0) * take, sold_at: movedAt,
+      });
+      if (saleErr) toast.error("บันทึกยอดขายไม่สำเร็จ");
+    }
     await supabase.from("stock_items").update(patch).eq("id", row.id);
     await touchLoc(shopId);
     await logAudit({ action: "update", entity: kind === "cut" ? "stock-cut" : "stock-return", entityId: row.products?.sku, newValue: { qty: take } });
     toast.success(label + "สำเร็จ");
-    load(); if (shopId) loadRecords(shopId);
+    load(); if (shopId) { loadRecords(shopId); loadSales(shopId); }
   }
   async function addLocation(kind: string) {
     if (!addName.trim()) return;
