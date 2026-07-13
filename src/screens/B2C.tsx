@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus, Loader2, MapPin, Minus, TrendingUp, Store, Boxes, Globe, RefreshCcw,
   ChevronRight, Copy, Phone, Check, Store as StoreIcon, Package, Trash2, Pencil,
-  Tag, Lock, ArrowLeft, Send, X, AlertTriangle, Scissors, RotateCcw,
+  Tag, Lock, ArrowLeft, Send, X, AlertTriangle, Scissors, RotateCcw, ClipboardList,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -34,6 +34,7 @@ type Location = {
 };
 type StockRow = { id: string; location_id: string; product_id: string; qty: number; sold: number; returned: number; shop_code?: string | null; products?: { name: string; sku: string } };
 type Sale = { id: string; product_name: string | null; qty: number; amount: number; sold_at: string };
+type RecRow = { id: string; kind: "send" | "cut" | "return"; product_id: string | null; qty: number; at: string; sender?: string | null; shop_code?: string | null };
 type Campaign = { id: string; name: string; channel: string | null; status: string };
 
 const CHANNELS: { kind: string; label: string; sub: string; icon: LucideIcon }[] = [
@@ -75,7 +76,8 @@ export default function B2C() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [open, setOpen] = useState<string | null>(null);
-  const [popup, setPopup] = useState<null | "camp" | "shopForm" | "loc" | "monthly">(null);
+  const [popup, setPopup] = useState<null | "camp" | "shopForm" | "loc" | "monthly" | "record">(null);
+  const [records, setRecords] = useState<RecRow[]>([]);
   const [itemModal, setItemModal] = useState<StockRow | "add" | null>(null);
   const [sendModal, setSendModal] = useState(false);
   const [stockView, setStockView] = useState<null | "all" | "cut" | "return">(null);
@@ -117,6 +119,20 @@ export default function B2C() {
     supabase.from("consignment_sales").select("id,product_name,qty,amount,sold_at").eq("location_id", id).order("sold_at", { ascending: false }).then(({ data }) => setSales((data as Sale[]) || []));
   }, []);
   useEffect(() => { if (shopId) loadSales(shopId); else setSales([]); }, [shopId, loadSales]);
+
+  const loadRecords = useCallback((id: string) => {
+    Promise.all([
+      supabase.from("consignment_shipments").select("id,product_id,shop_code,qty,sender,sent_at").eq("location_id", id).order("sent_at", { ascending: false }),
+      supabase.from("consignment_movements").select("id,product_id,kind,qty,moved_at").eq("location_id", id).order("moved_at", { ascending: false }),
+    ]).then(([sh, mv]) => {
+      const recs: RecRow[] = [
+        ...(((sh.data as any[]) || []).map((r) => ({ id: r.id, kind: "send" as const, product_id: r.product_id, qty: r.qty, at: r.sent_at, sender: r.sender, shop_code: r.shop_code }))),
+        ...(((mv.data as any[]) || []).map((r) => ({ id: r.id, kind: r.kind as "cut" | "return", product_id: r.product_id, qty: r.qty, at: r.moved_at }))),
+      ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+      setRecords(recs);
+    });
+  }, []);
+  useEffect(() => { if (shopId) loadRecords(shopId); else setRecords([]); }, [shopId, loadRecords]);
 
   useBackHandler(popup !== null || itemModal !== null || brandModal !== null || prodModal !== null || sub !== null || shopId !== null || brandId !== null || channel !== null, () => {
     if (popup) setPopup(null);
@@ -187,7 +203,7 @@ export default function B2C() {
     }
     await touchLoc(shopId);
     await logAudit({ action: "create", entity: "consignment-shipment", entityId: v.shop_code || v.product_id, newValue: v });
-    setSendModal(false); load();
+    setSendModal(false); load(); if (shopId) loadRecords(shopId);
   }
   // ตัดสต็อก / คืนสินค้า: บันทึกประวัติ + ลดจำนวนในสต็อกร้าน
   async function moveStock(row: StockRow, kind: "cut" | "return", qty: number, movedAt: string) {
@@ -199,7 +215,7 @@ export default function B2C() {
     await supabase.from("stock_items").update(patch).eq("id", row.id);
     await touchLoc(shopId);
     await logAudit({ action: "update", entity: kind === "cut" ? "stock-cut" : "stock-return", entityId: row.products?.sku, newValue: { qty: take } });
-    load();
+    load(); if (shopId) loadRecords(shopId);
   }
   async function addLocation(kind: string) {
     if (!addName.trim()) return;
@@ -396,7 +412,43 @@ export default function B2C() {
           <ChevronRight size={18} className="text-muted-foreground" />
         </button>
 
-        <button onClick={() => delShop(shop)} className="mt-6 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
+        {/* บันทึกการทำรายการ (ส่ง/ตัด/คืน) */}
+        <button onClick={() => setPopup("record")} className="mt-6 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="shrink-0"><ClipboardList size={26} strokeWidth={1.8} className="text-foreground" /></div>
+            <div className="text-left">
+              <div className="font-disp text-[15px] font-bold text-foreground">บันทึกการทำรายการ (Record)</div>
+              <div className="text-[11px] text-muted-foreground">ประวัติ ส่ง / ตัด / คืน · {records.length} รายการ</div>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-muted-foreground" />
+        </button>
+
+        <button onClick={() => delShop(shop)} className="mt-3 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
+
+        {/* Modal: บันทึกการทำรายการ */}
+        <Modal open={popup === "record"} onClose={() => setPopup(null)} title="บันทึกการทำรายการ">
+          <div className="pb-4">
+            {records.length === 0 && <p className="py-6 text-center text-[13px] text-muted-foreground">ยังไม่มีรายการ</p>}
+            {records.map((r) => {
+              const p = catalog.find((c) => c.id === r.product_id);
+              const info = r.kind === "send" ? { label: "ส่งเข้า", color: C.brand, soft: C.brandSoft, sign: "+" }
+                : r.kind === "cut" ? { label: "ตัดสต็อก", color: C.red, soft: C.redSoft, sign: "-" }
+                : { label: "คืนสินค้า", color: "#B45309", soft: "#FEF3C7", sign: "-" };
+              const when = new Date(r.at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) + (r.kind === "send" ? " " + new Date(r.at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "");
+              return (
+                <div key={r.kind + r.id} className="mb-2 flex items-center gap-3 rounded-2xl bg-secondary p-3">
+                  <span className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: info.soft, color: info.color }}>{info.label}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-semibold text-foreground">{p?.name || "-"}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">{when}{r.sender ? ` · ${r.sender}` : ""}{r.shop_code ? ` · ${r.shop_code}` : ""}</div>
+                  </div>
+                  <span className="font-disp text-lg font-extrabold" style={{ color: info.color }}>{info.sign}{r.qty}</span>
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
 
         {/* ฟอร์มส่งสต็อก */}
         <Modal open={sendModal} onClose={() => setSendModal(false)} title="ส่งสต็อกเข้าร้าน">
