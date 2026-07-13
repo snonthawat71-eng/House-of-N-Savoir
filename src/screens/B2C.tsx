@@ -389,7 +389,7 @@ export default function B2C() {
         </div>
 
         {/* ส่งสต็อกสินค้า — การ์ดยาว สีเด่น (สูง) */}
-        <button onClick={() => setSendModal(true)} className="mt-3 flex w-full items-center justify-between rounded-2xl px-5 py-6 text-white shadow-sm" style={{ background: C.brand }}>
+        <button onClick={() => setSendModal(true)} className="mt-4 flex w-full items-center justify-between rounded-2xl px-5 py-6 text-white shadow-sm" style={{ background: C.brand }}>
           <div className="flex items-center gap-3.5">
             <div className="shrink-0"><Send size={28} strokeWidth={1.8} /></div>
             <div className="text-left">
@@ -401,7 +401,7 @@ export default function B2C() {
         </button>
 
         {/* สต็อก — แถบกด เข้าไปอีกหน้า (จัดการรายการ/เพิ่มสินค้า) */}
-        <button onClick={() => setSub("stock")} className="mt-3 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
+        <button onClick={() => setSub("stock")} className="mt-4 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="shrink-0"><Package size={26} strokeWidth={1.8} className="text-foreground" /></div>
             <div className="text-left">
@@ -412,19 +412,13 @@ export default function B2C() {
           <ChevronRight size={18} className="text-muted-foreground" />
         </button>
 
-        {/* บันทึกการทำรายการ (ส่ง/ตัด/คืน) */}
-        <button onClick={() => setPopup("record")} className="mt-6 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="shrink-0"><ClipboardList size={26} strokeWidth={1.8} className="text-foreground" /></div>
-            <div className="text-left">
-              <div className="font-disp text-[15px] font-bold text-foreground">บันทึกการทำรายการ (Record)</div>
-              <div className="text-[11px] text-muted-foreground">ประวัติ ส่ง / ตัด / คืน · {records.length} รายการ</div>
-            </div>
-          </div>
-          <ChevronRight size={18} className="text-muted-foreground" />
+        {/* บันทึกการทำรายการ — บรรทัดเดียว สูงเท่าปุ่มลบ */}
+        <button onClick={() => setPopup("record")} className="mt-4 flex w-full items-center justify-between rounded-2xl bg-card px-4 py-3 text-sm font-semibold text-foreground shadow-sm">
+          <span className="flex items-center gap-2"><ClipboardList size={18} strokeWidth={1.8} /> บันทึกการทำรายการ (Record)</span>
+          <ChevronRight size={16} className="text-muted-foreground" />
         </button>
 
-        <button onClick={() => delShop(shop)} className="mt-3 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
+        <button onClick={() => delShop(shop)} className="mt-4 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
 
         {/* Modal: บันทึกการทำรายการ */}
         <Modal open={popup === "record"} onClose={() => setPopup(null)} title="บันทึกการทำรายการ">
