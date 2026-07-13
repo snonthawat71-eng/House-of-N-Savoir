@@ -688,9 +688,9 @@ export default function B2C() {
         <div className="space-y-3">
           {brands.map((b) => (
             <Card key={b.id} onClick={() => { setTypeFilter("all"); setBrandId(b.id); }} className="cursor-pointer overflow-hidden p-0">
-              <div className="flex h-52 w-full items-center justify-center overflow-hidden bg-secondary p-6">
+              <div className="flex h-52 w-full items-center justify-center overflow-hidden bg-secondary">
                 {b.logo_url ? (
-                  <img src={b.logo_url} alt="" className="h-full w-full object-contain" />
+                  <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <Tag size={56} className="text-muted-foreground" />
                 )}
