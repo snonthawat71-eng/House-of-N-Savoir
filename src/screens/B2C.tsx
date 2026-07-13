@@ -469,7 +469,6 @@ export default function B2C() {
         <div className="px-5 pb-32">
           {/* หัวแบรนด์ + ปุ่มเพิ่มสินค้ามุมขวาบน */}
           <div className="relative mb-4 mt-3 flex items-center gap-3 pr-24">
-            <button onClick={() => { setBrandId(null); setTypeFilter("all"); }} aria-label="ย้อนกลับ" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground"><ArrowLeft size={17} /></button>
             <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-secondary">
               {brand.logo_url ? <img src={brand.logo_url} alt="" className="h-full w-full object-cover" /> : <Tag size={22} className="text-muted-foreground" />}
             </div>
@@ -555,24 +554,24 @@ export default function B2C() {
     return (
       <div className="px-5 pb-32">
         <div className="mb-3 mt-2 px-1 font-disp text-base font-bold text-foreground">แบรนด์ ({brands.length})</div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {brands.map((b) => (
             <Card key={b.id} onClick={() => { setTypeFilter("all"); setBrandId(b.id); }} className="cursor-pointer overflow-hidden p-0">
-              <div className="relative aspect-square w-full overflow-hidden bg-secondary">
+              <div className="flex h-52 w-full items-center justify-center overflow-hidden bg-secondary p-6">
                 {b.logo_url ? (
-                  <img src={b.logo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <img src={b.logo_url} alt="" className="h-full w-full object-contain" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center"><Tag size={40} className="text-muted-foreground" /></div>
+                  <Tag size={56} className="text-muted-foreground" />
                 )}
               </div>
-              <div className="px-3 py-3.5 text-center">
-                <div className="truncate font-disp text-[16px] font-extrabold text-foreground">{b.name}</div>
-                <div className="text-[11px] text-muted-foreground">{catalog.filter((p) => p.brand_id === b.id).length} สินค้า</div>
+              <div className="px-5 py-4">
+                <div className="font-disp text-2xl font-extrabold text-foreground">{b.name}</div>
+                <div className="mt-0.5 text-[12.5px] text-muted-foreground">{catalog.filter((p) => p.brand_id === b.id).length} สินค้า</div>
               </div>
             </Card>
           ))}
-          <button onClick={() => setBrandModal("add")} className="flex min-h-[196px] flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-muted-foreground">
-            <Plus size={24} /><span className="text-[13px] font-semibold">เพิ่มแบรนด์</span>
+          <button onClick={() => setBrandModal("add")} className="flex w-full items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border py-6 text-muted-foreground">
+            <Plus size={22} /><span className="text-[14px] font-semibold">เพิ่มแบรนด์</span>
           </button>
         </div>
 
