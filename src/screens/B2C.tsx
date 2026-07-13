@@ -132,6 +132,11 @@ export default function B2C() {
   const locsOfKind = (kind: string) => locations.filter((l) => l.kind === kind);
   const itemsOf = (locId: string) => stock.filter((s) => s.location_id === locId);
   const totalOf = (locId: string) => itemsOf(locId).reduce((s, i) => s + i.qty, 0);
+  // ถ้าร้านมีแบรนด์เดียวในสต็อก → ใช้เป็นแบรนด์ตั้งต้นในฟอร์มส่งสต็อก
+  const soleBrandId = (locId: string) => {
+    const ids = [...new Set(itemsOf(locId).map((r) => catalog.find((c) => c.id === r.product_id)?.brand_id).filter(Boolean))];
+    return ids.length === 1 ? (ids[0] as string) : "";
+  };
   const kindTotal = (kind: string) => locsOfKind(kind).reduce((sum, l) => sum + totalOf(l.id), 0);
 
   async function touchLoc(id: string) { await supabase.from("stock_locations").update({ updated_at: new Date().toISOString() }).eq("id", id); }
@@ -142,7 +147,7 @@ export default function B2C() {
     await touchLoc(row.location_id);
     load();
   }
-  async function saveItem(row: StockRow, vals: { qty: number; sold: number; returned: number }) {
+  async function saveItem(row: StockRow, vals: { qty: number; sold: number; returned: number; shop_code: string }) {
     await supabase.from("stock_items").update(vals).eq("id", row.id);
     await touchLoc(row.location_id);
     await logAudit({ action: "update", entity: "stock", entityId: row.products?.sku, newValue: vals });
@@ -238,7 +243,7 @@ export default function B2C() {
     const shownRows = typeFilter === "all" ? rows : rows.filter((r) => catalog.find((c) => c.id === r.product_id)?.type === typeFilter);
     return (
       <div className="px-5 pb-32">
-        <div className="mb-3 mt-2 font-disp text-xl font-extrabold text-foreground">รายการสินค้าทั้งหมดของร้าน {shop.shop_name || shop.name}</div>
+        <div className="mb-3 mt-2 font-disp text-xl font-extrabold text-foreground">สต็อกสินค้า · {shop.shop_name || shop.name}</div>
 
         {/* filter ประเภท */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
@@ -384,7 +389,7 @@ export default function B2C() {
           <div className="flex items-center gap-3">
             <div className="shrink-0"><Package size={26} strokeWidth={1.8} className="text-foreground" /></div>
             <div className="text-left">
-              <div className="font-disp text-[15px] font-bold text-foreground">สต็อกสินค้า</div>
+              <div className="font-disp text-[15px] font-bold text-foreground">รายการสินค้าทั้งหมดของร้าน</div>
               <div className="text-[11px] text-muted-foreground">{rows.length} รายการ · รวม {totalOf(shop.id)} ชิ้น</div>
             </div>
           </div>
@@ -395,7 +400,7 @@ export default function B2C() {
 
         {/* ฟอร์มส่งสต็อก */}
         <Modal open={sendModal} onClose={() => setSendModal(false)} title="ส่งสต็อกเข้าร้าน">
-          {sendModal && <SendStockForm brands={brands} catalog={catalog} onSubmit={sendStock} />}
+          {sendModal && <SendStockForm brands={brands} catalog={catalog} defaultBrandId={soleBrandId(shop.id)} onSubmit={sendStock} />}
         </Modal>
 
         {/* สต็อกทั้งหมด / ตัด / คืน */}
@@ -703,7 +708,7 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
   onClose: () => void;
   products: { id: string; name: string }[];
   onAdd: (productId: string) => void;
-  onSave: (row: StockRow, vals: { qty: number; sold: number; returned: number }) => void;
+  onSave: (row: StockRow, vals: { qty: number; sold: number; returned: number; shop_code: string }) => void;
   onRemove: (row: StockRow) => void;
   onSell: (row: StockRow) => void;
 }) {
@@ -713,11 +718,12 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
   const [qty, setQty] = useState(row?.qty ?? 0);
   const [sold, setSold] = useState(row?.sold ?? 0);
   const [returned, setReturned] = useState(row?.returned ?? 0);
+  const [shopCode, setShopCode] = useState(row?.shop_code ?? "");
 
   // sync เมื่อเปิดรายการใหม่
   const key = row?.id || (isAdd ? "add" : "none");
   useEffect(() => {
-    setPid(""); setQty(row?.qty ?? 0); setSold(row?.sold ?? 0); setReturned(row?.returned ?? 0);
+    setPid(""); setQty(row?.qty ?? 0); setSold(row?.sold ?? 0); setReturned(row?.returned ?? 0); setShopCode(row?.shop_code ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
@@ -739,13 +745,16 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
       ) : row ? (
         <div className="pb-4">
           <div className="mb-3 font-disp text-lg font-extrabold text-foreground">{row.products?.name}</div>
+          <Field label="รหัสสินค้า (เฉพาะร้านนี้)">
+            <input value={shopCode} onChange={(e) => setShopCode(e.target.value)} placeholder="รหัสตามร้าน" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+          </Field>
           <div className="grid grid-cols-3 gap-3">
             <Field label="คงเหลือ">{numInput(qty, setQty)}</Field>
             <Field label="ขายแล้ว">{numInput(sold, setSold)}</Field>
             <Field label="คืน">{numInput(returned, setReturned)}</Field>
           </div>
           <button onClick={() => onSell(row)} className="mb-3 w-full rounded-2xl bg-[hsl(var(--primary)/0.1)] py-3 text-sm font-bold text-primary">ขาย +1 (บันทึกยอดขาย + ตัดสต็อก)</button>
-          <Button onClick={() => onSave(row, { qty, sold, returned })} className="w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
+          <Button onClick={() => onSave(row, { qty, sold, returned, shop_code: shopCode.trim() })} className="w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
           <button onClick={() => onRemove(row)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary py-3 text-sm font-semibold text-muted-foreground"><Trash2 size={15} /> เอาออกจากร้าน</button>
         </div>
       ) : null}
@@ -754,14 +763,15 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
 }
 
 /* ฟอร์มส่งสต็อกเข้าร้านฝากขาย */
-function SendStockForm({ brands, catalog, onSubmit }: {
+function SendStockForm({ brands, catalog, defaultBrandId, onSubmit }: {
   brands: Brand[];
   catalog: CatalogProduct[];
+  defaultBrandId?: string;
   onSubmit: (v: { product_id: string; shop_code: string; qty: number; sender: string; sent_at: string }) => void;
 }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
-  const [brandId, setBrandId] = useState("");
+  const [brandId, setBrandId] = useState(defaultBrandId || "");
   const [pid, setPid] = useState("");
   const [shopCode, setShopCode] = useState("");
   const [qty, setQty] = useState("");
@@ -808,9 +818,9 @@ function SendStockForm({ brands, catalog, onSubmit }: {
         </select>
       </Field>
       <Field label="สินค้าที่ส่ง">
-        <select value={pid} onChange={(e) => setPid(e.target.value)} className="w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+        <select value={pid} onChange={(e) => { const id = e.target.value; setPid(id); const sp = catalog.find((c) => c.id === id); setShopCode(sp?.sku || ""); }} className="w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
           <option value="" disabled>เลือกสินค้า…</option>
-          {prodOptions.map((p) => <option key={p.id} value={p.id}>{p.name}{p.sku ? ` · ${p.sku}` : ""}</option>)}
+          {prodOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       {prod && (
