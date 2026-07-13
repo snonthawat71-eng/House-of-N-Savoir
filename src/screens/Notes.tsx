@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import { Plus, Loader2, Check, ChevronDown, ChevronUp, PartyPopper, X } from "lucide-react";
+import { Plus, Loader2, Check, ChevronDown, ChevronUp, PartyPopper, X, CalendarDays } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { logAudit } from "../lib/audit";
@@ -92,16 +92,24 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
     );
   }
 
-  // วันที่โชว์จุดเดียวบนการ์ดนี้: วันนี้ = "วันนี้ · เวลา" / เลยกำหนด = วันที่จริงสีแดง
-  const dateLabel = overdue
-    ? new Date(now.due_date + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" })
-    : "วันนี้";
-  const timeLabel = now.due_time ? hhmm(now.due_time) : "";
+  // วันที่จริง ตัวเทา ไม่เด่น (ไม่ใช้คำว่า วันนี้/พรุ่งนี้)
+  const dateText = new Date(now.due_date + "T00:00:00")
+    .toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+  const timeLabel = now.due_time ? hhmm(now.due_time) : "--:--";
 
   return (
     <div className="w-full rounded-2xl bg-card shadow-sm">
+      {/* วันที่ ตัวเทาเล็ก ด้านบน */}
+      <div className="flex items-center gap-1.5 px-4 pt-3 text-[11px] text-muted-foreground">
+        <CalendarDays size={13} className="shrink-0" />
+        <span>{dateText}</span>
+        {overdue && (
+          <span className="rounded-full px-2 py-0.5 font-disp text-[9px] font-extrabold"
+            style={{ background: C.redSoft, color: C.red }}>เลยกำหนด</span>
+        )}
+      </div>
       {/* แถวหลัก (สถานะพับ) — ปุ่ม check วงกลมโปร่ง อยู่หน้าเวลา */}
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 pb-3 pt-2">
         <button onClick={() => checkDone(now)} aria-label="ทำเสร็จแล้ว"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
           style={checking
@@ -110,9 +118,9 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
           {checking && <Check size={17} strokeWidth={2.5} className="text-white" />}
         </button>
         <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-          <span className="shrink-0 font-disp text-[14px] font-extrabold tabular-nums"
+          <span className="shrink-0 font-disp text-[15px] font-extrabold tabular-nums"
             style={{ color: overdue ? C.red : C.brand }}>
-            {dateLabel}{timeLabel && ` · ${timeLabel}`}
+            {timeLabel}
           </span>
           <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-foreground">{now.title}</span>
         </button>
@@ -129,7 +137,7 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
             <div className="flex items-center gap-2.5">
               <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 font-disp text-[10px] font-extrabold text-muted-foreground">ถัดไป</span>
               <span className="shrink-0 font-disp text-[12px] font-extrabold tabular-nums text-foreground">
-                {next.due_time ? hhmm(next.due_time) : "วันนี้"}
+                {next.due_time ? hhmm(next.due_time) : "--:--"}
               </span>
               <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-muted-foreground">{next.title}</span>
               {items.length > 2 && <span className="shrink-0 text-[10.5px] text-muted-foreground">+{items.length - 2}</span>}
@@ -195,11 +203,9 @@ export default function NotesScreen() {
   const future = pending.filter((r) => r.due_date > today);
   const futureDates = [...new Set(future.map((r) => r.due_date))];
 
-  const dateLabel = (d: string) => {
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-    const th = new Date(d + "T00:00:00").toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
-    return d === tomorrow ? `พรุ่งนี้ · ${th}` : th;
-  };
+  // หัวกลุ่มเป็นวันที่จริงเสมอ (ไม่ใช้คำว่า วันนี้/พรุ่งนี้)
+  const dateLabel = (d: string) =>
+    new Date(d + "T00:00:00").toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
 
   const GroupLabel = ({ children }: { children: ReactNode }) => (
     <div className="mb-2 mt-5 flex items-center gap-2.5 px-1">
@@ -268,7 +274,7 @@ export default function NotesScreen() {
       ) : (
         <>
           {overdue.length > 0 && (<><GroupLabel>เลยกำหนด</GroupLabel>{overdue.map((t) => <Row key={t.id} t={t} />)}</>)}
-          <GroupLabel>วันนี้ · {new Date().toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" })}</GroupLabel>
+          <GroupLabel>{dateLabel(today)}</GroupLabel>
           {todayRows.length === 0
             ? <p className="px-1 py-2 text-[12.5px] text-muted-foreground">ไม่มีงานวันนี้</p>
             : todayRows.map((t, i) => <Row key={t.id} t={t} highlight={i === 0 && overdue.length === 0} />)}
