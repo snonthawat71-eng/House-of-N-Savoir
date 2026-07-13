@@ -672,6 +672,11 @@ export default function B2C() {
               <ProductForm brand={brand} initial={prodModal.k === "form" ? prodModal.item : null} onDone={() => { setProdModal(null); load(); }} onDelete={prodModal.k === "form" ? () => delProduct(prodModal.item) : undefined} />
             )}
           </Modal>
+
+          {/* แก้ไขแบรนด์ (ดินสอบนหัวหน้านี้) */}
+          <Modal open={brandModal !== null} onClose={() => setBrandModal(null)} title="แก้ไขแบรนด์">
+            {brandModal !== null && <BrandForm initial={brandModal === "add" ? null : brandModal} onDone={() => { setBrandModal(null); load(); }} onDelete={brandModal !== "add" ? () => delBrand(brandModal) : undefined} />}
+          </Modal>
         </div>
       );
     }
