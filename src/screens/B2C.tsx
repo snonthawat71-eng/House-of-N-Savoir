@@ -351,20 +351,8 @@ export default function B2C() {
           </Card>
         </div>
 
-        {/* ส่งสต็อกสินค้า — การ์ดยาว สีเด่น */}
-        <button onClick={() => setSendModal(true)} className="mt-6 flex w-full items-center justify-between rounded-2xl p-4 text-white shadow-sm" style={{ background: C.brand }}>
-          <div className="flex items-center gap-3">
-            <div className="shrink-0"><Send size={26} strokeWidth={1.8} /></div>
-            <div className="text-left">
-              <div className="font-disp text-[15px] font-bold">ส่งสต็อกสินค้า</div>
-              <div className="text-[12px] text-white/80">บันทึกการส่งสินค้าเข้าร้านนี้</div>
-            </div>
-          </div>
-          <Plus size={22} />
-        </button>
-
         {/* 3 ปุ่มจัดการสต็อก */}
-        <div className="mt-3 grid grid-cols-3 gap-3">
+        <div className="mt-6 grid grid-cols-3 gap-3">
           <button onClick={() => setStockView("all")} className="flex flex-col items-center gap-1 rounded-2xl bg-card p-3 shadow-sm">
             <Boxes size={24} strokeWidth={1.8} className="text-foreground" />
             <span className="font-disp text-xl font-extrabold text-foreground">{totalOf(shop.id)}</span>
@@ -379,6 +367,18 @@ export default function B2C() {
             <span className="text-[13px] font-bold text-foreground">คืนสินค้า</span>
           </button>
         </div>
+
+        {/* ส่งสต็อกสินค้า — การ์ดยาว สีเด่น (สูง) */}
+        <button onClick={() => setSendModal(true)} className="mt-3 flex w-full items-center justify-between rounded-2xl px-5 py-6 text-white shadow-sm" style={{ background: C.brand }}>
+          <div className="flex items-center gap-3.5">
+            <div className="shrink-0"><Send size={28} strokeWidth={1.8} /></div>
+            <div className="text-left">
+              <div className="font-disp text-[17px] font-extrabold">ส่งสต็อกสินค้า</div>
+              <div className="text-[12.5px] text-white/80">บันทึกการส่งสินค้าเข้าร้านนี้</div>
+            </div>
+          </div>
+          <Plus size={24} />
+        </button>
 
         {/* สต็อก — แถบกด เข้าไปอีกหน้า (จัดการรายการ/เพิ่มสินค้า) */}
         <button onClick={() => setSub("stock")} className="mt-3 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
