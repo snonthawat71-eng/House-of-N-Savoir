@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import { Plus, Loader2, ClipboardList, Check, ChevronDown, ChevronUp, PartyPopper, X } from "lucide-react";
+import { Plus, Loader2, Check, ChevronDown, ChevronUp, PartyPopper, X, CalendarDays } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { logAudit } from "../lib/audit";
@@ -93,20 +93,19 @@ export function TodoCard({ onOpen }: { onOpen: () => void }) {
 
   return (
     <div className="w-full rounded-2xl bg-card shadow-sm">
-      {/* แถวหลัก (สถานะพับ) */}
+      {/* แถวหลัก (สถานะพับ) — ปุ่ม check วงกลมโปร่ง อยู่หน้าเวลา */}
       <div className="flex items-center gap-3 px-4 py-3">
-        <ClipboardList size={19} strokeWidth={1.9} className="shrink-0 text-primary" />
+        <button onClick={() => checkDone(now)} aria-label="ทำเสร็จแล้ว"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+          style={{ borderColor: overdue ? C.red : C.brand, background: "transparent" }}>
+          <Check size={17} strokeWidth={2.5} style={{ color: overdue ? C.red : C.brand }} />
+        </button>
         <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
           <span className="shrink-0 font-disp text-[15px] font-extrabold tabular-nums"
             style={{ color: overdue ? C.red : C.brand }}>
             {overdue ? "เลยกำหนด" : timeLabel}
           </span>
           <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-foreground">{now.title}</span>
-        </button>
-        <button onClick={() => checkDone(now)} aria-label="ทำเสร็จแล้ว"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white"
-          style={{ background: C.brand, boxShadow: "0 4px 12px rgba(1,75,170,.35)" }}>
-          <Check size={19} strokeWidth={2.5} />
         </button>
         <button onClick={toggle} aria-label={open ? "พับ" : "กาง"}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
@@ -204,37 +203,49 @@ export default function NotesScreen() {
     const who = memberOf(t.assigned_to);
     const byOther = t.created_by !== me && t.assigned_to === me;
     const creator = memberOf(t.created_by);
+    const late = !t.done && t.due_date < today;
     return (
-      <div className="mb-2 flex items-center gap-3 rounded-2xl bg-card px-3.5 py-3 shadow-sm"
+      <div className="mb-2.5 rounded-2xl bg-card p-4 shadow-sm"
         style={highlight ? { border: `1.5px solid ${C.brand}` } : undefined}>
-        <span className="w-11 shrink-0 font-disp text-[12px] font-extrabold tabular-nums"
-          style={{ color: t.done ? C.sub : t.due_date < today ? C.red : C.brand }}>
-          {hhmm(t.due_time) || "—"}
-        </span>
-        <button onClick={() => setModal({ k: "form", item: t })} className="min-w-0 flex-1 text-left">
-          <div className={"text-[13px] font-bold " + (t.done ? "text-muted-foreground line-through" : "text-foreground")}>{t.title}</div>
-          {(who || byOther || t.detail) && (
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-              {who && (
-                <span className="inline-flex items-center gap-1">
-                  <span className="flex h-[17px] w-[17px] items-center justify-center rounded-full font-disp text-[8.5px] font-extrabold text-white"
-                    style={{ background: avaColor(who.id) }}>{memberName(who).slice(0, 1).toUpperCase()}</span>
-                  {t.assigned_to === me ? "ของฉัน" : memberName(who)}
-                </span>
-              )}
-              {byOther && creator && (
-                <span className="rounded-full px-2 py-0.5 font-disp text-[9px] font-extrabold"
-                  style={{ background: "#FEF3C7", color: "#B45309" }}>{memberName(creator)}มอบให้</span>
-              )}
-              {t.detail && <span className="truncate">{t.detail}</span>}
-            </div>
+        {/* แถวบน: วันที่ซ้าย · คนเกี่ยวข้องขวา */}
+        <div className="mb-2.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+          <CalendarDays size={12} className="shrink-0" />
+          <span style={late ? { color: C.red, fontWeight: 700 } : undefined}>
+            {new Date(t.due_date + "T00:00:00").toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" })}
+          </span>
+          {late && (
+            <span className="rounded-full px-2 py-0.5 font-disp text-[9px] font-extrabold"
+              style={{ background: C.redSoft, color: C.red }}>เลยกำหนด</span>
           )}
-        </button>
-        <button onClick={() => toggleDone(t)} aria-label="ติ๊กเสร็จ"
-          className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-2"
-          style={t.done ? { background: C.brand, borderColor: C.brand } : { borderColor: "#C9CDD3" }}>
-          {t.done && <Check size={14} strokeWidth={3} className="text-white" />}
-        </button>
+          <span className="flex-1" />
+          {byOther && creator && (
+            <span className="rounded-full px-2 py-0.5 font-disp text-[9px] font-extrabold"
+              style={{ background: "#FEF3C7", color: "#B45309" }}>{memberName(creator)}มอบให้</span>
+          )}
+          {who && (
+            <span className="inline-flex items-center gap-1">
+              <span className="flex h-[17px] w-[17px] items-center justify-center rounded-full font-disp text-[8.5px] font-extrabold text-white"
+                style={{ background: avaColor(who.id) }}>{memberName(who).slice(0, 1).toUpperCase()}</span>
+              {t.assigned_to === me ? "ของฉัน" : memberName(who)}
+            </span>
+          )}
+        </div>
+        {/* แถวล่าง: ปุ่ม check (หน้าเวลา) · เวลา · ชื่องาน */}
+        <div className="flex items-center gap-3">
+          <button onClick={() => toggleDone(t)} aria-label="ติ๊กเสร็จ"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+            style={t.done ? { background: C.brand, borderColor: C.brand } : { borderColor: "#C9CDD3", background: "transparent" }}>
+            {t.done && <Check size={16} strokeWidth={3} className="text-white" />}
+          </button>
+          <span className="shrink-0 font-disp text-[14px] font-extrabold tabular-nums"
+            style={{ color: t.done ? C.sub : late ? C.red : C.brand }}>
+            {hhmm(t.due_time) || "--:--"}
+          </span>
+          <button onClick={() => setModal({ k: "form", item: t })} className="min-w-0 flex-1 text-left">
+            <div className={"text-[13.5px] font-bold " + (t.done ? "text-muted-foreground line-through" : "text-foreground")}>{t.title}</div>
+            {t.detail && <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">{t.detail}</div>}
+          </button>
+        </div>
       </div>
     );
   };
@@ -300,10 +311,11 @@ function TodoForm({ initial, members, me, onDone, onDelete }: {
 
   async function save() {
     if (!title.trim()) { setErr("ต้องมีชื่องาน"); return; }
+    if (!date || !time) { setErr("ต้องกำหนดวันและเวลา"); return; }
     setBusy(true);
     const payload = {
       title: title.trim(), detail: detail.trim() || null,
-      due_date: date || todayStr(), due_time: time || null,
+      due_date: date, due_time: time,
       assigned_to: assignee || me || null,
     };
     const { error } = initial
@@ -330,7 +342,7 @@ function TodoForm({ initial, members, me, onDone, onDelete }: {
             {date && <ClearBtn onClick={() => setDate("")} />}
           </div>
         </Field>
-        <Field label="เวลา (ไม่บังคับ)">
+        <Field label="เวลา">
           <div className="relative min-w-0">
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-3 py-3 pr-8 text-[13px]" style={inputStyle} />
             {time && <ClearBtn onClick={() => setTime("")} />}
