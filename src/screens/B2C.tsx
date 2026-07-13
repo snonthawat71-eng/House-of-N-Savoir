@@ -151,7 +151,7 @@ export default function B2C() {
   const locsOfKind = (kind: string) => locations.filter((l) => l.kind === kind);
   const itemsOf = (locId: string) => stock.filter((s) => s.location_id === locId);
   const totalOf = (locId: string) => itemsOf(locId).reduce((s, i) => s + i.qty, 0);
-  // ถ้าร้านมีแบรนด์เดียวในสต็อก → ใช้เป็นแบรนด์ตั้งต้นในฟอร์มส่งสต็อก
+  // ถ้าร้านมีแบรนด์เดียวในสต็อก → ใช้เป็นแบรนด์ตั้งต้นในฟอร์มเติมสต็อก
   const soleBrandId = (locId: string) => {
     const ids = [...new Set(itemsOf(locId).map((r) => catalog.find((c) => c.id === r.product_id)?.brand_id).filter(Boolean))];
     return ids.length === 1 ? (ids[0] as string) : "";
@@ -188,14 +188,14 @@ export default function B2C() {
     toast.success("เพิ่มสินค้าเข้าร้านแล้ว");
     setItemModal(null); load();
   }
-  // ส่งสต็อกเข้าร้าน: บันทึกประวัติ + เพิ่มจำนวนในสต็อกร้าน
+  // เติมสต็อกเข้าร้าน: บันทึกประวัติ + เพิ่มจำนวนในสต็อกร้าน
   async function sendStock(v: { product_id: string; shop_code: string; qty: number; sender: string; sent_at: string }) {
     if (!shopId || !v.product_id || v.qty <= 0) return;
     const { error } = await supabase.from("consignment_shipments").insert({
       location_id: shopId, product_id: v.product_id, shop_code: v.shop_code || null,
       qty: v.qty, sender: v.sender || null, sent_at: v.sent_at,
     });
-    if (error) { toast.error("ส่งสต็อกไม่สำเร็จ"); return; }
+    if (error) { toast.error("เติมสต็อกไม่สำเร็จ"); return; }
     const existing = stock.find((s) => s.location_id === shopId && s.product_id === v.product_id);
     if (existing) {
       await supabase.from("stock_items").update({ qty: existing.qty + v.qty, shop_code: v.shop_code || existing.shop_code }).eq("id", existing.id);
@@ -204,7 +204,7 @@ export default function B2C() {
     }
     await touchLoc(shopId);
     await logAudit({ action: "create", entity: "consignment-shipment", entityId: v.shop_code || v.product_id, newValue: v });
-    toast.success("ส่งสต็อกสำเร็จ");
+    toast.success("เติมสต็อกสำเร็จ");
     setSendModal(false); load(); if (shopId) loadRecords(shopId);
   }
   // ตัดสต็อก / คืนสินค้า: บันทึกประวัติ + ลดจำนวนในสต็อกร้าน
@@ -368,7 +368,7 @@ export default function B2C() {
     });
     const monthKeys = Object.keys(groups).sort().reverse();
     const TABS: { id: "all" | "send" | "cut" | "return"; label: string }[] = [
-      { id: "all", label: "ทั้งหมด" }, { id: "send", label: "ส่ง" }, { id: "cut", label: "ตัด" }, { id: "return", label: "คืน" },
+      { id: "all", label: "ทั้งหมด" }, { id: "send", label: "เติม" }, { id: "cut", label: "ตัด" }, { id: "return", label: "คืน" },
     ];
     return (
       <div className="px-5 pb-32">
@@ -406,7 +406,7 @@ export default function B2C() {
                 </div>
                 {groups[mk].map((r) => {
                   const p = catalog.find((c) => c.id === r.product_id);
-                  const info = r.kind === "send" ? { label: "ส่งเข้า", color: C.brand, soft: C.brandSoft, sign: "+" }
+                  const info = r.kind === "send" ? { label: "เติมเข้า", color: C.brand, soft: C.brandSoft, sign: "+" }
                     : r.kind === "cut" ? { label: "ตัดสต็อก", color: C.red, soft: C.redSoft, sign: "-" }
                     : { label: "คืนสินค้า", color: "#B45309", soft: "#FEF3C7", sign: "-" };
                   const when = new Date(r.at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) + (r.kind === "send" ? " " + new Date(r.at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "");
@@ -502,13 +502,13 @@ export default function B2C() {
           </button>
         </div>
 
-        {/* ส่งสต็อกสินค้า — การ์ดยาว สีเด่น (สูง) */}
+        {/* เติมสต็อกสินค้า — การ์ดยาว สีเด่น (สูง) */}
         <button onClick={() => setSendModal(true)} className="mt-4 flex w-full items-center justify-between rounded-2xl px-5 py-6 text-white shadow-sm" style={{ background: C.brand }}>
           <div className="flex items-center gap-3.5">
             <div className="shrink-0"><Send size={28} strokeWidth={1.8} /></div>
             <div className="text-left">
-              <div className="font-disp text-[17px] font-extrabold">ส่งสต็อกสินค้า</div>
-              <div className="text-[12.5px] text-white/80">บันทึกการส่งสินค้าเข้าร้านนี้</div>
+              <div className="font-disp text-[17px] font-extrabold">เติมสต็อกสินค้า</div>
+              <div className="text-[12.5px] text-white/80">บันทึกการเติมสินค้าเข้าร้านนี้</div>
             </div>
           </div>
           <Plus size={24} />
@@ -532,8 +532,8 @@ export default function B2C() {
           <ChevronRight size={16} className="text-muted-foreground" />
         </button>
 
-        {/* ฟอร์มส่งสต็อก */}
-        <Modal open={sendModal} onClose={() => setSendModal(false)} title="ส่งสต็อกเข้าร้าน">
+        {/* ฟอร์มเติมสต็อก */}
+        <Modal open={sendModal} onClose={() => setSendModal(false)} title="เติมสต็อกเข้าร้าน">
           {sendModal && <SendStockForm brands={brands} catalog={catalog} defaultBrandId={soleBrandId(shop.id)} onSubmit={sendStock} />}
         </Modal>
 
@@ -883,7 +883,7 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove }: {
   );
 }
 
-/* ฟอร์มส่งสต็อกเข้าร้านฝากขาย */
+/* ฟอร์มเติมสต็อกเข้าร้านฝากขาย */
 function SendStockForm({ brands, catalog, defaultBrandId, onSubmit }: {
   brands: Brand[];
   catalog: CatalogProduct[];
@@ -919,13 +919,13 @@ function SendStockForm({ brands, catalog, defaultBrandId, onSubmit }: {
   return (
     <div className="pb-4">
       <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
-        <Field label="วันที่ส่งสินค้า">
+        <Field label="วันที่เติมสินค้า">
           <div className="relative min-w-0">
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-3 py-3 pr-8 text-[13px]" style={inputStyle} />
             {date && <ClearBtn onClick={() => setDate("")} />}
           </div>
         </Field>
-        <Field label="เวลาส่ง">
+        <Field label="เวลาเติม">
           <div className="relative min-w-0">
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-3 py-3 pr-8 text-[13px]" style={inputStyle} />
             {time && <ClearBtn onClick={() => setTime("")} />}
@@ -962,7 +962,7 @@ function SendStockForm({ brands, catalog, defaultBrandId, onSubmit }: {
         <input value={sender} onChange={(e) => setSender(e.target.value)} placeholder="ชื่อผู้จัดส่ง" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
       </Field>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
-      <Button onClick={submit} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังส่ง…" : "ยืนยันส่งสต็อก"}</Button>
+      <Button onClick={submit} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังเติม…" : "ยืนยันเติมสต็อก"}</Button>
     </div>
   );
 }
