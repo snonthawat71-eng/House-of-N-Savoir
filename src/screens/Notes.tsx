@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import { Plus, Loader2, ClipboardList, Check, ChevronDown, ChevronUp, PartyPopper } from "lucide-react";
+import { Plus, Loader2, ClipboardList, Check, ChevronDown, ChevronUp, PartyPopper, X } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { logAudit } from "../lib/audit";
@@ -293,7 +293,8 @@ function TodoForm({ initial, members, me, onDone, onDelete }: {
   const [detail, setDetail] = useState(initial?.detail || "");
   const [date, setDate] = useState(initial?.due_date || todayStr());
   const [time, setTime] = useState(hhmm(initial?.due_time));
-  const [assignee, setAssignee] = useState(initial?.assigned_to || me || "");
+  // ค่าว่าง = งานของตัวเอง (ไม่ต้องเลือกตัวเองใน dropdown)
+  const [assignee, setAssignee] = useState(initial?.assigned_to && initial.assigned_to !== me ? initial.assigned_to : "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -303,7 +304,7 @@ function TodoForm({ initial, members, me, onDone, onDelete }: {
     const payload = {
       title: title.trim(), detail: detail.trim() || null,
       due_date: date || todayStr(), due_time: time || null,
-      assigned_to: assignee || null,
+      assigned_to: assignee || me || null,
     };
     const { error } = initial
       ? await supabase.from("todos").update(payload).eq("id", initial.id)
@@ -314,18 +315,33 @@ function TodoForm({ initial, members, me, onDone, onDelete }: {
     onDone();
   }
 
+  const ClearBtn = ({ onClick }: { onClick: () => void }) => (
+    <button type="button" onClick={onClick} aria-label="ล้าง" className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-secondary text-muted-foreground"><X size={13} /></button>
+  );
+
   return (
     <div className="pb-4">
       <Field label="ชื่องาน"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น เช็คสต็อก Central Chidlom" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <Field label="รายละเอียด (ไม่บังคับ)"><input value={detail} onChange={(e) => setDetail(e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
-        <Field label="กำหนดวัน"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-w-0 appearance-none rounded-2xl box-border px-3 py-3" style={inputStyle} /></Field>
-        <Field label="เวลา (ไม่บังคับ)"><input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full min-w-0 appearance-none rounded-2xl box-border px-3 py-3" style={inputStyle} /></Field>
+        <Field label="กำหนดวัน">
+          <div className="relative min-w-0">
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-3 py-3 pr-8 text-[13px]" style={inputStyle} />
+            {date && <ClearBtn onClick={() => setDate("")} />}
+          </div>
+        </Field>
+        <Field label="เวลา (ไม่บังคับ)">
+          <div className="relative min-w-0">
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="box-border w-full min-w-0 appearance-none rounded-2xl px-3 py-3 pr-8 text-[13px]" style={inputStyle} />
+            {time && <ClearBtn onClick={() => setTime("")} />}
+          </div>
+        </Field>
       </div>
-      <Field label="มอบหมายให้">
+      <Field label="มอบหมายให้ (ไม่เลือก = งานของฉัน)">
         <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>{m.id === me ? `ตัวฉันเอง (${memberName(m)})` : memberName(m)}</option>
+          <option value="">งานของฉัน</option>
+          {members.filter((m) => m.id !== me).map((m) => (
+            <option key={m.id} value={m.id}>{memberName(m)}</option>
           ))}
         </select>
       </Field>
