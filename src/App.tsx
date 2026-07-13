@@ -23,6 +23,7 @@ import DashboardReal from "./screens/Dashboard";
 import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
+import NotesScreen from "./screens/Notes";
 import { Toaster } from "./lib/toast";
 
 /* ------------------------------------------------------------------ *
@@ -808,7 +809,7 @@ export default function App() {
   );
 
   /* ---------- router ---------- */
-  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV" };
+  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV", notes:"Note · งานทั้งหมด" };
   const NAV = [
     { id: "modules", label: "Overview", icon: Home },
     { id: "home", label: "Dashboard", icon: LayoutGrid },
@@ -829,6 +830,7 @@ export default function App() {
           onModule={go}
           onDashboard={() => go("home")}
           onConnect={openConnect}
+          onNotes={() => go("notes")}
         />
       );
       case "home": return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
@@ -845,6 +847,7 @@ export default function App() {
       case "me": return <Me />;
       case "users": return <UsersAdmin />;
       case "import": return <ImportScreen />;
+      case "notes": return <NotesScreen />;
       default: return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
     }
   };

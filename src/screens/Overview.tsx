@@ -3,6 +3,7 @@ import { Bell, Lock, ChevronRight, LayoutGrid, Search, SlidersHorizontal } from 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/Carousel";
+import { TodoCard } from "./Notes";
 
 export type ModuleTile = { id: string; name: string; sub: string; icon: LucideIcon };
 
@@ -16,29 +17,37 @@ type Props = {
   onModule: (id: string) => void;
   onDashboard: () => void;
   onConnect: () => void;
+  onNotes: () => void;
 };
 
 /** หน้าแรก (Overview) — ยกเครื่องด้วย shadcn/ui */
-export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect }: Props) {
+export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect, onNotes }: Props) {
   return (
     <div className="pb-16">
-      {/* หัวดำคลุมด้านบน */}
-      <div className="bg-ink px-6 pb-24" style={{ paddingTop: "calc(48px + env(safe-area-inset-top))" }}>
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex h-[46px] w-[46px] items-center justify-center rounded-2xl bg-white font-disp text-2xl font-extrabold text-ink">
+      {/* หัวดำแบบเตี้ย — ข้อความ 3 บรรทัดเรียงข้างโลโก้ */}
+      <div className="bg-ink px-5 pb-16" style={{ paddingTop: "calc(44px + env(safe-area-inset-top))" }}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl bg-white font-disp text-2xl font-extrabold text-ink">
             N
           </div>
-          <button className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "#1E1F22" }}>
+          <div className="min-w-0 flex-1">
+            <div className="font-disp text-[11px] font-bold uppercase text-primary">{brand}</div>
+            <div className="font-disp text-[18px] font-extrabold leading-tight tracking-tight text-white">{displayName}</div>
+            <div className="truncate text-[10.5px] text-[#8A8F98]">{email} · {roleName}</div>
+          </div>
+          <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: "#1E1F22" }}>
             <Bell size={18} className="text-[#9AA0A6]" />
           </button>
         </div>
-        <div className="font-disp text-[13px] font-bold text-primary">{brand}</div>
-        <div className="mt-0.5 font-disp text-[27px] font-extrabold tracking-tight text-white">{displayName}</div>
-        <div className="mt-1.5 text-xs text-[#8A8F98]">{email} · {roleName}</div>
       </div>
 
-      {/* การ์ดเลื่อน (ซ้อนทับหัวดำครึ่งหนึ่ง) */}
-      <Carousel className="-mt-16">
+      {/* การ์ดเตือนงานวันนี้ (พับ/กางได้) — ซ้อนหัวดำ */}
+      <div className="-mt-10 px-5">
+        <TodoCard onOpen={onNotes} />
+      </div>
+
+      {/* การ์ดเลื่อน */}
+      <Carousel className="mt-3">
         {isAdmin && (
           <Card onClick={onConnect} className="flex cursor-pointer items-center justify-between px-5 py-6">
             <div className="min-w-0">
