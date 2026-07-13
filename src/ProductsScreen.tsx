@@ -5,7 +5,7 @@ import { useAuth } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { useBackHandler } from "./lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle } from "./lib/ui";
-import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
+import { Modal, DetailRow, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
@@ -105,19 +105,19 @@ export default function ProductsScreen() {
             <DetailRow label="ต้นทุน"><CostVal v={modal.item.cost} /></DetailRow>
             <DetailRow label="ราคาขาย">{baht(modal.item.retail)}</DetailRow>
             <DetailRow label="คงเหลือ">{modal.item.stock}</DetailRow>
-            {canEdit && <DetailActions onEdit={() => setModal({ k: "form", item: modal.item })} onDelete={() => del(modal.item)} />}
+            {canEdit && <DetailActions onEdit={() => setModal({ k: "form", item: modal.item })} />}
           </div>
         )}
       </Modal>
 
       <Modal open={modal?.k === "form"} onClose={close} title={modal?.k === "form" && modal.item.id ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}>
-        {modal?.k === "form" && <ProductFields initial={modal.item} onDone={done} />}
+        {modal?.k === "form" && <ProductFields initial={modal.item} onDone={done} onDelete={modal.item.id ? () => del(modal.item) : undefined} />}
       </Modal>
     </div>
   );
 }
 
-function ProductFields({ initial, onDone }: { initial: Product; onDone: () => void }) {
+function ProductFields({ initial, onDone, onDelete }: { initial: Product; onDone: () => void; onDelete?: () => void }) {
   const isNew = !initial.id;
   const [f, setF] = useState<Product>(initial);
   const [busy, setBusy] = useState(false);
@@ -148,6 +148,7 @@ function ProductFields({ initial, onDone }: { initial: Product; onDone: () => vo
       </div>
       <FormField label="คงเหลือ (ชิ้น)" error={err}><Input value={f.stock ?? 0} onChange={(e) => set("stock", num(e.target.value) ?? 0)} inputMode="numeric" /></FormField>
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+      {onDelete && <DeleteButton onClick={onDelete} label="ลบสินค้านี้" />}
     </div>
   );
 }

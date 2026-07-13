@@ -102,6 +102,15 @@ export function DetailActions({ onEdit, onDelete }: { onEdit?: () => void; onDel
   );
 }
 
+/** ปุ่มลบเต็มความกว้าง — วางไว้ท้ายฟอร์มแก้ไข (โผล่เฉพาะตอนแก้ของเดิม) */
+export function DeleteButton({ onClick, label = "ลบ" }: { onClick: () => void; label?: string }) {
+  return (
+    <button onClick={onClick} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3.5 text-sm font-bold text-destructive">
+      <Trash2 size={16} /> {label}
+    </button>
+  );
+}
+
 /** แถวข้อมูล label / value ในการ์ดรายละเอียด */
 export function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (

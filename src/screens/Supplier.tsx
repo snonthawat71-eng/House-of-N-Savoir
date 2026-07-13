@@ -6,7 +6,7 @@ import { useBackHandler } from "../lib/nav";
 import { C, disp, mono, baht, inputStyle, fmtDate, daysUntil } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
 import { Field } from "./B2B";
-import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
+import { Modal, DetailRow, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
 type Supplier = { id: string; name: string; material: string | null; contact: string | null; phone: string | null; contract_end: string | null; note: string | null };
@@ -121,7 +121,7 @@ export default function SupplierScreen() {
       )}
 
       <Modal open={modal?.k === "supForm"} onClose={close} title={modal?.k === "supForm" && modal.item ? "แก้ไขผู้ผลิต" : "เพิ่มผู้ผลิต"}>
-        {modal?.k === "supForm" && <SupplierFields initial={modal.item} onDone={done} />}
+        {modal?.k === "supForm" && <SupplierFields initial={modal.item} onDone={done} onDelete={modal.item ? () => delSupplier(modal.item!) : undefined} />}
       </Modal>
 
       <Modal open={modal?.k === "supView"} onClose={close} title="รายละเอียดผู้ผลิต">
@@ -133,7 +133,7 @@ export default function SupplierScreen() {
             <DetailRow label="เบอร์โทร">{modal.item.phone || "-"}</DetailRow>
             <DetailRow label="สัญญาถึง">{fmtDate(modal.item.contract_end)}</DetailRow>
             <DetailRow label="โน้ต">{modal.item.note || "-"}</DetailRow>
-            <DetailActions onEdit={() => setModal({ k: "supForm", item: modal.item })} onDelete={() => delSupplier(modal.item)} />
+            <DetailActions onEdit={() => setModal({ k: "supForm", item: modal.item })} />
           </div>
         )}
       </Modal>
@@ -169,7 +169,7 @@ export default function SupplierScreen() {
   );
 }
 
-function SupplierFields({ initial, onDone }: { initial: Supplier | null; onDone: () => void }) {
+function SupplierFields({ initial, onDone, onDelete }: { initial: Supplier | null; onDone: () => void; onDelete?: () => void }) {
   const [f, setF] = useState({
     name: initial?.name || "", material: initial?.material || "", contact: initial?.contact || "",
     phone: initial?.phone || "", contract_end: initial?.contract_end || "", note: initial?.note || "",
@@ -200,6 +200,7 @@ function SupplierFields({ initial, onDone }: { initial: Supplier | null; onDone:
       <Field label="โน้ต"><input value={f.note} onChange={(e) => set("note", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+      {onDelete && <DeleteButton onClick={onDelete} label="ลบผู้ผลิตรายนี้" />}
     </div>
   );
 }

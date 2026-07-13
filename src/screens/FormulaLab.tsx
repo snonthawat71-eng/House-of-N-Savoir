@@ -5,7 +5,7 @@ import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle } from "../lib/ui";
 import { Field } from "./B2B";
-import { Modal, DetailActions } from "@/components/ui/modal";
+import { Modal, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
 type Line = { ingredient: string; pct: number };
@@ -79,18 +79,18 @@ export default function FormulaLab() {
 
       {/* ดูสูตร */}
       <Modal open={modal?.k === "view"} onClose={close} title="สูตร (ลับสุดยอด)">
-        {modal?.k === "view" && <FormulaView f={modal.item} onEdit={() => setModal({ k: "form", item: modal.item })} onDelete={() => del(modal.item)} />}
+        {modal?.k === "view" && <FormulaView f={modal.item} onEdit={() => setModal({ k: "form", item: modal.item })} />}
       </Modal>
 
       {/* เพิ่ม/แก้สูตร */}
       <Modal open={modal?.k === "form"} onClose={close} title={modal?.k === "form" && modal.item ? "แก้ไขสูตร" : "สร้างสูตรใหม่"}>
-        {modal?.k === "form" && <FormulaFields initial={modal.item} onDone={done} />}
+        {modal?.k === "form" && <FormulaFields initial={modal.item} onDone={done} onDelete={modal.item ? () => del(modal.item!) : undefined} />}
       </Modal>
     </div>
   );
 }
 
-function FormulaView({ f, onEdit, onDelete }: { f: Formula; onEdit: () => void; onDelete: () => void }) {
+function FormulaView({ f, onEdit }: { f: Formula; onEdit: () => void }) {
   const totalPct = (f.lines || []).reduce((s, l) => s + (Number(l.pct) || 0), 0);
   const costTotal = (Number(f.cost_material) || 0) + (Number(f.cost_packaging) || 0);
   const price = costTotal * (Number(f.multiplier) || 0);
@@ -122,12 +122,12 @@ function FormulaView({ f, onEdit, onDelete }: { f: Formula; onEdit: () => void; 
           </div>
         ))}
       </div>
-      <DetailActions onEdit={onEdit} onDelete={onDelete} />
+      <DetailActions onEdit={onEdit} />
     </div>
   );
 }
 
-function FormulaFields({ initial, onDone }: { initial: Formula | null; onDone: () => void }) {
+function FormulaFields({ initial, onDone, onDelete }: { initial: Formula | null; onDone: () => void; onDelete?: () => void }) {
   const [f, setF] = useState({
     name: initial?.name || "", product_sku: initial?.product_sku || "",
     cost_material: initial?.cost_material ?? 0, cost_packaging: initial?.cost_packaging ?? 0,
@@ -188,6 +188,7 @@ function FormulaFields({ initial, onDone }: { initial: Formula | null; onDone: (
       </div>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึกสูตร"}</Button>
+      {onDelete && <DeleteButton onClick={onDelete} label="ลบสูตรนี้" />}
     </div>
   );
 }

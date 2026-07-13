@@ -12,7 +12,7 @@ import { useBackHandler } from "../lib/nav";
 import { C, baht, mono, inputStyle } from "../lib/ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
+import { Modal, DetailRow, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Field } from "./B2B";
 import { toast } from "../lib/toast";
@@ -523,8 +523,6 @@ export default function B2C() {
           <ChevronRight size={16} className="text-muted-foreground" />
         </button>
 
-        <button onClick={() => delShop(shop)} className="mt-4 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
-
         {/* ฟอร์มส่งสต็อก */}
         <Modal open={sendModal} onClose={() => setSendModal(false)} title="ส่งสต็อกเข้าร้าน">
           {sendModal && <SendStockForm brands={brands} catalog={catalog} defaultBrandId={soleBrandId(shop.id)} onSubmit={sendStock} />}
@@ -549,7 +547,7 @@ export default function B2C() {
           </div>
         </Modal>
         <Modal open={popup === "shopForm"} onClose={() => setPopup(null)} title="แก้ไขข้อมูลร้าน">
-          {popup === "shopForm" && <ShopForm initial={editShop} onDone={() => { setPopup(null); load(); }} />}
+          {popup === "shopForm" && <ShopForm initial={editShop} onDone={() => { setPopup(null); load(); }} onDelete={editShop ? () => { setPopup(null); delShop(editShop); } : undefined} />}
         </Modal>
       </div>
     );
@@ -583,7 +581,7 @@ export default function B2C() {
           </button>
         </div>
         <Modal open={popup === "shopForm"} onClose={() => setPopup(null)} title={editShop ? "แก้ไขข้อมูลร้าน" : "เพิ่มร้านฝากขาย"}>
-          {popup === "shopForm" && <ShopForm initial={editShop} onDone={() => { setPopup(null); load(); }} />}
+          {popup === "shopForm" && <ShopForm initial={editShop} onDone={() => { setPopup(null); load(); }} onDelete={editShop ? () => { setPopup(null); delShop(editShop); } : undefined} />}
         </Modal>
       </div>
     );
@@ -651,10 +649,6 @@ export default function B2C() {
             </div>
           )}
 
-          {canEdit && (
-            <button onClick={() => delBrand(brand)} className="mt-8 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบแบรนด์นี้</button>
-          )}
-
           {/* ดูรายละเอียดสินค้า */}
           <Modal open={prodModal?.k === "view"} onClose={() => setProdModal(null)} title="รายละเอียดสินค้า">
             {prodModal?.k === "view" && (
@@ -667,7 +661,7 @@ export default function B2C() {
                 <DetailRow label="ขนาด">{prodModal.item.size || "-"}</DetailRow>
                 {canEdit && <DetailRow label="ราคาต้นทุน"><CostVal v={prodModal.item.cost} /></DetailRow>}
                 <DetailRow label="ราคาขาย">{baht(prodModal.item.retail)}</DetailRow>
-                {canEdit && <DetailActions onEdit={() => setProdModal({ k: "form", item: prodModal.item })} onDelete={() => delProduct(prodModal.item)} />}
+                {canEdit && <DetailActions onEdit={() => setProdModal({ k: "form", item: prodModal.item })} />}
               </div>
             )}
           </Modal>
@@ -675,7 +669,7 @@ export default function B2C() {
           {/* เพิ่ม/แก้ไขสินค้า */}
           <Modal open={prodModal?.k === "add" || prodModal?.k === "form"} onClose={() => setProdModal(null)} title={prodModal?.k === "form" ? "แก้ไขสินค้า" : "เพิ่มสินค้า"}>
             {(prodModal?.k === "add" || prodModal?.k === "form") && (
-              <ProductForm brand={brand} initial={prodModal.k === "form" ? prodModal.item : null} onDone={() => { setProdModal(null); load(); }} />
+              <ProductForm brand={brand} initial={prodModal.k === "form" ? prodModal.item : null} onDone={() => { setProdModal(null); load(); }} onDelete={prodModal.k === "form" ? () => delProduct(prodModal.item) : undefined} />
             )}
           </Modal>
         </div>
@@ -708,7 +702,7 @@ export default function B2C() {
         </div>
 
         <Modal open={brandModal !== null} onClose={() => setBrandModal(null)} title={brandModal && brandModal !== "add" ? "แก้ไขแบรนด์" : "เพิ่มแบรนด์"}>
-          {brandModal !== null && <BrandForm initial={brandModal === "add" ? null : brandModal} onDone={() => { setBrandModal(null); load(); }} />}
+          {brandModal !== null && <BrandForm initial={brandModal === "add" ? null : brandModal} onDone={() => { setBrandModal(null); load(); }} onDelete={brandModal !== "add" ? () => delBrand(brandModal) : undefined} />}
         </Modal>
       </div>
     );
@@ -1034,7 +1028,7 @@ function StockManageModal({ kind, rows, catalog, onClose, onMove }: {
 }
 
 /* ฟอร์มเพิ่ม/แก้ไขแบรนด์ — มีแค่รูป + ชื่อ */
-function BrandForm({ initial, onDone }: { initial: Brand | null; onDone: () => void }) {
+function BrandForm({ initial, onDone, onDelete }: { initial: Brand | null; onDone: () => void; onDelete?: () => void }) {
   const [name, setName] = useState(initial?.name || "");
   const [logo, setLogo] = useState(initial?.logo_url || "");
   const [busy, setBusy] = useState(false);
@@ -1059,12 +1053,13 @@ function BrandForm({ initial, onDone }: { initial: Brand | null; onDone: () => v
       <Field label="ชื่อแบรนด์"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น N SAVOIR" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+      {onDelete && <DeleteButton onClick={onDelete} label="ลบแบรนด์นี้" />}
     </div>
   );
 }
 
 /* ฟอร์มเพิ่ม/แก้ไขสินค้าในแบรนด์ */
-function ProductForm({ brand, initial, onDone }: { brand: Brand; initial: CatalogProduct | null; onDone: () => void }) {
+function ProductForm({ brand, initial, onDone, onDelete }: { brand: Brand; initial: CatalogProduct | null; onDone: () => void; onDelete?: () => void }) {
   const isNew = !initial;
   const [image, setImage] = useState(initial?.image_url || "");
   const [sku, setSku] = useState(initial?.sku || "");
@@ -1115,11 +1110,12 @@ function ProductForm({ brand, initial, onDone }: { brand: Brand; initial: Catalo
       </div>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+      {onDelete && <DeleteButton onClick={onDelete} label="ลบสินค้านี้" />}
     </div>
   );
 }
 
-function ShopForm({ initial, onDone }: { initial: Location | null; onDone: () => void }) {
+function ShopForm({ initial, onDone, onDelete }: { initial: Location | null; onDone: () => void; onDelete?: () => void }) {
   const [f, setF] = useState({
     shop_name: initial?.shop_name || initial?.name || "", branch_code: initial?.branch_code || "", branch_name: initial?.branch_name || "",
     address: initial?.address || "", tax_id: initial?.tax_id || "", phone: initial?.phone || "", email: initial?.email || "", logo_url: initial?.logo_url || "",
@@ -1158,6 +1154,7 @@ function ShopForm({ initial, onDone }: { initial: Location | null; onDone: () =>
       <Field label="อีเมล">{inp("email")}</Field>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+      {onDelete && <DeleteButton onClick={onDelete} label="ลบร้านนี้" />}
     </div>
   );
 }

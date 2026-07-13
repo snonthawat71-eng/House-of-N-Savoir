@@ -5,7 +5,7 @@ import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle, fmtDate } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
-import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
+import { Modal, DetailRow, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
 type Customer = { id: string; name: string; contact: string | null; phone: string | null; credit_terms: string | null; note: string | null };
@@ -170,7 +170,7 @@ export default function B2B() {
 
       {/* ---------- Popups ---------- */}
       <Modal open={modal?.k === "custForm"} onClose={close} title={modal?.k === "custForm" && modal.item ? "แก้ไขลูกค้า" : "เพิ่มลูกค้า B2B"}>
-        {modal?.k === "custForm" && <CustomerFields initial={modal.item} onDone={done} />}
+        {modal?.k === "custForm" && <CustomerFields initial={modal.item} onDone={done} onDelete={modal.item ? () => delCustomer(modal.item!) : undefined} />}
       </Modal>
 
       <Modal open={modal?.k === "custView"} onClose={close} title="รายละเอียดลูกค้า">
@@ -181,7 +181,7 @@ export default function B2B() {
             <DetailRow label="เบอร์โทร">{modal.item.phone || "-"}</DetailRow>
             <DetailRow label="เครดิต">{modal.item.credit_terms || "-"}</DetailRow>
             <DetailRow label="โน้ต">{modal.item.note || "-"}</DetailRow>
-            <DetailActions onEdit={() => setModal({ k: "custForm", item: modal.item })} onDelete={() => delCustomer(modal.item)} />
+            <DetailActions onEdit={() => setModal({ k: "custForm", item: modal.item })} />
           </div>
         )}
       </Modal>
@@ -252,7 +252,7 @@ export function Field({ label, children }: { label: string; children?: any }) {
   );
 }
 
-function CustomerFields({ initial, onDone }: { initial: Customer | null; onDone: () => void }) {
+function CustomerFields({ initial, onDone, onDelete }: { initial: Customer | null; onDone: () => void; onDelete?: () => void }) {
   const [f, setF] = useState({ name: initial?.name || "", contact: initial?.contact || "", phone: initial?.phone || "", credit_terms: initial?.credit_terms || "", note: initial?.note || "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -279,6 +279,7 @@ function CustomerFields({ initial, onDone }: { initial: Customer | null; onDone:
       <Field label="โน้ต"><input value={f.note} onChange={(e) => set("note", e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
+      {onDelete && <DeleteButton onClick={onDelete} label="ลบลูกค้ารายนี้" />}
     </div>
   );
 }
