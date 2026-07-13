@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Field } from "./B2B";
+import { toast } from "../lib/toast";
 
 // ประเภทสินค้า (สำหรับ dropdown + filter ในหน้า Product List)
 const PRODUCT_TYPES = ["Interior Spray", "Eau De Parfum", "Diffuser", "Candle"] as const;
@@ -164,37 +165,46 @@ export default function B2C() {
     load();
   }
   async function saveItem(row: StockRow, vals: { shop_code: string }) {
-    await supabase.from("stock_items").update(vals).eq("id", row.id);
+    const { error } = await supabase.from("stock_items").update(vals).eq("id", row.id);
+    if (error) { toast.error("บันทึกไม่สำเร็จ"); return; }
     await touchLoc(row.location_id);
     await logAudit({ action: "update", entity: "stock", entityId: row.products?.sku, newValue: vals });
+    toast.success("บันทึกแล้ว");
     setItemModal(null); load();
   }
   async function removeItem(row: StockRow) {
     if (!confirm("เอาสินค้านี้ออกจากร้าน?")) return;
-    await supabase.from("stock_items").delete().eq("id", row.id);
+    const { error } = await supabase.from("stock_items").delete().eq("id", row.id);
+    if (error) { toast.error("เอาออกไม่สำเร็จ"); return; }
+    toast.success("เอาสินค้าออกจากร้านแล้ว");
     setItemModal(null); load();
   }
   async function recordSale(row: StockRow) {
     const prod = products.find((p) => p.id === row.product_id);
     const amount = prod?.retail || 0;
-    await supabase.from("consignment_sales").insert({ location_id: row.location_id, product_id: row.product_id, product_name: row.products?.name, qty: 1, amount });
+    const { error } = await supabase.from("consignment_sales").insert({ location_id: row.location_id, product_id: row.product_id, product_name: row.products?.name, qty: 1, amount });
+    if (error) { toast.error("บันทึกการขายไม่สำเร็จ"); return; }
     await supabase.from("stock_items").update({ sold: row.sold + 1, qty: Math.max(0, row.qty - 1) }).eq("id", row.id);
     await touchLoc(row.location_id);
     if (shopId) loadSales(shopId);
+    toast.success("บันทึกการขายแล้ว");
     load();
   }
   async function addProductTo(locId: string, productId: string) {
     if (!productId) return;
-    await supabase.from("stock_items").upsert({ location_id: locId, product_id: productId, qty: 0 }, { onConflict: "location_id,product_id" });
+    const { error } = await supabase.from("stock_items").upsert({ location_id: locId, product_id: productId, qty: 0 }, { onConflict: "location_id,product_id" });
+    if (error) { toast.error("เพิ่มสินค้าไม่สำเร็จ"); return; }
+    toast.success("เพิ่มสินค้าเข้าร้านแล้ว");
     setItemModal(null); load();
   }
   // ส่งสต็อกเข้าร้าน: บันทึกประวัติ + เพิ่มจำนวนในสต็อกร้าน
   async function sendStock(v: { product_id: string; shop_code: string; qty: number; sender: string; sent_at: string }) {
     if (!shopId || !v.product_id || v.qty <= 0) return;
-    await supabase.from("consignment_shipments").insert({
+    const { error } = await supabase.from("consignment_shipments").insert({
       location_id: shopId, product_id: v.product_id, shop_code: v.shop_code || null,
       qty: v.qty, sender: v.sender || null, sent_at: v.sent_at,
     });
+    if (error) { toast.error("ส่งสต็อกไม่สำเร็จ"); return; }
     const existing = stock.find((s) => s.location_id === shopId && s.product_id === v.product_id);
     if (existing) {
       await supabase.from("stock_items").update({ qty: existing.qty + v.qty, shop_code: v.shop_code || existing.shop_code }).eq("id", existing.id);
@@ -203,49 +213,64 @@ export default function B2C() {
     }
     await touchLoc(shopId);
     await logAudit({ action: "create", entity: "consignment-shipment", entityId: v.shop_code || v.product_id, newValue: v });
+    toast.success("ส่งสต็อกสำเร็จ");
     setSendModal(false); load(); if (shopId) loadRecords(shopId);
   }
   // ตัดสต็อก / คืนสินค้า: บันทึกประวัติ + ลดจำนวนในสต็อกร้าน
   async function moveStock(row: StockRow, kind: "cut" | "return", qty: number, movedAt: string) {
     if (!shopId || qty <= 0) return;
     const take = Math.min(qty, row.qty);
-    await supabase.from("consignment_movements").insert({ location_id: shopId, product_id: row.product_id, kind, qty: take, moved_at: movedAt });
+    const label = kind === "cut" ? "ตัดสต็อก" : "คืนสินค้า";
+    const { error } = await supabase.from("consignment_movements").insert({ location_id: shopId, product_id: row.product_id, kind, qty: take, moved_at: movedAt });
+    if (error) { toast.error(label + "ไม่สำเร็จ"); return; }
     const patch: any = { qty: Math.max(0, row.qty - take) };
     if (kind === "return") patch.returned = (row.returned || 0) + take;
     await supabase.from("stock_items").update(patch).eq("id", row.id);
     await touchLoc(shopId);
     await logAudit({ action: "update", entity: kind === "cut" ? "stock-cut" : "stock-return", entityId: row.products?.sku, newValue: { qty: take } });
+    toast.success(label + "สำเร็จ");
     load(); if (shopId) loadRecords(shopId);
   }
   async function addLocation(kind: string) {
     if (!addName.trim()) return;
-    await supabase.from("stock_locations").insert({ name: addName.trim(), kind });
+    const { error } = await supabase.from("stock_locations").insert({ name: addName.trim(), kind });
+    if (error) { toast.error("เพิ่มไม่สำเร็จ"); return; }
+    toast.success("เพิ่มแล้ว");
     setAddName(""); setPopup(null); load();
   }
   async function addCampaign() {
     if (!campName.trim()) return;
-    await supabase.from("campaigns").insert({ name: campName.trim() });
+    const { error } = await supabase.from("campaigns").insert({ name: campName.trim() });
+    if (error) { toast.error("เพิ่มแคมเปญไม่สำเร็จ"); return; }
+    toast.success("เพิ่มแคมเปญแล้ว");
     setCampName(""); setPopup(null); load();
   }
   async function toggleCampaign(cp: Campaign) {
-    await supabase.from("campaigns").update({ status: cp.status === "active" ? "done" : "active" }).eq("id", cp.id);
+    const { error } = await supabase.from("campaigns").update({ status: cp.status === "active" ? "done" : "active" }).eq("id", cp.id);
+    if (error) { toast.error("อัปเดตไม่สำเร็จ"); return; }
     load();
   }
   async function delShop(l: Location) {
     if (!confirm("ลบร้านนี้?")) return;
-    await supabase.from("stock_locations").delete().eq("id", l.id);
+    const { error } = await supabase.from("stock_locations").delete().eq("id", l.id);
+    if (error) { toast.error("ลบร้านไม่สำเร็จ"); return; }
+    toast.success("ลบร้านแล้ว");
     setShopId(null); load();
   }
   async function delBrand(b: Brand) {
     if (!confirm(`ลบแบรนด์ "${b.name}"? สินค้าในแบรนด์นี้จะไม่ถูกลบ แต่จะไม่มีแบรนด์`)) return;
-    await supabase.from("brands").delete().eq("id", b.id);
+    const { error } = await supabase.from("brands").delete().eq("id", b.id);
+    if (error) { toast.error("ลบแบรนด์ไม่สำเร็จ"); return; }
     await logAudit({ action: "delete", entity: "brand", entityId: b.name });
+    toast.success("ลบแบรนด์แล้ว");
     setBrandId(null); setBrandModal(null); load();
   }
   async function delProduct(p: CatalogProduct) {
     if (!confirm("ลบสินค้านี้?")) return;
-    await supabase.from("products").delete().eq("id", p.id);
+    const { error } = await supabase.from("products").delete().eq("id", p.id);
+    if (error) { toast.error("ลบสินค้าไม่สำเร็จ"); return; }
     await logAudit({ action: "delete", entity: "product", entityId: p.sku, oldValue: p });
+    toast.success("ลบสินค้าแล้ว");
     setProdModal(null); load();
   }
 
@@ -966,8 +991,9 @@ function BrandForm({ initial, onDone }: { initial: Brand | null; onDone: () => v
     const { error } = initial
       ? await supabase.from("brands").update(payload).eq("id", initial.id)
       : await supabase.from("brands").insert(payload);
-    if (error) { setErr(error.message); setBusy(false); return; }
+    if (error) { setErr(error.message); toast.error("บันทึกแบรนด์ไม่สำเร็จ"); setBusy(false); return; }
     await logAudit({ action: initial ? "update" : "create", entity: "brand", entityId: name.trim() });
+    toast.success(initial ? "แก้ไขแบรนด์แล้ว" : "เพิ่มแบรนด์แล้ว");
     onDone();
   }
 
@@ -1006,8 +1032,9 @@ function ProductForm({ brand, initial, onDone }: { brand: Brand; initial: Catalo
     const { error } = isNew
       ? await supabase.from("products").insert(payload)
       : await supabase.from("products").update(payload).eq("id", initial!.id);
-    if (error) { setErr("บันทึกไม่สำเร็จ: " + error.message); setBusy(false); return; }
+    if (error) { setErr("บันทึกไม่สำเร็จ: " + error.message); toast.error("บันทึกสินค้าไม่สำเร็จ"); setBusy(false); return; }
     await logAudit({ action: isNew ? "create" : "update", entity: "product", entityId: sku.trim(), newValue: payload });
+    toast.success(isNew ? "เพิ่มสินค้าแล้ว" : "แก้ไขสินค้าแล้ว");
     onDone();
   }
 
@@ -1055,8 +1082,9 @@ function ShopForm({ initial, onDone }: { initial: Location | null; onDone: () =>
     const { error } = initial
       ? await supabase.from("stock_locations").update(payload).eq("id", initial.id)
       : await supabase.from("stock_locations").insert(payload);
-    if (error) { setErr(error.message); setBusy(false); return; }
+    if (error) { setErr(error.message); toast.error("บันทึกร้านไม่สำเร็จ"); setBusy(false); return; }
     await logAudit({ action: initial ? "update" : "create", entity: "shop", entityId: f.shop_name });
+    toast.success(initial ? "แก้ไขร้านแล้ว" : "เพิ่มร้านแล้ว");
     onDone();
   }
 

@@ -23,6 +23,7 @@ import DashboardReal from "./screens/Dashboard";
 import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
+import { Toaster } from "./lib/toast";
 
 /* ------------------------------------------------------------------ *
  *  HOUSE OF N SAVOIR — Internal Superapp (clickable mockup)
@@ -851,6 +852,7 @@ export default function App() {
   return (
     <div style={{ fontFamily: sans, background: C.bg, minHeight: "100vh" }} className="max-w-md mx-auto relative">
       <style>{FONTS}</style>
+      <Toaster />
       {/* หน้าแรก (หมวดงาน) ไม่มีหัวข้อและไม่มีแถบเมนู */}
       {screen !== "modules" && <Header title={titleMap[screen] || "N SAVOIR"} back={screen !== "home" && !isNavScreen} />}
       <NavCtx.Provider value={{ registerBack }}>
