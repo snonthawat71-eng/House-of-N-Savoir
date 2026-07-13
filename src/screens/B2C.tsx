@@ -33,7 +33,7 @@ type Location = {
   shop_name?: string | null; branch_code?: string | null; branch_name?: string | null;
   address?: string | null; tax_id?: string | null; phone?: string | null; email?: string | null; logo_url?: string | null;
 };
-type StockRow = { id: string; location_id: string; product_id: string; qty: number; sold: number; returned: number; shop_code?: string | null; products?: { name: string; sku: string } };
+type StockRow = { id: string; location_id: string; product_id: string | null; qty: number; sold: number; returned: number; shop_code?: string | null; products?: { name: string; sku: string } | null };
 type Sale = { id: string; product_name: string | null; qty: number; amount: number; sold_at: string };
 type RecRow = { id: string; kind: "send" | "cut" | "return"; product_id: string | null; qty: number; at: string; sender?: string | null; shop_code?: string | null };
 type Campaign = { id: string; name: string; channel: string | null; status: string };
@@ -182,6 +182,7 @@ export default function B2C() {
     setItemModal(null); load();
   }
   async function recordSale(row: StockRow) {
+    if (!row.product_id) { toast.error("สินค้านี้ถูกลบออกจาก Product List แล้ว"); return; }
     const prod = products.find((p) => p.id === row.product_id);
     const amount = prod?.retail || 0;
     const { error } = await supabase.from("consignment_sales").insert({ location_id: row.location_id, product_id: row.product_id, product_name: row.products?.name, qty: 1, amount });
@@ -304,6 +305,8 @@ export default function B2C() {
           <div className="grid grid-cols-2 gap-3">
             {shownRows.map((r) => {
               const cp = catalog.find((c) => c.id === r.product_id);
+              // สินค้าถูกลบออกจาก Product List แล้ว (product_id ถูกตั้งเป็น null / หาไม่เจอ)
+              const missing = !r.product_id || (!cp && !r.products);
               return (
                 <Card key={r.id} onClick={() => setItemModal(r)} className="cursor-pointer overflow-hidden p-0">
                   <div className="relative aspect-square w-full overflow-hidden bg-secondary">
@@ -313,10 +316,17 @@ export default function B2C() {
                       <div className="flex h-full w-full items-center justify-center"><Package size={34} className="text-muted-foreground" /></div>
                     )}
                     {cp?.type && <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">{cp.type}</span>}
+                    {missing && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+                        <span className="rounded-full bg-black/75 px-4 py-2 font-disp text-[13px] font-extrabold text-white backdrop-blur">ไม่มีสินค้า</span>
+                      </div>
+                    )}
                   </div>
                   <div className="px-3 py-3">
-                    <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{r.products?.name || cp?.name}</div>
-                    <div className="truncate text-[10.5px] text-muted-foreground" style={{ fontFamily: mono }}>{r.shop_code || r.products?.sku || cp?.sku}</div>
+                    <div className={"truncate font-disp text-[15px] font-extrabold " + (missing ? "text-muted-foreground" : "text-foreground")}>
+                      {r.products?.name || cp?.name || "สินค้าถูกลบออกแล้ว"}
+                    </div>
+                    <div className="truncate text-[10.5px] text-muted-foreground" style={{ fontFamily: mono }}>{r.shop_code || r.products?.sku || cp?.sku || "-"}</div>
                     <div className="mt-1.5 flex items-center justify-between">
                       <span className="font-disp text-[15px] font-bold text-foreground">{baht(cp?.retail ?? null)}</span>
                       <span className="text-[10.5px] text-muted-foreground">ขาย {r.sold}</span>
@@ -405,7 +415,7 @@ export default function B2C() {
                     <div key={r.kind + r.id} className="mb-2 flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm">
                       <span className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: info.soft, color: info.color }}>{info.label}</span>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13px] font-semibold text-foreground">{p?.name || "-"}</div>
+                        <div className="truncate text-[13px] font-semibold text-foreground">{p?.name || "ไม่มีสินค้า"}</div>
                         <div className="truncate text-[11px] text-muted-foreground">{when}{r.sender ? ` · ${r.sender}` : ""}{r.shop_code ? ` · ${r.shop_code}` : ""}</div>
                       </div>
                       <span className="font-disp text-lg font-extrabold" style={{ color: info.color }}>{info.sign}{r.qty}</span>
@@ -863,7 +873,7 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
         </div>
       ) : row ? (
         <div className="pb-4">
-          <div className="mb-3 font-disp text-lg font-extrabold text-foreground">{row.products?.name}</div>
+          <div className="mb-3 font-disp text-lg font-extrabold text-foreground">{row.products?.name || "ไม่มีสินค้า (ถูกลบจาก Product List)"}</div>
           <Field label="รหัสสินค้า (เฉพาะร้านนี้)">
             <input value={shopCode} onChange={(e) => setShopCode(e.target.value)} placeholder="รหัสตามร้าน" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
           </Field>
@@ -992,7 +1002,7 @@ function StockManageModal({ kind, rows, catalog, onClose, onMove }: {
         {sel && kind !== "all" ? (
           <div>
             <button onClick={() => setSel(null)} className="mb-3 inline-flex items-center gap-1 text-[13px] text-muted-foreground"><ArrowLeft size={15} /> กลับ</button>
-            <div className="font-disp text-lg font-extrabold text-foreground">{sel.products?.name || cp(sel.product_id)?.name}</div>
+            <div className="font-disp text-lg font-extrabold text-foreground">{sel.products?.name || (sel.product_id && cp(sel.product_id)?.name) || "ไม่มีสินค้า"}</div>
             <div className="mb-3 text-[12px] text-muted-foreground">คงเหลือ {sel.qty} ชิ้น</div>
             <Field label={kind === "cut" ? "วันที่ตัด" : "วันที่คืน"}>
               <div className="relative min-w-0">
@@ -1007,7 +1017,7 @@ function StockManageModal({ kind, rows, catalog, onClose, onMove }: {
           </div>
         ) : (
           rows.map((r) => {
-            const p = cp(r.product_id);
+            const p = r.product_id ? cp(r.product_id) : undefined;
             const low = r.qty < 2;
             return (
               <button key={r.id} onClick={() => kind !== "all" && setSel(r)} className="mb-2 flex w-full items-center gap-3 rounded-2xl bg-secondary p-3 text-left">
@@ -1015,7 +1025,7 @@ function StockManageModal({ kind, rows, catalog, onClose, onMove }: {
                   {p?.image_url ? <img src={p.image_url} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package size={20} className="text-muted-foreground" /></div>}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13.5px] font-semibold text-foreground">{r.products?.name || p?.name}</div>
+                  <div className="truncate text-[13.5px] font-semibold text-foreground">{r.products?.name || p?.name || "ไม่มีสินค้า"}</div>
                   <div className="truncate text-[11px] text-muted-foreground" style={{ fontFamily: mono }}>{r.shop_code || r.products?.sku || p?.sku} · {baht(p?.retail ?? null)}</div>
                   {low && <div className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-semibold text-destructive"><AlertTriangle size={11} /> สต็อกต่ำ (เหลือ {r.qty})</div>}
                 </div>
