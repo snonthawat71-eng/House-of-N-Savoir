@@ -82,6 +82,8 @@ export default function B2C() {
   const [itemModal, setItemModal] = useState<StockRow | "add" | null>(null);
   const [sendModal, setSendModal] = useState(false);
   const [stockView, setStockView] = useState<null | "all" | "cut" | "return">(null);
+  const [recordTab, setRecordTab] = useState<"all" | "send" | "cut" | "return">("all");
+  const [recordSearch, setRecordSearch] = useState("");
   const [brandModal, setBrandModal] = useState<Brand | "add" | null>(null);
   const [prodModal, setProdModal] = useState<ProdModal>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -340,6 +342,84 @@ export default function B2C() {
     );
   }
 
+  /* ===== ร้านฝากขาย: หน้าบันทึกการทำรายการ (แยกหน้า) ===== */
+  if (shop && sub === "record") {
+    const q = recordSearch.trim().toLowerCase();
+    const filtered = records.filter((r) => {
+      if (recordTab !== "all" && r.kind !== recordTab) return false;
+      if (!q) return true;
+      const p = catalog.find((c) => c.id === r.product_id);
+      return (p?.name || "").toLowerCase().includes(q) || (r.sender || "").toLowerCase().includes(q) || (r.shop_code || "").toLowerCase().includes(q);
+    });
+    const groups: Record<string, RecRow[]> = {};
+    filtered.forEach((r) => {
+      const d = new Date(r.at);
+      const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      (groups[key] ||= []).push(r);
+    });
+    const monthKeys = Object.keys(groups).sort().reverse();
+    const TABS: { id: "all" | "send" | "cut" | "return"; label: string }[] = [
+      { id: "all", label: "ทั้งหมด" }, { id: "send", label: "ส่ง" }, { id: "cut", label: "ตัด" }, { id: "return", label: "คืน" },
+    ];
+    return (
+      <div className="px-5 pb-32">
+        <div className="mb-3 mt-2 font-disp text-xl font-extrabold text-foreground">บันทึกการทำรายการ · {shop.shop_name || shop.name}</div>
+
+        {/* ค้นหา */}
+        <div className="mb-3 flex items-center gap-2 rounded-2xl bg-card px-4 py-3 shadow-sm">
+          <Search size={16} className="text-muted-foreground" />
+          <input value={recordSearch} onChange={(e) => setRecordSearch(e.target.value)} placeholder="ค้นหาสินค้า / ผู้จัดส่ง / รหัส" className="w-full bg-transparent text-[13px] outline-none" style={{ color: C.ink }} />
+          {recordSearch && <button onClick={() => setRecordSearch("")} className="text-muted-foreground"><X size={15} /></button>}
+        </div>
+
+        {/* แท็บหมวด ส่ง/ตัด/คืน */}
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => setRecordTab(t.id)} className="shrink-0 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-colors"
+              style={recordTab === t.id ? { background: C.ink, color: "#fff" } : { background: C.card, color: C.sub, border: "1px solid " + C.line }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {monthKeys.length === 0 ? (
+          <p className="py-10 text-center text-[13px] text-muted-foreground">ไม่มีรายการ</p>
+        ) : (
+          monthKeys.map((mk) => {
+            const [y, m] = mk.split("-").map(Number);
+            const monthLabel = new Date(y, m - 1, 1).toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+            const net = groups[mk].reduce((a, r) => a + (r.kind === "send" ? r.qty : -r.qty), 0);
+            return (
+              <div key={mk} className="mb-5">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <span className="font-disp text-[15px] font-bold text-foreground">{monthLabel}</span>
+                  <span className="text-[11px] text-muted-foreground">{groups[mk].length} รายการ · สุทธิ {net > 0 ? "+" : ""}{net}</span>
+                </div>
+                {groups[mk].map((r) => {
+                  const p = catalog.find((c) => c.id === r.product_id);
+                  const info = r.kind === "send" ? { label: "ส่งเข้า", color: C.brand, soft: C.brandSoft, sign: "+" }
+                    : r.kind === "cut" ? { label: "ตัดสต็อก", color: C.red, soft: C.redSoft, sign: "-" }
+                    : { label: "คืนสินค้า", color: "#B45309", soft: "#FEF3C7", sign: "-" };
+                  const when = new Date(r.at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) + (r.kind === "send" ? " " + new Date(r.at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "");
+                  return (
+                    <div key={r.kind + r.id} className="mb-2 flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm">
+                      <span className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: info.soft, color: info.color }}>{info.label}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-semibold text-foreground">{p?.name || "-"}</div>
+                        <div className="truncate text-[11px] text-muted-foreground">{when}{r.sender ? ` · ${r.sender}` : ""}{r.shop_code ? ` · ${r.shop_code}` : ""}</div>
+                      </div>
+                      <span className="font-disp text-lg font-extrabold" style={{ color: info.color }}>{info.sign}{r.qty}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
   /* ===== ร้านฝากขาย: หน้าจัดการร้าน ===== */
   if (shop) {
     const rows = itemsOf(shop.id);
@@ -438,36 +518,12 @@ export default function B2C() {
         </button>
 
         {/* บันทึกการทำรายการ — บรรทัดเดียว สูงเท่าปุ่มลบ */}
-        <button onClick={() => setPopup("record")} className="mt-4 flex w-full items-center justify-between rounded-2xl bg-card px-4 py-3 text-sm font-semibold text-foreground shadow-sm">
+        <button onClick={() => setSub("record")} className="mt-4 flex w-full items-center justify-between rounded-2xl bg-card px-4 py-3 text-sm font-semibold text-foreground shadow-sm">
           <span className="flex items-center gap-2"><ClipboardList size={18} strokeWidth={1.8} /> บันทึกการทำรายการ (Record)</span>
           <ChevronRight size={16} className="text-muted-foreground" />
         </button>
 
         <button onClick={() => delShop(shop)} className="mt-4 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
-
-        {/* Modal: บันทึกการทำรายการ */}
-        <Modal open={popup === "record"} onClose={() => setPopup(null)} title="บันทึกการทำรายการ">
-          <div className="pb-4">
-            {records.length === 0 && <p className="py-6 text-center text-[13px] text-muted-foreground">ยังไม่มีรายการ</p>}
-            {records.map((r) => {
-              const p = catalog.find((c) => c.id === r.product_id);
-              const info = r.kind === "send" ? { label: "ส่งเข้า", color: C.brand, soft: C.brandSoft, sign: "+" }
-                : r.kind === "cut" ? { label: "ตัดสต็อก", color: C.red, soft: C.redSoft, sign: "-" }
-                : { label: "คืนสินค้า", color: "#B45309", soft: "#FEF3C7", sign: "-" };
-              const when = new Date(r.at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) + (r.kind === "send" ? " " + new Date(r.at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "");
-              return (
-                <div key={r.kind + r.id} className="mb-2 flex items-center gap-3 rounded-2xl bg-secondary p-3">
-                  <span className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: info.soft, color: info.color }}>{info.label}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-semibold text-foreground">{p?.name || "-"}</div>
-                    <div className="truncate text-[11px] text-muted-foreground">{when}{r.sender ? ` · ${r.sender}` : ""}{r.shop_code ? ` · ${r.shop_code}` : ""}</div>
-                  </div>
-                  <span className="font-disp text-lg font-extrabold" style={{ color: info.color }}>{info.sign}{r.qty}</span>
-                </div>
-              );
-            })}
-          </div>
-        </Modal>
 
         {/* ฟอร์มส่งสต็อก */}
         <Modal open={sendModal} onClose={() => setSendModal(false)} title="ส่งสต็อกเข้าร้าน">
