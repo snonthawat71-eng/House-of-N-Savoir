@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus, Loader2, MapPin, Minus, TrendingUp, Store, Boxes, Globe, RefreshCcw,
   ChevronRight, Copy, Phone, Check, Store as StoreIcon, Package, Trash2, Pencil,
-  Tag, Lock, ArrowLeft, Send, X, AlertTriangle, Scissors, RotateCcw, ClipboardList,
+  Tag, Lock, ArrowLeft, Send, X, AlertTriangle, Scissors, RotateCcw, ClipboardList, Search,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
