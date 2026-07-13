@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus, Loader2, MapPin, Minus, TrendingUp, Store, Boxes, Globe, RefreshCcw,
   ChevronRight, Copy, Phone, Check, Store as StoreIcon, Package, Trash2, Pencil,
-  Tag, Lock, ArrowLeft,
+  Tag, Lock, ArrowLeft, Send, X, AlertTriangle, Scissors, RotateCcw,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -32,7 +32,7 @@ type Location = {
   shop_name?: string | null; branch_code?: string | null; branch_name?: string | null;
   address?: string | null; tax_id?: string | null; phone?: string | null; email?: string | null; logo_url?: string | null;
 };
-type StockRow = { id: string; location_id: string; product_id: string; qty: number; sold: number; returned: number; products?: { name: string; sku: string } };
+type StockRow = { id: string; location_id: string; product_id: string; qty: number; sold: number; returned: number; shop_code?: string | null; products?: { name: string; sku: string } };
 type Sale = { id: string; product_name: string | null; qty: number; amount: number; sold_at: string };
 type Campaign = { id: string; name: string; channel: string | null; status: string };
 
@@ -77,6 +77,8 @@ export default function B2C() {
   const [open, setOpen] = useState<string | null>(null);
   const [popup, setPopup] = useState<null | "camp" | "shopForm" | "loc" | "monthly">(null);
   const [itemModal, setItemModal] = useState<StockRow | "add" | null>(null);
+  const [sendModal, setSendModal] = useState(false);
+  const [stockView, setStockView] = useState<null | "all" | "cut" | "return">(null);
   const [brandModal, setBrandModal] = useState<Brand | "add" | null>(null);
   const [prodModal, setProdModal] = useState<ProdModal>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -95,7 +97,7 @@ export default function B2C() {
     setLoading(true);
     const [l, s, p, cp, br] = await Promise.all([
       supabase.from("stock_locations").select("id,name,kind,updated_at,shop_name,branch_code,branch_name,address,tax_id,phone,email,logo_url").order("updated_at", { ascending: false }),
-      supabase.from("stock_items").select("id,location_id,product_id,qty,sold,returned, products(name,sku)"),
+      supabase.from("stock_items").select("id,location_id,product_id,qty,sold,returned,shop_code, products(name,sku)"),
       supabase.from("products_view").select("id,name,sku,type,size,image_url,brand_id,cost,retail").order("name"),
       supabase.from("campaigns").select("id,name,channel,status").order("created_at", { ascending: false }),
       supabase.from("brands").select("id,name,logo_url").order("name"),
@@ -165,6 +167,35 @@ export default function B2C() {
     await supabase.from("stock_items").upsert({ location_id: locId, product_id: productId, qty: 0 }, { onConflict: "location_id,product_id" });
     setItemModal(null); load();
   }
+  // ส่งสต็อกเข้าร้าน: บันทึกประวัติ + เพิ่มจำนวนในสต็อกร้าน
+  async function sendStock(v: { product_id: string; shop_code: string; qty: number; sender: string; sent_at: string }) {
+    if (!shopId || !v.product_id || v.qty <= 0) return;
+    await supabase.from("consignment_shipments").insert({
+      location_id: shopId, product_id: v.product_id, shop_code: v.shop_code || null,
+      qty: v.qty, sender: v.sender || null, sent_at: v.sent_at,
+    });
+    const existing = stock.find((s) => s.location_id === shopId && s.product_id === v.product_id);
+    if (existing) {
+      await supabase.from("stock_items").update({ qty: existing.qty + v.qty, shop_code: v.shop_code || existing.shop_code }).eq("id", existing.id);
+    } else {
+      await supabase.from("stock_items").insert({ location_id: shopId, product_id: v.product_id, qty: v.qty, shop_code: v.shop_code || null });
+    }
+    await touchLoc(shopId);
+    await logAudit({ action: "create", entity: "consignment-shipment", entityId: v.shop_code || v.product_id, newValue: v });
+    setSendModal(false); load();
+  }
+  // ตัดสต็อก / คืนสินค้า: บันทึกประวัติ + ลดจำนวนในสต็อกร้าน
+  async function moveStock(row: StockRow, kind: "cut" | "return", qty: number, movedAt: string) {
+    if (!shopId || qty <= 0) return;
+    const take = Math.min(qty, row.qty);
+    await supabase.from("consignment_movements").insert({ location_id: shopId, product_id: row.product_id, kind, qty: take, moved_at: movedAt });
+    const patch: any = { qty: Math.max(0, row.qty - take) };
+    if (kind === "return") patch.returned = (row.returned || 0) + take;
+    await supabase.from("stock_items").update(patch).eq("id", row.id);
+    await touchLoc(shopId);
+    await logAudit({ action: "update", entity: kind === "cut" ? "stock-cut" : "stock-return", entityId: row.products?.sku, newValue: { qty: take } });
+    load();
+  }
   async function addLocation(kind: string) {
     if (!addName.trim()) return;
     await supabase.from("stock_locations").insert({ name: addName.trim(), kind });
@@ -201,26 +232,56 @@ export default function B2C() {
 
   const shop = shopId ? locations.find((l) => l.id === shopId) : null;
 
-  /* ===== ร้านฝากขาย: หน้าลิสต์สต็อก (แยกหน้า) ===== */
+  /* ===== ร้านฝากขาย: หน้าลิสต์สต็อก (แบบ Product list) ===== */
   if (shop && sub === "stock") {
     const rows = itemsOf(shop.id);
+    const shownRows = typeFilter === "all" ? rows : rows.filter((r) => catalog.find((c) => c.id === r.product_id)?.type === typeFilter);
     return (
       <div className="px-5 pb-32">
-        <div className="mb-4 mt-2 font-disp text-xl font-extrabold text-foreground">สต็อกสินค้า · {shop.shop_name || shop.name}</div>
-        {rows.length === 0 && <p className="px-1 text-[13px] text-muted-foreground">ยังไม่มีสินค้าในร้าน — กด เพิ่มสินค้า</p>}
-        {rows.map((r) => (
-          <div key={r.id} onClick={() => setItemModal(r)} className="mb-2.5 flex cursor-pointer items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
-            <div className="min-w-0">
-              <div className="text-[14px] font-semibold text-foreground">{r.products?.name}</div>
-              <div className="text-[11.5px] text-muted-foreground">ขายแล้ว {r.sold} · คืน {r.returned}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-disp text-xl font-extrabold text-foreground">{r.qty}</span>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </div>
+        <div className="mb-3 mt-2 font-disp text-xl font-extrabold text-foreground">สต็อกสินค้า · {shop.shop_name || shop.name}</div>
+
+        {/* filter ประเภท */}
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+          {["all", ...PRODUCT_TYPES].map((t) => (
+            <button key={t} onClick={() => setTypeFilter(t)} className="shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors"
+              style={typeFilter === t ? { background: C.ink, color: "#fff" } : { background: C.card, color: C.sub, border: "1px solid " + C.line }}>
+              {t === "all" ? "ทั้งหมด" : t}
+            </button>
+          ))}
+        </div>
+
+        {shownRows.length === 0 ? (
+          <p className="py-10 text-center text-[13px] text-muted-foreground">{rows.length === 0 ? "ยังไม่มีสินค้าในร้าน — กด เพิ่มสินค้า" : "ไม่มีสินค้าประเภทนี้"}</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {shownRows.map((r) => {
+              const cp = catalog.find((c) => c.id === r.product_id);
+              return (
+                <Card key={r.id} onClick={() => setItemModal(r)} className="cursor-pointer overflow-hidden p-0">
+                  <div className="relative aspect-square w-full overflow-hidden bg-secondary">
+                    {cp?.image_url ? (
+                      <img src={cp.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center"><Package size={34} className="text-muted-foreground" /></div>
+                    )}
+                    <span className="absolute right-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">คงเหลือ {r.qty}</span>
+                    {cp?.type && <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">{cp.type}</span>}
+                  </div>
+                  <div className="px-3 py-3">
+                    <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{r.products?.name || cp?.name}</div>
+                    <div className="truncate text-[10.5px] text-muted-foreground" style={{ fontFamily: mono }}>{r.shop_code || r.products?.sku || cp?.sku}</div>
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <span className="font-disp text-[15px] font-bold text-foreground">{baht(cp?.retail ?? null)}</span>
+                      <span className="text-[10.5px] text-muted-foreground">ขาย {r.sold}</span>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
-        ))}
-        <button onClick={() => setItemModal("add")} className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-sm font-bold text-white">
+        )}
+
+        <button onClick={() => setItemModal("add")} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-sm font-bold text-white">
           <Plus size={16} /> เพิ่มสินค้าเข้าร้าน
         </button>
 
@@ -290,8 +351,37 @@ export default function B2C() {
           </Card>
         </div>
 
-        {/* สต็อก — แถบกด เข้าไปอีกหน้า */}
-        <button onClick={() => setSub("stock")} className="mt-6 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
+        {/* ส่งสต็อกสินค้า — การ์ดยาว สีเด่น */}
+        <button onClick={() => setSendModal(true)} className="mt-6 flex w-full items-center justify-between rounded-2xl p-4 text-white shadow-sm" style={{ background: C.brand }}>
+          <div className="flex items-center gap-3">
+            <div className="shrink-0"><Send size={26} strokeWidth={1.8} /></div>
+            <div className="text-left">
+              <div className="font-disp text-[15px] font-bold">ส่งสต็อกสินค้า</div>
+              <div className="text-[12px] text-white/80">บันทึกการส่งสินค้าเข้าร้านนี้</div>
+            </div>
+          </div>
+          <Plus size={22} />
+        </button>
+
+        {/* 3 ปุ่มจัดการสต็อก */}
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <button onClick={() => setStockView("all")} className="flex flex-col items-center gap-1 rounded-2xl bg-card p-3 shadow-sm">
+            <Boxes size={24} strokeWidth={1.8} className="text-foreground" />
+            <span className="font-disp text-xl font-extrabold text-foreground">{totalOf(shop.id)}</span>
+            <span className="text-[11px] text-muted-foreground">สต็อกทั้งหมด</span>
+          </button>
+          <button onClick={() => setStockView("cut")} className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-card p-3 shadow-sm">
+            <Scissors size={24} strokeWidth={1.8} className="text-foreground" />
+            <span className="text-[13px] font-bold text-foreground">ตัดสต็อก</span>
+          </button>
+          <button onClick={() => setStockView("return")} className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-card p-3 shadow-sm">
+            <RotateCcw size={24} strokeWidth={1.8} className="text-foreground" />
+            <span className="text-[13px] font-bold text-foreground">คืนสินค้า</span>
+          </button>
+        </div>
+
+        {/* สต็อก — แถบกด เข้าไปอีกหน้า (จัดการรายการ/เพิ่มสินค้า) */}
+        <button onClick={() => setSub("stock")} className="mt-3 flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="shrink-0"><Package size={26} strokeWidth={1.8} className="text-foreground" /></div>
             <div className="text-left">
@@ -303,6 +393,14 @@ export default function B2C() {
         </button>
 
         <button onClick={() => delShop(shop)} className="mt-6 w-full rounded-2xl bg-[hsl(var(--destructive)/0.1)] py-3 text-sm font-semibold text-destructive">ลบร้านนี้</button>
+
+        {/* ฟอร์มส่งสต็อก */}
+        <Modal open={sendModal} onClose={() => setSendModal(false)} title="ส่งสต็อกเข้าร้าน">
+          {sendModal && <SendStockForm brands={brands} catalog={catalog} onSubmit={sendStock} />}
+        </Modal>
+
+        {/* สต็อกทั้งหมด / ตัด / คืน */}
+        <StockManageModal kind={stockView} rows={itemsOf(shop.id)} catalog={catalog} onClose={() => setStockView(null)} onMove={moveStock} />
 
         <Modal open={popup === "monthly"} onClose={() => setPopup(null)} title={`ยอดขายเดือนนี้ · ${monthLabel}`}>
           <div className="pb-4">
@@ -653,6 +751,158 @@ function ItemModal({ state, onClose, products, onAdd, onSave, onRemove, onSell }
           <button onClick={() => onRemove(row)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary py-3 text-sm font-semibold text-muted-foreground"><Trash2 size={15} /> เอาออกจากร้าน</button>
         </div>
       ) : null}
+    </Modal>
+  );
+}
+
+/* ฟอร์มส่งสต็อกเข้าร้านฝากขาย */
+function SendStockForm({ brands, catalog, onSubmit }: {
+  brands: Brand[];
+  catalog: CatalogProduct[];
+  onSubmit: (v: { product_id: string; shop_code: string; qty: number; sender: string; sent_at: string }) => void;
+}) {
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
+  const [brandId, setBrandId] = useState("");
+  const [pid, setPid] = useState("");
+  const [shopCode, setShopCode] = useState("");
+  const [qty, setQty] = useState("");
+  const [sender, setSender] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const prod = catalog.find((p) => p.id === pid);
+  const prodOptions = brandId ? catalog.filter((p) => p.brand_id === brandId) : catalog;
+
+  function submit() {
+    if (!pid) { setErr("เลือกสินค้าที่ส่งก่อน"); return; }
+    const q = Number(qty) || 0;
+    if (q <= 0) { setErr("ใส่จำนวนส่ง"); return; }
+    setBusy(true);
+    const sent_at = date ? new Date(`${date}T${time || "00:00"}:00`).toISOString() : new Date().toISOString();
+    onSubmit({ product_id: pid, shop_code: shopCode.trim(), qty: q, sender: sender.trim(), sent_at });
+  }
+
+  const ClearBtn = ({ onClick }: { onClick: () => void }) => (
+    <button type="button" onClick={onClick} aria-label="ล้าง" className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-secondary text-muted-foreground"><X size={13} /></button>
+  );
+
+  return (
+    <div className="pb-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="วันที่ส่งสินค้า">
+          <div className="relative">
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl px-4 py-3 pr-9" style={inputStyle} />
+            {date && <ClearBtn onClick={() => setDate("")} />}
+          </div>
+        </Field>
+        <Field label="เวลาส่ง">
+          <div className="relative">
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-2xl px-4 py-3 pr-9" style={inputStyle} />
+            {time && <ClearBtn onClick={() => setTime("")} />}
+          </div>
+        </Field>
+      </div>
+      <Field label="แบรนด์">
+        <select value={brandId} onChange={(e) => { setBrandId(e.target.value); setPid(""); }} className="w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+          <option value="">ทุกแบรนด์</option>
+          {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </Field>
+      <Field label="สินค้าที่ส่ง">
+        <select value={pid} onChange={(e) => setPid(e.target.value)} className="w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+          <option value="" disabled>เลือกสินค้า…</option>
+          {prodOptions.map((p) => <option key={p.id} value={p.id}>{p.name}{p.sku ? ` · ${p.sku}` : ""}</option>)}
+        </select>
+      </Field>
+      {prod && (
+        <div className="-mt-1 mb-3 flex gap-5 rounded-2xl bg-secondary px-4 py-2.5 text-[12px] text-muted-foreground">
+          <span><b className="text-foreground">ประเภท</b> {prod.type || "-"}</span>
+          <span><b className="text-foreground">ขนาด</b> {prod.size || "-"}</span>
+        </div>
+      )}
+      <Field label="รหัสสินค้า (เฉพาะร้านนี้)">
+        <input value={shopCode} onChange={(e) => setShopCode(e.target.value)} placeholder="รหัสตามร้าน" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+      </Field>
+      <div className="mb-4">
+        <div className="mb-1 text-xs text-muted-foreground">จำนวนส่ง</div>
+        <input value={qty} onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="0"
+          className="w-full rounded-2xl py-4 text-center font-disp font-extrabold" style={{ ...inputStyle, fontSize: 44 }} />
+      </div>
+      <Field label="ผู้จัดส่ง">
+        <input value={sender} onChange={(e) => setSender(e.target.value)} placeholder="ชื่อผู้จัดส่ง" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+      </Field>
+      {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
+      <Button onClick={submit} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังส่ง…" : "ยืนยันส่งสต็อก"}</Button>
+    </div>
+  );
+}
+
+/* Modal จัดการสต็อก: ดูทั้งหมด / ตัดสต็อก / คืนสินค้า */
+function StockManageModal({ kind, rows, catalog, onClose, onMove }: {
+  kind: null | "all" | "cut" | "return";
+  rows: StockRow[];
+  catalog: CatalogProduct[];
+  onClose: () => void;
+  onMove: (row: StockRow, kind: "cut" | "return", qty: number, movedAt: string) => void;
+}) {
+  const [sel, setSel] = useState<StockRow | null>(null);
+  const [qty, setQty] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  useEffect(() => { if (!kind) { setSel(null); setQty(""); } }, [kind]);
+
+  const title = kind === "all" ? "สต็อกทั้งหมด" : kind === "cut" ? "ตัดสต็อก" : "คืนสินค้า";
+  const cp = (id: string) => catalog.find((c) => c.id === id);
+
+  function confirm() {
+    if (!sel) return;
+    const q = Number(qty) || 0;
+    if (q <= 0) return;
+    onMove(sel, kind as "cut" | "return", q, date);
+    setSel(null); setQty("");
+  }
+
+  return (
+    <Modal open={kind !== null} onClose={onClose} title={title}>
+      <div className="pb-4">
+        {rows.length === 0 && <p className="py-6 text-center text-[13px] text-muted-foreground">ยังไม่มีสินค้าในร้าน</p>}
+
+        {sel && kind !== "all" ? (
+          <div>
+            <button onClick={() => setSel(null)} className="mb-3 inline-flex items-center gap-1 text-[13px] text-muted-foreground"><ArrowLeft size={15} /> กลับ</button>
+            <div className="font-disp text-lg font-extrabold text-foreground">{sel.products?.name || cp(sel.product_id)?.name}</div>
+            <div className="mb-3 text-[12px] text-muted-foreground">คงเหลือ {sel.qty} ชิ้น</div>
+            <Field label={kind === "cut" ? "วันที่ตัด" : "วันที่คืน"}>
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+            </Field>
+            <div className="mb-1 text-xs text-muted-foreground">จำนวน{kind === "cut" ? "ที่ตัด" : "ที่คืน"}</div>
+            <input value={qty} onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="0"
+              className="mb-4 w-full rounded-2xl py-4 text-center font-disp font-extrabold" style={{ ...inputStyle, fontSize: 40 }} />
+            <Button onClick={confirm} className="w-full rounded-2xl py-6 text-[15px]">ยืนยัน{kind === "cut" ? "ตัดสต็อก" : "คืนสินค้า"}</Button>
+          </div>
+        ) : (
+          rows.map((r) => {
+            const p = cp(r.product_id);
+            const low = r.qty < 2;
+            return (
+              <button key={r.id} onClick={() => kind !== "all" && setSel(r)} className="mb-2 flex w-full items-center gap-3 rounded-2xl bg-secondary p-3 text-left">
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-card">
+                  {p?.image_url ? <img src={p.image_url} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package size={20} className="text-muted-foreground" /></div>}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13.5px] font-semibold text-foreground">{r.products?.name || p?.name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground" style={{ fontFamily: mono }}>{r.shop_code || r.products?.sku || p?.sku} · {baht(p?.retail ?? null)}</div>
+                  {low && <div className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-semibold text-destructive"><AlertTriangle size={11} /> สต็อกต่ำ (เหลือ {r.qty})</div>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-disp text-lg font-extrabold text-foreground">{r.qty}</span>
+                  {kind !== "all" && <ChevronRight size={15} className="text-muted-foreground" />}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
     </Modal>
   );
 }
