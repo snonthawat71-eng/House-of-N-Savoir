@@ -97,12 +97,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+        // บังคับให้ Google ถามทุกครั้งว่าจะใช้บัญชีไหน
+        // ถ้าไม่ใส่ มันจะเด้งเข้าบัญชีเดิมทันที เปลี่ยนอีเมลไม่ได้
+        queryParams: { prompt: "select_account" },
+      },
     });
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    setSession(null);
     setProfile(null);
     setNotInvited(false);
     setAal({ current: null, next: null });
