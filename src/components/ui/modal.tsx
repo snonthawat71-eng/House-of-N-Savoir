@@ -65,7 +65,8 @@ export function Modal({
       <div
         className="absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-md flex-col rounded-t-3xl bg-card shadow-xl"
         style={{
-          maxHeight: "92vh",
+          // dvh = พื้นที่จอที่มองเห็นจริงบนมือถือ (92vh อาจสูงเกินจอจนปุ่มล่างโดนดันตกขอบ)
+          maxHeight: "92dvh",
           transform: shown ? `translateY(${dragY}px)` : "translateY(100%)",
           transition: dragging ? "none" : "transform .3s cubic-bezier(.32,.72,0,1)",
         }}
@@ -74,7 +75,15 @@ export function Modal({
           <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-border" />
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="font-disp text-lg font-bold text-foreground">{title}</div>
-            <button onClick={onClose} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"><X size={16} /></button>
+            {/* กันไม่ให้ตัวลาก (พื้นที่รอบ ๆ) คว้าการแตะไป ไม่งั้นปุ่มปิดจะกดไม่ติด */}
+            <button
+              onClick={onClose}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label="ปิด"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-6 pb-8" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>{children}</div>

@@ -19,6 +19,7 @@ import { toast } from "../lib/toast";
 
 // ประเภทสินค้า (สำหรับ dropdown + filter ในหน้า Product List)
 const PRODUCT_TYPES = ["Interior Spray", "Eau De Parfum", "Diffuser", "Candle"] as const;
+const PRODUCT_SIZES = ["5ml", "10ml", "15ml", "30ml", "50ml", "60ml", "100ml"] as const;
 
 type Brand = { id: string; name: string; logo_url: string | null };
 type CatalogProduct = {
@@ -1115,7 +1116,16 @@ function ProductForm({ brand, initial, onDone, onDelete }: { brand: Brand; initi
           {PRODUCT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
       </Field>
-      <Field label="ขนาดสินค้า"><input value={size} onChange={(e) => setSize(e.target.value)} placeholder="เช่น 50ml, 220g" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
+      <Field label="ขนาดสินค้า">
+        <select value={size} onChange={(e) => setSize(e.target.value)} className="w-full rounded-2xl px-4 py-3 text-sm" style={inputStyle}>
+          <option value="">เลือกขนาด…</option>
+          {PRODUCT_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+          {/* ของเก่าที่ขนาดไม่ตรงรายการ (เช่น 220g) ยังเก็บไว้ ไม่ให้หายตอนแก้ไข */}
+          {size && !PRODUCT_SIZES.includes(size as typeof PRODUCT_SIZES[number]) && (
+            <option value={size}>{size} (ของเดิม)</option>
+          )}
+        </select>
+      </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="ราคาต้นทุน (฿)"><input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="numeric" placeholder="420" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
         <Field label="ราคาขาย (฿)"><input value={retail} onChange={(e) => setRetail(e.target.value)} inputMode="numeric" placeholder="2900" className="w-full rounded-2xl px-4 py-3" style={inputStyle} /></Field>
