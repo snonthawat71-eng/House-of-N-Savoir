@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Plus, Loader2, Tags, ChevronRight, ChevronLeft, Printer, ScanLine, Search, X } from "lucide-react";
 import { toSVG } from "bwip-js/browser";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
-import { C, disp, mono, inputStyle } from "../lib/ui";
+import { C, mono, inputStyle } from "../lib/ui";
 import { toast } from "../lib/toast";
 import { Field } from "./B2B";
 import { Modal, DeleteButton } from "@/components/ui/modal";
@@ -13,10 +13,14 @@ import { Button } from "@/components/ui/button";
 /* ---------------- ชนิดข้อมูล ---------------- */
 export type BatchLabel = {
   id: string; title: string; product_id: string | null; code: string | null;
-  batch_no: string; mfg_date: string; exp_date: string; quantity: number;
+  batch_no: string; mfg_date: string; exp_date: string; quantity: string;
   customer_id: string | null; customer_name: string | null; note: string | null;
-  created_at: string;
+  width_mm: number; height_mm: number; created_at: string;
 };
+
+/** ขนาดสติกเกอร์แนะนำของ Batch Label */
+export const BATCH_W = 80;
+export const BATCH_H = 50;
 type Customer = { id: string; name: string };
 type Product = { id: string; name: string; sku: string };
 
@@ -30,13 +34,13 @@ export function plusTwoYears(d: string) {
   t.setFullYear(t.getFullYear() + 2);
   return t.toISOString().slice(0, 10);
 }
-/** วันที่บนสติกเกอร์ เป็นแบบสากล อ่านง่ายทั้งไทย/ต่างชาติ เช่น 16 OCT 2026 */
+/** วันที่บนสติกเกอร์ แบบ 19.08.2026 */
 const labelDate = (d: string) => {
   if (!d) return "-";
   const t = new Date(d + "T00:00:00");
   if (isNaN(t.getTime())) return "-";
-  const M = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-  return `${String(t.getDate()).padStart(2, "0")} ${M[t.getMonth()]} ${t.getFullYear()}`;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(t.getDate())}.${p(t.getMonth() + 1)}.${t.getFullYear()}`;
 };
 const thaiDate = (d: string) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : "-";
@@ -52,6 +56,69 @@ export function dataMatrixSVG(text: string, scale = 4): string {
 }
 const esc = (s: unknown) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/* ------------------------------------------------------------
+   หน้าตาสติกเกอร์ — ใช้ชุดเดียวกันทั้งตอนดูตัวอย่างและตอนปริ้น
+   ทุกขนาดอ้างอิงตัวแปร --u (1 หน่วย = 1mm ตอนปริ้น)
+   เปลี่ยนขนาดสติกเกอร์แล้วทุกอย่างย่อ/ขยายตามเองอัตโนมัติ
+   ------------------------------------------------------------ */
+export function labelCSS(w: number, h: number) {
+  const r = (n: number) => +n.toFixed(3);
+  return `
+  .label{
+    width:calc(var(--u) * ${r(w)}); height:calc(var(--u) * ${r(h)});
+    padding:calc(var(--u) * ${r(h * 0.075)});
+    border:calc(var(--u) * ${r(h * 0.009)}) solid #111;
+    background:#fff; color:#111214; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:space-between;
+    font-family:'Urbanist','Noto Sans Thai',Arial,sans-serif;
+    line-height:1.1;
+  }
+  .l-title{
+    font-weight:800; font-size:calc(var(--u) * ${r(h * 0.092)});
+    line-height:1.05; word-break:break-word;
+  }
+  .l-code{
+    font-weight:500; font-size:calc(var(--u) * ${r(h * 0.054)});
+    margin-top:calc(var(--u) * ${r(h * 0.022)});
+  }
+  .l-code b{ font-weight:500; margin-left:calc(var(--u) * ${r(h * 0.05)}) }
+  .l-rows{
+    display:grid; grid-template-columns:auto auto 1fr;
+    column-gap:calc(var(--u) * ${r(h * 0.05)});
+    row-gap:calc(var(--u) * ${r(h * 0.028)});
+    font-size:calc(var(--u) * ${r(h * 0.054)}); font-weight:500;
+    margin-top:calc(var(--u) * ${r(h * 0.085)});
+  }
+  .l-foot{ display:flex; align-items:flex-end; justify-content:space-between; gap:calc(var(--u) * ${r(h * 0.04)}) }
+  .l-brand{ display:flex; align-items:center; gap:calc(var(--u) * ${r(h * 0.035)}) }
+  .l-brand img{ height:calc(var(--u) * ${r(h * 0.072)}); width:auto; display:block }
+  .l-brand span{ font-weight:800; font-size:calc(var(--u) * ${r(h * 0.036)}); letter-spacing:calc(var(--u) * ${r(h * 0.004)}) }
+  .l-dm{ width:calc(var(--u) * ${r(h * 0.23)}); height:calc(var(--u) * ${r(h * 0.23)}); flex:none }
+  .l-dm svg{ width:100%; height:100%; display:block; shape-rendering:crispEdges }
+  `;
+}
+
+/** เนื้อหาในสติกเกอร์ (HTML ชุดเดียว ใช้ทั้งดูตัวอย่างและปริ้น) */
+export function labelInnerHTML(item: BatchLabel, logoUrl: string, dmScale = 6) {
+  const svg = dataMatrixSVG(item.batch_no, dmScale);
+  const row = (k: string, v: string) => `<div>${k}</div><div>:</div><div>${esc(v)}</div>`;
+  return `
+  <div>
+    <div class="l-title">${esc(item.title)}</div>
+    ${item.code ? `<div class="l-code">CODE :<b>${esc(item.code)}</b></div>` : ""}
+    <div class="l-rows">
+      ${row("BATCH NO.", item.batch_no)}
+      ${row("MFG. DATE", labelDate(item.mfg_date))}
+      ${row("EXP. DATE", labelDate(item.exp_date))}
+      ${row("QUANTITY", String(item.quantity ?? ""))}
+    </div>
+  </div>
+  <div class="l-foot">
+    <div class="l-brand"><img src="${logoUrl}" alt=""><span>HOUSE OF N SAVOIR</span></div>
+    <div class="l-dm">${svg}</div>
+  </div>`;
+}
 
 /* ============================================================
    หน้า Print — รวมงานปริ้นทั้งหมด
@@ -97,7 +164,7 @@ function BatchLabels({ onBack }: { onBack: () => void }) {
   const load = useCallback(async () => {
     const [l, c, p] = await Promise.all([
       supabase.from("batch_labels")
-        .select("id,title,product_id,code,batch_no,mfg_date,exp_date,quantity,customer_id,customer_name,note,created_at")
+        .select("id,title,product_id,code,batch_no,mfg_date,exp_date,quantity,customer_id,customer_name,note,width_mm,height_mm,created_at")
         .order("created_at", { ascending: false }).limit(300),
       supabase.from("customers").select("id,name").order("name"),
       supabase.from("products_view").select("id,name,sku").order("name"),
@@ -177,7 +244,7 @@ function BatchLabels({ onBack }: { onBack: () => void }) {
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground">
                 <span>ผลิต {thaiDate(r.mfg_date)}</span>
                 <span>หมดอายุ {thaiDate(r.exp_date)}</span>
-                <span>{r.quantity} ชิ้น</span>
+                <span>{r.quantity}</span>
               </div>
               {r.customer_name && <div className="mt-0.5 truncate text-[10.5px] font-semibold text-primary">{r.customer_name}</div>}
             </div>
@@ -258,7 +325,7 @@ function ScanLookup({ rows, onOpen }: { rows: BatchLabel[]; onOpen: (it: BatchLa
                 <div className="truncate text-[14px] font-bold text-foreground">{r.title}</div>
                 <div className="truncate text-[11px] text-muted-foreground" style={{ fontFamily: mono }}>BATCH {r.batch_no}</div>
                 <div className="mt-0.5 text-[10.5px] text-muted-foreground">
-                  ลูกค้า: <b className="text-foreground">{r.customer_name || "-"}</b> · {r.quantity} ชิ้น · หมดอายุ {thaiDate(r.exp_date)}
+                  ลูกค้า: <b className="text-foreground">{r.customer_name || "-"}</b> · {r.quantity} · หมดอายุ {thaiDate(r.exp_date)}
                 </div>
               </div>
               <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
@@ -273,39 +340,47 @@ function ScanLookup({ rows, onOpen }: { rows: BatchLabel[]; onOpen: (it: BatchLa
 /* ============================================================
    ตัวอย่างสติกเกอร์ + ปุ่มปริ้น
    ============================================================ */
+/** ตัวอย่างสติกเกอร์ตามสัดส่วนจริง — ย่อให้พอดีความกว้างที่มี */
+export function LabelCanvas({ item }: { item: BatchLabel }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [u, setU] = useState(0);
+  const w = Number(item.width_mm) || BATCH_W;
+  const h = Number(item.height_mm) || BATCH_H;
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => setU(el.clientWidth / w);
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [w]);
+
+  return (
+    <div ref={box} style={{ width: "100%" }}>
+      {u > 0 && (
+        <>
+          <style>{labelCSS(w, h)}</style>
+          <div className="label shadow-sm" style={{ ["--u" as any]: `${u}px` }}
+            dangerouslySetInnerHTML={{ __html: labelInnerHTML(item, "/logo-mark.png", 6) }} />
+        </>
+      )}
+    </div>
+  );
+}
+
 function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: () => void; onDelete: () => void }) {
   const [copies, setCopies] = useState("1");
-  const svg = useMemo(() => dataMatrixSVG(item.batch_no, 4), [item.batch_no]);
 
   return (
     <div className="pb-4">
-      {/* ตัวอย่างตามสัดส่วนจริง 80x50mm */}
-      <div className="mb-4 overflow-hidden rounded-2xl bg-secondary p-3">
-        <div className="mx-auto bg-white shadow-sm"
-          style={{ width: "100%", maxWidth: 320, aspectRatio: "80 / 50", padding: "5%", display: "flex", gap: "4%", color: "#111214" }}>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontFamily: disp, fontWeight: 800, fontSize: "clamp(11px,4.6vw,17px)", lineHeight: 1.15, wordBreak: "break-word" }}>
-                {item.title}
-              </div>
-              <div style={{ fontSize: "clamp(6px,2.3vw,8.5px)", lineHeight: 1.5, marginTop: "4%", fontFamily: mono }}>
-                {item.code && <div>CODE : {item.code}</div>}
-                <div>BATCH NO : {item.batch_no}</div>
-                <div>MFG. DATE : {labelDate(item.mfg_date)}</div>
-                <div>EXP. DATE : {labelDate(item.exp_date)}</div>
-                <div>QUANTITY : {item.quantity}</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "clamp(5px,2vw,7px)", letterSpacing: 1, opacity: 0.65, fontFamily: disp, fontWeight: 700 }}>
-              HOUSE OF N SAVOIR
-            </div>
-          </div>
-          {svg && (
-            <div style={{ width: "26%", display: "flex", alignItems: "center" }}
-              dangerouslySetInnerHTML={{ __html: svg.replace("<svg ", '<svg style="width:100%;height:auto" ') }} />
-          )}
-        </div>
+      <div className="mb-3 overflow-hidden rounded-2xl bg-secondary p-3">
+        <LabelCanvas item={item} />
       </div>
+      <p className="mb-3 px-1 text-center text-[11px] text-muted-foreground">
+        ขนาดสติกเกอร์ {Number(item.width_mm) || BATCH_W} × {Number(item.height_mm) || BATCH_H} mm
+      </p>
 
       <div className="mb-3 rounded-2xl bg-secondary px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
         ลูกค้า: <b className="text-foreground">{item.customer_name || "-"}</b><br />
@@ -320,7 +395,7 @@ function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: ()
 
       <Button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "label")}
         className="w-full rounded-2xl py-6 text-[15px]">
-        <Printer size={16} /> ปริ้นเครื่องสติกเกอร์ (80×50mm)
+        <Printer size={16} /> ปริ้นเครื่องสติกเกอร์ ({Number(item.width_mm) || BATCH_W}×{Number(item.height_mm) || BATCH_H}mm)
       </Button>
       <button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "a4")}
         className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary py-3.5 text-sm font-bold text-foreground">
@@ -342,67 +417,44 @@ function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: ()
    ============================================================ */
 export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a4") {
   logAudit({ action: "view", entity: "batch-label-print", entityId: item.batch_no, newValue: { copies, mode } });
-  const svg = dataMatrixSVG(item.batch_no, 6);
-
-  const one = `
-  <div class="label">
-    <div class="info">
-      <div>
-        <div class="title">${esc(item.title)}</div>
-        <div class="meta">
-          ${item.code ? `<div>CODE : ${esc(item.code)}</div>` : ""}
-          <div>BATCH NO : ${esc(item.batch_no)}</div>
-          <div>MFG. DATE : ${labelDate(item.mfg_date)}</div>
-          <div>EXP. DATE : ${labelDate(item.exp_date)}</div>
-          <div>QUANTITY : ${esc(item.quantity)}</div>
-        </div>
-      </div>
-      <div class="brand">HOUSE OF N SAVOIR</div>
-    </div>
-    <div class="dm">${svg}</div>
-  </div>`;
+  const W = Number(item.width_mm) || BATCH_W;
+  const H = Number(item.height_mm) || BATCH_H;
+  const logo = `${window.location.origin}/logo-mark.png`;
+  const one = `<div class="label">${labelInnerHTML(item, logo, 8)}</div>`;
 
   const pageCss = mode === "label"
-    ? `@page { size: 80mm 50mm; margin: 0 }
+    ? `@page { size: ${W}mm ${H}mm; margin: 0 }
        body { margin: 0 }
-       .label { page-break-after: always }
+       .label { page-break-after: always; border: none }
        .label:last-child { page-break-after: auto }`
     : `@page { size: A4; margin: 8mm }
        body { margin: 0 }
        .sheet { display: flex; flex-wrap: wrap; gap: 4mm }
-       .label { outline: .2mm dashed #bbb }`;
+       .label { border-style: dashed; border-color: #bbb }`;
 
   const html = `<!doctype html><html lang="th"><head><meta charset="utf-8">
 <title>Batch ${esc(item.batch_no)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@700;800&family=Noto+Sans+Thai:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;700;800&family=Noto+Sans+Thai:wght@500;700&display=swap" rel="stylesheet">
 <style>
+  :root { --u: 1mm }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact }
   ${pageCss}
-  .label {
-    width: 80mm; height: 50mm; padding: 3.5mm;
-    display: flex; align-items: stretch; gap: 2.5mm;
-    background: #fff; color: #111214; overflow: hidden;
-  }
-  .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between }
-  .title {
-    font-family: 'Urbanist','Noto Sans Thai',sans-serif; font-weight: 800;
-    font-size: 4.6mm; line-height: 1.12; word-break: break-word;
-  }
-  .meta { font-family: 'Space Mono',monospace; font-size: 2.3mm; line-height: 1.65; margin-top: 1.6mm }
-  .brand { font-family: 'Urbanist',sans-serif; font-weight: 700; font-size: 1.9mm; letter-spacing: .4mm; opacity: .62 }
-  .dm { width: 20mm; display: flex; align-items: center; justify-content: flex-end }
-  .dm svg { width: 20mm; height: 20mm; shape-rendering: crispEdges }
+  ${labelCSS(W, H)}
 </style></head><body>
 ${mode === "a4" ? `<div class="sheet">${one.repeat(copies)}</div>` : one.repeat(copies)}
 <script>
-  window.onload = function () { setTimeout(function () { window.print(); }, 350); };
+  // รอให้ฟอนต์กับโลโก้โหลดเสร็จก่อน ไม่งั้นสติกเกอร์อาจออกมาผิดขนาด
+  window.onload = function () {
+    var go = function () { setTimeout(function () { window.print(); }, 250); };
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(go); } else { go(); }
+  };
 <\/script>
 </body></html>`;
 
-  const w = window.open("", "_blank");
-  if (!w) { toast.error("เบราว์เซอร์บล็อกหน้าต่างปริ้น — อนุญาต popup ก่อน"); return; }
-  w.document.write(html);
-  w.document.close();
+  const win = window.open("", "_blank");
+  if (!win) { toast.error("เบราว์เซอร์บล็อกหน้าต่างปริ้น — อนุญาต popup ก่อน"); return; }
+  win.document.write(html);
+  win.document.close();
 }
 
 /* ============================================================
@@ -421,9 +473,11 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
   const [batchNo, setBatchNo] = useState(initial?.batch_no || "");
   const [mfg, setMfg] = useState(initial?.mfg_date || today());
   const [exp, setExp] = useState(initial?.exp_date || plusTwoYears(today()));
-  const [qty, setQty] = useState(initial ? String(initial.quantity) : "");
+  const [qty, setQty] = useState(initial?.quantity ?? "");
   const [customerId, setCustomerId] = useState(initial?.customer_id || "");
   const [note, setNote] = useState(initial?.note || "");
+  const [wmm, setWmm] = useState(String(initial?.width_mm ?? BATCH_W));
+  const [hmm, setHmm] = useState(String(initial?.height_mm ?? BATCH_H));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -448,8 +502,9 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
     if (!batchNo.trim()) { setErr("ต้องใส่ BATCH NO"); return; }
     if (!mfg) { setErr("ต้องเลือกวันผลิต (MFG. DATE)"); return; }
     if (!exp) { setErr("ต้องมีวันหมดอายุ (EXP. DATE)"); return; }
-    const n = Number(qty);
-    if (!n || n <= 0) { setErr("ต้องใส่จำนวน (QUANTITY)"); return; }
+    if (!qty.trim()) { setErr("ต้องใส่จำนวน (QUANTITY)"); return; }
+    const W = Number(wmm), H = Number(hmm);
+    if (!W || !H || W < 10 || H < 10) { setErr("ขนาดสติกเกอร์ต้องไม่ต่ำกว่า 10 mm"); return; }
     setErr(""); setBusy(true);
 
     const cust = customers.find((c) => c.id === customerId);
@@ -460,10 +515,12 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
       batch_no: batchNo.trim(),
       mfg_date: mfg,
       exp_date: exp,
-      quantity: n,
+      quantity: qty.trim(),
       customer_id: customerId || null,
       customer_name: cust?.name || null,
       note: note.trim() || null,
+      width_mm: W,
+      height_mm: H,
     };
     const { error } = initial
       ? await supabase.from("batch_labels").update(payload).eq("id", initial.id)
@@ -539,9 +596,45 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
       </p>
 
       <Field label="QUANTITY *">
-        <input value={qty} onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))} inputMode="numeric"
-          placeholder="100" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
+        <input value={qty} onChange={(e) => setQty(e.target.value)}
+          placeholder="เช่น 4 x 5.0 KG. หรือ 100 ชิ้น"
+          className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
       </Field>
+
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
+        <Field label="กว้าง (mm)">
+          <input value={wmm} onChange={(e) => setWmm(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal"
+            className="box-border w-full min-w-0 rounded-2xl px-3 py-3 text-[13px]" style={inputStyle} />
+        </Field>
+        <Field label="สูง (mm)">
+          <input value={hmm} onChange={(e) => setHmm(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal"
+            className="box-border w-full min-w-0 rounded-2xl px-3 py-3 text-[13px]" style={inputStyle} />
+        </Field>
+      </div>
+      <div className="-mt-1 mb-3 flex items-center gap-2 px-1">
+        <p className="flex-1 text-[11px] text-muted-foreground">
+          Batch Label แนะนำ <b className="text-foreground">{BATCH_W} × {BATCH_H} mm</b> · เปลี่ยนขนาดแล้วตัวหนังสือย่อ/ขยายตามเอง
+        </p>
+        {(Number(wmm) !== BATCH_W || Number(hmm) !== BATCH_H) && (
+          <button type="button" onClick={() => { setWmm(String(BATCH_W)); setHmm(String(BATCH_H)); }}
+            className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold text-foreground">
+            ใช้ขนาดแนะนำ
+          </button>
+        )}
+      </div>
+
+      {/* ตัวอย่างสติกเกอร์สด ๆ ตามที่กรอก */}
+      {title.trim() && batchNo.trim() && Number(wmm) >= 10 && Number(hmm) >= 10 && (
+        <div className="mb-3 overflow-hidden rounded-2xl bg-secondary p-3">
+          <p className="mb-2 text-center text-[11px] font-semibold text-muted-foreground">ตัวอย่างสติกเกอร์</p>
+          <LabelCanvas item={{
+            id: "", title: title.trim(), product_id: null, code: code.trim() || null,
+            batch_no: batchNo.trim(), mfg_date: mfg, exp_date: exp, quantity: qty.trim(),
+            customer_id: null, customer_name: null, note: null,
+            width_mm: Number(wmm), height_mm: Number(hmm), created_at: new Date().toISOString(),
+          }} />
+        </div>
+      )}
 
       <Field label="ลูกค้า (ใช้ตอนย้อนดูว่า batch นี้ส่งให้ใคร)">
         <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}
