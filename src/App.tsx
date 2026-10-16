@@ -24,6 +24,8 @@ import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
 import NotesScreen from "./screens/Notes";
+/* สีหน้าล็อกอิน/ยืนยันตัวตน — เก็บไว้ที่ lib/ui แหล่งเดียว ใช้ร่วมกับหน้า OTP */
+import { AUTH_BG, AUTH_SUB } from "./lib/ui";
 import { Toaster } from "./lib/toast";
 
 /* ------------------------------------------------------------------ *
@@ -40,9 +42,6 @@ const C = {
   red: "#E5322A", redSoft: "#FDECEA",
   green: "#16A45C", greenSoft: "#E7F5EE",
 };
-/** สีพื้นหลังหน้าล็อกอิน (น้ำเงินแบรนด์เต็มจอ) + สีตัวหนังสือรองบนพื้นน้ำเงิน */
-const AUTH_BG = "#072c75";
-const AUTH_SUB = "rgba(255,255,255,.6)";
 const SHADOW = "0 1px 2px rgba(17,18,20,.04), 0 8px 24px rgba(17,18,20,.06)";
 const SHADOW_SM = "0 1px 2px rgba(17,18,20,.05), 0 4px 12px rgba(17,18,20,.05)";
 
@@ -184,13 +183,14 @@ export default function App() {
 
   const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
   // แถบดำด้านบน (theme-color/พื้นหลัง) เฉพาะหน้า Overview เท่านั้น หน้าอื่นเป็นสีอ่อน
-  // หน้าล็อกอิน (ยังไม่ผ่าน) ใช้พื้นน้ำเงินแบรนด์เต็มจอ
+  // หน้าล็อกอิน + หน้าใส่รหัส OTP ใช้พื้นน้ำเงินแบรนด์เต็มจอ (รวมแถบสถานะบนมือถือ)
   const darkTop = screen === "modules";
+  const onAuthScreen = !authed || (!demo && auth.aal.current !== "aal2");
   useEffect(() => {
-    const color = !authed ? AUTH_BG : darkTop ? "#111214" : "#F1F2F4";
+    const color = onAuthScreen ? AUTH_BG : darkTop ? "#111214" : "#F1F2F4";
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color);
     document.body.style.background = color;
-  }, [darkTop, authed]);
+  }, [darkTop, onAuthScreen]);
   // ตัวจัดการย้อนกลับของหน้าย่อย (ปิดฟอร์ม/มุมมองย่อยก่อนออกจากหน้า)
   const backHandlerRef = useRef<(() => void) | null>(null);
   const registerBack = (fn: (() => void) | null) => { backHandlerRef.current = fn; };

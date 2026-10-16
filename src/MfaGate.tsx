@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, Loader2, LogOut } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./lib/auth";
+import { AUTH_BG, AUTH_SUB, AUTH_ERR } from "./lib/ui";
 
-const C = {
-  bg: "#F1F2F4", card: "#FFFFFF", ink: "#111214",
-  sub: "#8A8F98", line: "#EAECEF", brand: "#014BAA", brandSoft: "#E7EEF7", red: "#E5322A",
-};
+const C = { ink: "#111214" };
 const disp = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
 const sans = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
 
@@ -90,24 +88,24 @@ export default function MfaGate() {
   }
 
   return (
-    <div style={{ fontFamily: sans, background: C.bg, color: C.ink }}
+    <div style={{ fontFamily: sans, background: AUTH_BG, color: "#fff" }}
       className="min-h-screen-safe flex flex-col items-center justify-center px-7 max-w-md mx-auto">
       <div className="w-full text-center">
         <div className="mx-auto mb-4 flex items-center justify-center rounded-2xl"
-          style={{ width: 64, height: 64, background: C.ink, color: "#fff" }}>
-          <ShieldCheck size={30} style={{ color: C.brand }} />
+          style={{ width: 64, height: 64, background: "rgba(255,255,255,.12)", color: "#fff" }}>
+          <ShieldCheck size={30} style={{ color: "#fff" }} />
         </div>
         <div style={{ fontFamily: disp, fontSize: 20, fontWeight: 800 }}>ยืนยันตัวตนขั้นที่ 2</div>
 
         {mode === "loading" && (
-          <div className="mt-8 flex justify-center" style={{ color: C.sub }}>
+          <div className="mt-8 flex justify-center" style={{ color: AUTH_SUB }}>
             <Loader2 size={22} className="animate-spin" />
           </div>
         )}
 
         {mode === "enroll" && (
           <div className="mt-5">
-            <p style={{ color: C.sub, fontSize: 13 }} className="leading-relaxed">
+            <p style={{ color: AUTH_SUB, fontSize: 13 }} className="leading-relaxed">
               ครั้งแรกครั้งเดียว: เปิดแอป <b>Google Authenticator</b> (หรือ Authy)<br />
               กด + แล้ว <b>สแกน QR</b> ข้างล่างนี้
             </p>
@@ -116,16 +114,16 @@ export default function MfaGate() {
                 ? <div style={{ width: 180, height: 180 }} dangerouslySetInnerHTML={{ __html: qr }} />
                 : <img src={qr} width={180} height={180} alt="QR" />}
             </div>
-            <p style={{ color: C.sub, fontSize: 11 }} className="mt-3">
+            <p style={{ color: AUTH_SUB, fontSize: 11 }} className="mt-3">
               สแกนไม่ได้? พิมพ์รหัสนี้ในแอปแทน:<br />
-              <span style={{ fontFamily: "monospace", color: C.ink, fontSize: 12, wordBreak: "break-all" }}>{secret}</span>
+              <span style={{ fontFamily: "monospace", color: "#fff", fontSize: 12, wordBreak: "break-all" }}>{secret}</span>
             </p>
           </div>
         )}
 
         {mode === "challenge" && (
-          <p style={{ color: C.sub, fontSize: 13 }} className="mt-5 leading-relaxed">
-            เปิดแอป <b>Authenticator</b> แล้วใส่รหัส 6 หลักของ <b>HOUSE OF N SAVOIR</b>
+          <p style={{ color: AUTH_SUB, fontSize: 13 }} className="mt-5 leading-relaxed">
+            เปิดแอป <b style={{ color: "#fff" }}>Authenticator</b> แล้วใส่รหัส 6 หลักของ <b style={{ color: "#fff" }}>HOUSE OF N SAVOIR</b>
           </p>
         )}
 
@@ -139,21 +137,21 @@ export default function MfaGate() {
               className="w-full rounded-2xl py-4 text-center"
               style={{ background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)", fontFamily: disp, fontSize: 24, letterSpacing: 6, color: C.ink, border: "none", outline: "none" }}
             />
-            {err && <p style={{ color: C.red, fontSize: 12 }} className="mt-2">{err}</p>}
+            {err && <p style={{ color: AUTH_ERR, fontSize: 12 }} className="mt-2">{err}</p>}
             <button onClick={submit} disabled={busy}
               className="mt-4 w-full rounded-2xl py-4 flex items-center justify-center gap-2"
-              style={{ background: C.brand, color: "#fff", fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
+              style={{ background: "#fff", color: AUTH_BG, fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
               {busy ? <Loader2 size={18} className="animate-spin" /> : "ยืนยัน"}
             </button>
           </div>
         )}
 
         {mode === "loading" && err && (
-          <p style={{ color: C.red, fontSize: 12 }} className="mt-4">{err}</p>
+          <p style={{ color: AUTH_ERR, fontSize: 12 }} className="mt-4">{err}</p>
         )}
 
         <button onClick={() => auth.signOut()}
-          className="mt-6 inline-flex items-center gap-2" style={{ color: C.sub, fontSize: 13 }}>
+          className="mt-6 inline-flex items-center gap-2" style={{ color: AUTH_SUB, fontSize: 13 }}>
           <LogOut size={14} /> ออกจากระบบ
         </button>
       </div>

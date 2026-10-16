@@ -10,6 +10,11 @@ export const C = {
   red: "#E5322A", redSoft: "#FDECEA",
   green: "#16A45C", greenSoft: "#E7F5EE",
 };
+/** หน้าล็อกอิน/ยืนยันตัวตน: พื้นน้ำเงินแบรนด์เต็มจอ + สีตัวหนังสือรองบนพื้นน้ำเงิน */
+export const AUTH_BG = "#072c75";
+export const AUTH_SUB = "rgba(255,255,255,.6)";
+export const AUTH_ERR = "#FF9A93";
+
 export const SHADOW = "0 1px 2px rgba(17,18,20,.04), 0 8px 24px rgba(17,18,20,.06)";
 export const SHADOW_SM = "0 1px 2px rgba(17,18,20,.05), 0 4px 12px rgba(17,18,20,.05)";
 export const disp = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
