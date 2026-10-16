@@ -40,6 +40,9 @@ const C = {
   red: "#E5322A", redSoft: "#FDECEA",
   green: "#16A45C", greenSoft: "#E7F5EE",
 };
+/** สีพื้นหลังหน้าล็อกอิน (น้ำเงินแบรนด์เต็มจอ) + สีตัวหนังสือรองบนพื้นน้ำเงิน */
+const AUTH_BG = "#072c75";
+const AUTH_SUB = "rgba(255,255,255,.6)";
 const SHADOW = "0 1px 2px rgba(17,18,20,.04), 0 8px 24px rgba(17,18,20,.06)";
 const SHADOW_SM = "0 1px 2px rgba(17,18,20,.05), 0 4px 12px rgba(17,18,20,.05)";
 
@@ -179,14 +182,15 @@ export default function App() {
   const role = demo ? roleDemo : (auth.profile?.role ?? "sales");
   const P = ROLES[role as keyof typeof ROLES] || ROLES.sales;
 
+  const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
   // แถบดำด้านบน (theme-color/พื้นหลัง) เฉพาะหน้า Overview เท่านั้น หน้าอื่นเป็นสีอ่อน
+  // หน้าล็อกอิน (ยังไม่ผ่าน) ใช้พื้นน้ำเงินแบรนด์เต็มจอ
   const darkTop = screen === "modules";
   useEffect(() => {
-    const color = darkTop ? "#111214" : "#F1F2F4";
+    const color = !authed ? AUTH_BG : darkTop ? "#111214" : "#F1F2F4";
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color);
     document.body.style.background = color;
-  }, [darkTop]);
-  const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
+  }, [darkTop, authed]);
   // ตัวจัดการย้อนกลับของหน้าย่อย (ปิดฟอร์ม/มุมมองย่อยก่อนออกจากหน้า)
   const backHandlerRef = useRef<(() => void) | null>(null);
   const registerBack = (fn: (() => void) | null) => { backHandlerRef.current = fn; };
@@ -214,13 +218,13 @@ export default function App() {
 
   /* ---------- โครงหน้าล็อกอิน (โลโก้ + ชื่อแบรนด์) ---------- */
   const AuthShell = ({ children }: { children?: any }) => (
-    <div style={{ fontFamily: sans, background: C.bg, minHeight: "100vh", color: C.ink }}
+    <div style={{ fontFamily: sans, background: AUTH_BG, minHeight: "100vh", color: "#fff" }}
       className="flex flex-col items-center justify-center px-7 max-w-md mx-auto">
       <style>{FONTS}</style>
       <div className="w-full text-center">
         <img src="/logo-lockup.png" alt="HOUSE OF N SAVOIR"
-          className="mx-auto block w-auto" style={{ height: 150 }} />
-        <div style={{ color: C.sub, fontSize: 11, letterSpacing: 3, marginTop: 14 }}>INTERNAL · CONFIDENTIAL</div>
+          className="mx-auto block w-auto" style={{ height: 130 }} />
+        <div style={{ color: "rgba(255,255,255,.55)", fontSize: 11, letterSpacing: 3, marginTop: 18 }}>INTERNAL · CONFIDENTIAL</div>
         {children}
       </div>
     </div>
@@ -239,7 +243,7 @@ export default function App() {
     if (auth.loading) {
       return (
         <AuthShell>
-          <div className="mt-10 flex justify-center" style={{ color: C.sub }}>
+          <div className="mt-10 flex justify-center" style={{ color: AUTH_SUB }}>
             <Loader2 size={24} className="animate-spin" />
           </div>
         </AuthShell>
@@ -250,7 +254,7 @@ export default function App() {
         <AuthShell>
           <div className="mt-10">
             <GoogleBtn onClick={() => auth.signInWithGoogle()} />
-            <p style={{ color: C.sub, fontSize: 12 }} className="mt-4 leading-relaxed">
+            <p style={{ color: AUTH_SUB, fontSize: 12 }} className="mt-4 leading-relaxed">
               เฉพาะอีเมลที่ได้รับเชิญ · เปิดใช้ยืนยันตัวตน 2 ชั้น
             </p>
           </div>
@@ -261,14 +265,14 @@ export default function App() {
       return (
         <AuthShell>
           <div className="mt-8">
-            <div className="flex items-center justify-center gap-2" style={{ color: C.red }}>
+            <div className="flex items-center justify-center gap-2" style={{ color: "#FF9A93" }}>
               <Lock size={16} /><span style={{ fontSize: 14, fontWeight: 700 }}>ยังไม่ได้รับเชิญ</span>
             </div>
-            <p style={{ color: C.sub, fontSize: 12 }} className="mt-3 leading-relaxed">
-              อีเมล <b>{auth.session.user.email}</b> ยังไม่มีสิทธิ์เข้าใช้งาน<br />ติดต่อเจ้าของระบบเพื่อขอเชิญ
+            <p style={{ color: AUTH_SUB, fontSize: 12 }} className="mt-3 leading-relaxed">
+              อีเมล <b style={{ color: "#fff" }}>{auth.session.user.email}</b> ยังไม่มีสิทธิ์เข้าใช้งาน<br />ติดต่อเจ้าของระบบเพื่อขอเชิญ
             </p>
             <button onClick={() => auth.signOut()}
-              className="mt-7 w-full rounded-2xl py-4" style={{ background: C.ink, color: "#fff", fontWeight: 700 }}>
+              className="mt-7 w-full rounded-2xl py-4" style={{ background: "#fff", color: AUTH_BG, fontWeight: 700 }}>
               ออกจากระบบ
             </button>
           </div>
@@ -288,13 +292,13 @@ export default function App() {
         {step === "google" ? (
           <div className="mt-10">
             <GoogleBtn onClick={() => setStep("otp")} />
-            <p style={{ color: C.sub, fontSize: 12 }} className="mt-4 leading-relaxed">
+            <p style={{ color: AUTH_SUB, fontSize: 12 }} className="mt-4 leading-relaxed">
               โหมดเดโม · เฉพาะอีเมลที่ได้รับเชิญ · เปิดใช้ยืนยันตัวตน 2 ชั้น
             </p>
           </div>
         ) : (
           <div className="mt-10">
-            <div className="flex items-center justify-center gap-2" style={{ color: C.brand }}>
+            <div className="flex items-center justify-center gap-2" style={{ color: "#fff" }}>
               <Fingerprint size={18} /><span style={{ fontSize: 13, fontWeight: 600 }}>ยืนยันตัวตนขั้นที่ 2</span>
             </div>
             <div className="mt-4 flex justify-center gap-2">
