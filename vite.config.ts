@@ -3,8 +3,17 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
 
+// เวอร์ชันแอป = เวลาที่ build (ปี.เดือน.วัน-ชั่วโมงนาที) ใช้โชว์ในหน้า Manage
+const now = new Date();
+const p = (n: number) => String(n).padStart(2, "0");
+const APP_VERSION = `${now.getFullYear()}.${p(now.getMonth() + 1)}.${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}`;
+
 // PWA = ทำให้ติดตั้งลงหน้าจอโฮมมือถือได้ และเปิดใช้ push ได้ในอนาคต
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+    __BUILD_TIME__: JSON.stringify(now.toISOString()),
+  },
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },

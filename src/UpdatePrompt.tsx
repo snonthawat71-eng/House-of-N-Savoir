@@ -1,5 +1,5 @@
-import { useRegisterSW } from "virtual:pwa-register/react";
 import { ArrowUpRight } from "lucide-react";
+import { usePwa } from "./lib/pwa";
 
 const C = { ink: "#111214", brand: "#014BAA", red: "#E5322A", sub: "#9AA0A6" };
 const disp = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
@@ -10,10 +10,7 @@ const sans = "'Urbanist', 'Noto Sans Thai', system-ui, sans-serif";
  * ผู้ใช้กด "อัปเดต" เอง (ไม่อัปเดตเงียบ ๆ)
  */
 export default function UpdatePrompt() {
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    updateServiceWorker,
-  } = useRegisterSW();
+  const { needRefresh, dismiss, update } = usePwa();
 
   if (!needRefresh) return null;
 
@@ -25,11 +22,11 @@ export default function UpdatePrompt() {
           <div style={{ color: "#fff", fontFamily: disp, fontSize: 14, fontWeight: 700 }}>มีเวอร์ชันใหม่</div>
           <div style={{ color: C.sub, fontSize: 12 }}>กดอัปเดตเพื่อใช้เวอร์ชันล่าสุด</div>
         </div>
-        <button onClick={() => setNeedRefresh(false)}
+        <button onClick={dismiss}
           style={{ color: C.sub, fontSize: 13, fontWeight: 600, padding: "8px 6px", background: "transparent", border: "none" }}>
           ภายหลัง
         </button>
-        <button onClick={() => updateServiceWorker(true)}
+        <button onClick={update}
           className="rounded-full flex items-center gap-1"
           style={{ background: C.brand, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 16px", border: "none" }}>
           อัปเดต <ArrowUpRight size={14} />

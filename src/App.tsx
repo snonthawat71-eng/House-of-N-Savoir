@@ -5,7 +5,7 @@ import {
   ArrowLeft, TrendingUp, TrendingDown, Truck, FileText, AlertTriangle,
   RotateCcw, Boxes, MapPin, CalendarClock, Eye, ChevronDown, Check,
   Fingerprint, Plus, SlidersHorizontal, KeyRound, ArrowUpRight, LayoutGrid,
-  LogOut, Loader2, Settings
+  LogOut, Loader2, Settings, RefreshCcw
 } from "lucide-react";
 import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
@@ -28,6 +28,7 @@ import NotesScreen from "./screens/Notes";
 const PrintScreen = lazy(() => import("./screens/Print"));
 /* สีหน้าล็อกอิน/ยืนยันตัวตน — เก็บไว้ที่ lib/ui แหล่งเดียว ใช้ร่วมกับหน้า OTP */
 import { AUTH_BG, AUTH_SUB } from "./lib/ui";
+import { usePwa, APP_VERSION, buildTimeText } from "./lib/pwa";
 import { Toaster } from "./lib/toast";
 
 /* ------------------------------------------------------------------ *
@@ -759,6 +760,64 @@ export default function App() {
     </div>
   );
 
+  /* ---------- การ์ดเวอร์ชันแอป + ปุ่มตรวจหาอัปเดต ---------- */
+  const AppVersionCard = () => {
+    const pwa = usePwa();
+    const built = buildTimeText();
+    return (
+      <div className="rounded-2xl px-4 py-4" style={{ background: C.card, boxShadow: SHADOW_SM }}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 800, color: C.ink }}>v{APP_VERSION}</div>
+            {built && <div style={{ color: C.sub, fontSize: 11.5, marginTop: 2 }}>อัปเดตล่าสุด {built}</div>}
+          </div>
+          <span className="shrink-0 rounded-full px-3 py-1" style={{ background: C.brandSoft, color: C.brand, fontSize: 11, fontWeight: 700 }}>
+            HOUSE OF N SAVOIR
+          </span>
+        </div>
+
+        {/* มีเวอร์ชันใหม่รออยู่ → ปุ่มอัปเดตเลย */}
+        {pwa.needRefresh || pwa.result === "found" ? (
+          <>
+            <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: C.greenSoft, color: C.green, fontSize: 12.5, fontWeight: 600 }}>
+              มีเวอร์ชันใหม่พร้อมติดตั้งแล้ว
+            </div>
+            <button onClick={pwa.update}
+              className="mt-2 w-full rounded-2xl py-3.5 flex items-center justify-center gap-2"
+              style={{ background: C.brand, color: "#fff", fontWeight: 700, fontSize: 14 }}>
+              <ArrowUpRight size={16} /> อัปเดตเป็นเวอร์ชันใหม่
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={pwa.check} disabled={pwa.checking || !pwa.supported}
+              className="mt-3 w-full rounded-2xl py-3.5 flex items-center justify-center gap-2"
+              style={{ background: C.bg, color: C.ink, fontWeight: 700, fontSize: 14, opacity: pwa.checking ? 0.6 : 1 }}>
+              {pwa.checking
+                ? <><Loader2 size={16} className="animate-spin" /> กำลังตรวจหา…</>
+                : <><RefreshCcw size={16} /> ตรวจหาอัปเดต</>}
+            </button>
+            {pwa.result === "latest" && (
+              <p style={{ color: C.green, fontSize: 12, fontWeight: 600 }} className="mt-2 text-center">
+                ใช้เวอร์ชันล่าสุดอยู่แล้ว
+              </p>
+            )}
+            {pwa.result === "error" && (
+              <p style={{ color: C.sub, fontSize: 12 }} className="mt-2 text-center leading-relaxed">
+                ตรวจไม่ได้ตอนนี้ — ลองเช็กสัญญาณเน็ต<br />หรือปิดแอปแล้วเปิดใหม่
+              </p>
+            )}
+            {!pwa.supported && (
+              <p style={{ color: C.sub, fontSize: 12 }} className="mt-2 text-center">
+                เปิดจากหน้าจอโฮมเพื่อให้ตรวจอัปเดตได้
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
   /* ---------- ME ---------- */
   const Me = () => (
     <div className="px-5 pb-32">
@@ -784,6 +843,9 @@ export default function App() {
           <span style={{ color: ok ? C.green : C.red, fontSize: 12, fontWeight: 700 }}>{v}</span>
         </div>
       ))}
+      <SectionTitle>เวอร์ชันแอป</SectionTitle>
+      <AppVersionCard />
+
       {demo ? (
         <button onClick={() => setRolePick(true)} className="w-full mt-3 rounded-2xl py-4" style={{ background: C.ink, color: "#fff", fontWeight: 700, fontSize: 14 }}>
           สลับ role เพื่อทดสอบสิทธิ์

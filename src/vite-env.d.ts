@@ -11,3 +11,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** ค่าที่ใส่ให้ตอน build (ดู define ใน vite.config.ts) */
+declare const __APP_VERSION__: string;
+declare const __BUILD_TIME__: string;
