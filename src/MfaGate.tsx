@@ -90,8 +90,8 @@ export default function MfaGate() {
   }
 
   return (
-    <div style={{ fontFamily: sans, background: C.bg, minHeight: "100vh", color: C.ink }}
-      className="flex flex-col items-center justify-center px-7 max-w-md mx-auto">
+    <div style={{ fontFamily: sans, background: C.bg, color: C.ink }}
+      className="min-h-screen-safe flex flex-col items-center justify-center px-7 max-w-md mx-auto">
       <div className="w-full text-center">
         <div className="mx-auto mb-4 flex items-center justify-center rounded-2xl"
           style={{ width: 64, height: 64, background: C.ink, color: "#fff" }}>

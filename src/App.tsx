@@ -218,8 +218,8 @@ export default function App() {
 
   /* ---------- โครงหน้าล็อกอิน (โลโก้ + ชื่อแบรนด์) ---------- */
   const AuthShell = ({ children }: { children?: any }) => (
-    <div style={{ fontFamily: sans, background: AUTH_BG, minHeight: "100vh", color: "#fff" }}
-      className="flex flex-col items-center justify-center px-7 max-w-md mx-auto">
+    <div style={{ fontFamily: sans, background: AUTH_BG, color: "#fff" }}
+      className="min-h-screen-safe flex flex-col items-center justify-center px-7 max-w-md mx-auto">
       <style>{FONTS}</style>
       <div className="w-full text-center">
         <img src="/logo-lockup.png" alt="HOUSE OF N SAVOIR"
@@ -839,7 +839,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ fontFamily: sans, background: C.bg, minHeight: "100vh" }} className="max-w-md mx-auto relative">
+    <div style={{ fontFamily: sans, background: C.bg }} className="min-h-screen-safe max-w-md mx-auto relative">
       <style>{FONTS}</style>
       <Toaster />
       {/* หน้าแรก (หมวดงาน) ไม่มีหัวข้อและไม่มีแถบเมนู */}
