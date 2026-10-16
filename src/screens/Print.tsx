@@ -25,14 +25,20 @@ type Customer = { id: string; name: string };
 type Product = { id: string; name: string; sku: string };
 
 /* ---------------- ตัวช่วย ---------------- */
-const today = () => new Date().toISOString().slice(0, 10);
-/** วันหมดอายุ = วันผลิต + 2 ปี (เติมให้อัตโนมัติ) */
+/** แปลงเป็น YYYY-MM-DD ตามเวลาบ้านเรา
+ *  (ห้ามใช้ toISOString เพราะมันแปลงเป็นเวลาสากล ทำให้วันที่เลื่อนถอยไป 1 วัน) */
+const ymd = (t: Date) =>
+  `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+
+const today = () => ymd(new Date());
+
+/** วันหมดอายุ = วันผลิต + 2 ปี วันที่เดียวกันเป๊ะ (เติมให้อัตโนมัติ) */
 export function plusTwoYears(d: string) {
   if (!d) return "";
   const t = new Date(d + "T00:00:00");
   if (isNaN(t.getTime())) return "";
   t.setFullYear(t.getFullYear() + 2);
-  return t.toISOString().slice(0, 10);
+  return ymd(t);
 }
 /** วันที่บนสติกเกอร์ แบบ 19.08.2026 */
 const labelDate = (d: string) => {
@@ -45,7 +51,14 @@ const labelDate = (d: string) => {
 const thaiDate = (d: string) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : "-";
 
-/** Data Matrix เก็บแค่ BATCH NO — คนนอกยิงได้แค่เลข batch ไม่เห็นข้อมูลลูกค้า */
+/** ข้อความที่อยู่ใน Data Matrix = CODE กับ BATCH NO
+ *  (ไม่ใส่ชื่อลูกค้า คนนอกยิงแล้วจึงไม่เห็นว่าส่งให้ใคร) */
+export function dmPayload(code: string | null | undefined, batchNo: string) {
+  const c = (code || "").trim();
+  const b = (batchNo || "").trim();
+  return c ? `${c}|${b}` : b;
+}
+
 export function dataMatrixSVG(text: string, scale = 4): string {
   if (!text) return "";
   try {
@@ -63,45 +76,49 @@ const esc = (s: unknown) =>
    เปลี่ยนขนาดสติกเกอร์แล้วทุกอย่างย่อ/ขยายตามเองอัตโนมัติ
    ------------------------------------------------------------ */
 export function labelCSS(w: number, h: number) {
+  // ย่อ/ขยายทั้งใบเหมือนย่อรูป โดยเทียบกับขนาดมาตรฐาน 80x50mm
+  // ใช้ด้านที่บีบกว่าเป็นตัวกำหนด จึงไม่มีทางล้นกรอบไม่ว่าจะตั้งขนาดเท่าไหร่
+  const k = Math.min(w / BATCH_W, h / BATCH_H);
+  const s = (base: number) => +(base * k).toFixed(3); // base = ขนาดเป็น mm ที่ 80x50
   const r = (n: number) => +n.toFixed(3);
   return `
   .label{
     width:calc(var(--u) * ${r(w)}); height:calc(var(--u) * ${r(h)});
-    padding:calc(var(--u) * ${r(h * 0.075)});
-    border:calc(var(--u) * ${r(h * 0.009)}) solid #111;
+    padding:calc(var(--u) * ${s(3.75)});
+    border:calc(var(--u) * ${s(0.45)}) solid #111;
     background:#fff; color:#111214; overflow:hidden;
     display:flex; flex-direction:column; justify-content:space-between;
     font-family:'Urbanist','Noto Sans Thai',Arial,sans-serif;
     line-height:1.1;
   }
   .l-title{
-    font-weight:800; font-size:calc(var(--u) * ${r(h * 0.092)});
+    font-weight:800; font-size:calc(var(--u) * ${s(4.6)});
     line-height:1.05; word-break:break-word;
   }
   .l-code{
-    font-weight:500; font-size:calc(var(--u) * ${r(h * 0.054)});
-    margin-top:calc(var(--u) * ${r(h * 0.022)});
+    font-weight:500; font-size:calc(var(--u) * ${s(2.7)});
+    margin-top:calc(var(--u) * ${s(1.1)});
   }
-  .l-code b{ font-weight:500; margin-left:calc(var(--u) * ${r(h * 0.05)}) }
+  .l-code b{ font-weight:500; margin-left:calc(var(--u) * ${s(2.5)}) }
   .l-rows{
     display:grid; grid-template-columns:auto auto 1fr;
-    column-gap:calc(var(--u) * ${r(h * 0.05)});
-    row-gap:calc(var(--u) * ${r(h * 0.028)});
-    font-size:calc(var(--u) * ${r(h * 0.054)}); font-weight:500;
-    margin-top:calc(var(--u) * ${r(h * 0.085)});
+    column-gap:calc(var(--u) * ${s(2.5)});
+    row-gap:calc(var(--u) * ${s(1.4)});
+    font-size:calc(var(--u) * ${s(2.7)}); font-weight:500;
+    margin-top:calc(var(--u) * ${s(4.25)});
   }
-  .l-foot{ display:flex; align-items:flex-end; justify-content:space-between; gap:calc(var(--u) * ${r(h * 0.04)}) }
-  .l-brand{ display:flex; align-items:center; gap:calc(var(--u) * ${r(h * 0.035)}) }
-  .l-brand img{ height:calc(var(--u) * ${r(h * 0.072)}); width:auto; display:block }
-  .l-brand span{ font-weight:800; font-size:calc(var(--u) * ${r(h * 0.036)}); letter-spacing:calc(var(--u) * ${r(h * 0.004)}) }
-  .l-dm{ width:calc(var(--u) * ${r(h * 0.23)}); height:calc(var(--u) * ${r(h * 0.23)}); flex:none }
+  .l-foot{ display:flex; align-items:flex-end; justify-content:space-between; gap:calc(var(--u) * ${s(2)}) }
+  .l-brand{ display:flex; align-items:center; gap:calc(var(--u) * ${s(1.75)}) }
+  .l-brand img{ height:calc(var(--u) * ${s(3.6)}); width:auto; display:block }
+  .l-brand span{ font-weight:800; font-size:calc(var(--u) * ${s(1.8)}); letter-spacing:calc(var(--u) * ${s(0.2)}) }
+  .l-dm{ width:calc(var(--u) * ${s(11.5)}); height:calc(var(--u) * ${s(11.5)}); flex:none }
   .l-dm svg{ width:100%; height:100%; display:block; shape-rendering:crispEdges }
   `;
 }
 
 /** เนื้อหาในสติกเกอร์ (HTML ชุดเดียว ใช้ทั้งดูตัวอย่างและปริ้น) */
 export function labelInnerHTML(item: BatchLabel, logoUrl: string, dmScale = 6) {
-  const svg = dataMatrixSVG(item.batch_no, dmScale);
+  const svg = dataMatrixSVG(dmPayload(item.code, item.batch_no), dmScale);
   const row = (k: string, v: string) => `<div>${k}</div><div>:</div><div>${esc(v)}</div>`;
   return `
   <div>
@@ -295,7 +312,14 @@ function ScanLookup({ rows, onOpen }: { rows: BatchLabel[]; onOpen: (it: BatchLa
   const hits = useMemo(() => {
     const s = code.trim().toLowerCase();
     if (!s) return [];
-    return rows.filter((r) => r.batch_no.toLowerCase() === s);
+    // รองรับทั้งที่ยิงมาเต็ม ๆ "CODE|BATCH" และที่พิมพ์แค่เลข batch หรือแค่ code
+    const [a, bpart] = s.includes("|") ? s.split("|").map((x) => x.trim()) : [s, ""];
+    return rows.filter((r) => {
+      const rc = (r.code || "").toLowerCase();
+      const rb = r.batch_no.toLowerCase();
+      if (bpart) return rc === a && rb === bpart;
+      return rb === a || rc === a;
+    });
   }, [rows, code]);
 
   return (
@@ -425,11 +449,13 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
   const pageCss = mode === "label"
     ? `@page { size: ${W}mm ${H}mm; margin: 0 }
        body { margin: 0 }
+       .sheet { display: flex; flex-direction: column; align-items: center }
        .label { page-break-after: always; border: none }
        .label:last-child { page-break-after: auto }`
     : `@page { size: A4; margin: 8mm }
        body { margin: 0 }
-       .sheet { display: flex; flex-wrap: wrap; gap: 4mm }
+       /* จัดสติกเกอร์ให้อยู่กลางหน้ากระดาษ ไม่ชิดซ้าย */
+       .sheet { display: flex; flex-wrap: wrap; gap: 4mm; justify-content: center; align-content: flex-start }
        .label { border-style: dashed; border-color: #bbb }`;
 
   const html = `<!doctype html><html lang="th"><head><meta charset="utf-8">
@@ -438,10 +464,35 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
 <style>
   :root { --u: 1mm }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact }
+  body { background: #e9ebef; font-family: 'Urbanist','Noto Sans Thai',sans-serif }
   ${pageCss}
   ${labelCSS(W, H)}
+
+  /* แถบปุ่มด้านบน — เห็นเฉพาะบนจอ ไม่ติดไปบนกระดาษ */
+  .bar {
+    position: sticky; top: 0; z-index: 9; display: flex; gap: 8px; align-items: center;
+    padding: 10px 14px; background: #111214; color: #fff;
+  }
+  .bar b { flex: 1; font-size: 14px; font-weight: 800 }
+  .bar button {
+    border: none; border-radius: 999px; padding: 9px 16px;
+    font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .b-back { background: #2A2B2E; color: #fff }
+  .b-print { background: #014BAA; color: #fff }
+  .wrap { padding: 14px }
+  @media print {
+    body { background: #fff }
+    .bar, .wrap { padding: 0; background: none }
+    .bar { display: none }
+  }
 </style></head><body>
-${mode === "a4" ? `<div class="sheet">${one.repeat(copies)}</div>` : one.repeat(copies)}
+<div class="bar">
+  <b>Batch ${esc(item.batch_no)} · ${copies} ดวง</b>
+  <button class="b-back" onclick="window.close()">ปิดหน้านี้</button>
+  <button class="b-print" onclick="window.print()">สั่งปริ้นอีกครั้ง</button>
+</div>
+<div class="wrap"><div class="sheet">${one.repeat(copies)}</div></div>
 <script>
   // รอให้ฟอนต์กับโลโก้โหลดเสร็จก่อน ไม่งั้นสติกเกอร์อาจออกมาผิดขนาด
   window.onload = function () {
@@ -495,7 +546,7 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
     if (!exp || exp === prevAuto) setExp(plusTwoYears(d));
   }
 
-  const dmPreview = useMemo(() => dataMatrixSVG(batchNo.trim(), 4), [batchNo]);
+  const dmPreview = useMemo(() => dataMatrixSVG(dmPayload(code, batchNo), 4), [code, batchNo]);
 
   async function save() {
     if (!title.trim()) { setErr("ต้องใส่ชื่อรายการ"); return; }
@@ -570,7 +621,8 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
           <div style={{ width: 54, height: 54 }}
             dangerouslySetInnerHTML={{ __html: dmPreview.replace("<svg ", '<svg style="width:100%;height:100%" ') }} />
           <div className="text-[11px] leading-relaxed text-muted-foreground">
-            Data Matrix ของ batch นี้<br />ยิงสแกนแล้วได้เลข <b className="text-foreground">{batchNo.trim()}</b>
+            Data Matrix ของ batch นี้<br />
+            ยิงสแกนแล้วได้ <b className="text-foreground" style={{ fontFamily: mono }}>{dmPayload(code, batchNo)}</b>
           </div>
         </div>
       )}
