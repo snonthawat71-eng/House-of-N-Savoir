@@ -107,6 +107,17 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
             </div>
           </div>
 
+          <div onClick={() => go("print")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0"><Printer size={26} strokeWidth={1.8} className="text-foreground" /></div>
+              <div>
+                <div className="font-disp text-[15px] font-bold text-foreground">Print</div>
+                <div className="text-[11px] text-muted-foreground">งานปริ้นพร้อมใช้ · Batch Label</div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-muted-foreground" />
+          </div>
+
           <div onClick={() => go("import")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="shrink-0"><Upload size={26} strokeWidth={1.8} className="text-foreground" /></div>

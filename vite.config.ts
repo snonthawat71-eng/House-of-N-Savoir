@@ -13,6 +13,12 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt",
       includeAssets: ["favicon.png", "apple-touch-icon.png"],
+      workbox: {
+        // ไฟล์ก้อนใหญ่ที่ใช้เป็นครั้งคราว (หน้า Print, ตัวอ่าน Excel)
+        // ไม่ต้องโหลดล่วงหน้าตอนติดตั้งแอป — ค่อยโหลดตอนเปิดใช้จริงแล้วเก็บไว้เอง
+        globIgnores: ["**/Print-*.js", "**/xlsx-*.js"],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+      },
       manifest: {
         name: "HOUSE OF N SAVOIR",
         short_name: "N SAVOIR",

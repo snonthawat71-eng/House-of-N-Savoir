@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
 import {
   Home, Package, Bell, User, Search, Lock, ShieldCheck, ChevronRight,
   Building2, Handshake, Store, Factory, FlaskConical, ScrollText,
@@ -24,6 +24,8 @@ import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
 import NotesScreen from "./screens/Notes";
+// หน้า Print ใช้ไลบรารีสร้างบาร์โค้ดที่ไฟล์ใหญ่ → โหลดเฉพาะตอนเข้าหน้านี้ แอปส่วนอื่นจะได้ไม่ช้า
+const PrintScreen = lazy(() => import("./screens/Print"));
 /* สีหน้าล็อกอิน/ยืนยันตัวตน — เก็บไว้ที่ lib/ui แหล่งเดียว ใช้ร่วมกับหน้า OTP */
 import { AUTH_BG, AUTH_SUB } from "./lib/ui";
 import { Toaster } from "./lib/toast";
@@ -795,7 +797,7 @@ export default function App() {
   );
 
   /* ---------- router ---------- */
-  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV", notes:"Note · งานทั้งหมด" };
+  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV", notes:"Note · งานทั้งหมด", print:"Print · งานปริ้น" };
   const NAV = [
     { id: "modules", label: "Overview", icon: Home },
     { id: "home", label: "Dashboard", icon: LayoutGrid },
@@ -834,6 +836,11 @@ export default function App() {
       case "users": return <UsersAdmin />;
       case "import": return <ImportScreen />;
       case "notes": return <NotesScreen />;
+      case "print": return (
+        <Suspense fallback={<div className="flex justify-center py-16" style={{ color: C.sub }}><Loader2 size={24} className="animate-spin" /></div>}>
+          <PrintScreen />
+        </Suspense>
+      );
       default: return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
     }
   };
