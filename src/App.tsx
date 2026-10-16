@@ -218,12 +218,9 @@ export default function App() {
       className="flex flex-col items-center justify-center px-7 max-w-md mx-auto">
       <style>{FONTS}</style>
       <div className="w-full text-center">
-        <div className="mx-auto mb-6 flex items-center justify-center rounded-2xl"
-          style={{ width: 72, height: 72, background: C.ink, color: "#fff", boxShadow: SHADOW }}>
-          <span style={{ fontFamily: disp, fontSize: 34, fontWeight: 800 }}>N</span>
-        </div>
-        <div style={{ fontFamily: disp, fontSize: 22, fontWeight: 800, letterSpacing: -0.3 }}>HOUSE OF N SAVOIR</div>
-        <div style={{ color: C.sub, fontSize: 11, letterSpacing: 3, marginTop: 6 }}>INTERNAL · CONFIDENTIAL</div>
+        <img src="/logo-lockup.png" alt="HOUSE OF N SAVOIR"
+          className="mx-auto block w-auto" style={{ height: 150 }} />
+        <div style={{ color: C.sub, fontSize: 11, letterSpacing: 3, marginTop: 14 }}>INTERNAL · CONFIDENTIAL</div>
         {children}
       </div>
     </div>
