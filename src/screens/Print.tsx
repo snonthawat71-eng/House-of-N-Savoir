@@ -15,7 +15,9 @@ export type BatchLabel = {
   id: string; title: string; product_id: string | null; code: string | null;
   batch_no: string; mfg_date: string; exp_date: string; quantity: string;
   customer_id: string | null; customer_name: string | null; note: string | null;
-  width_mm: number; height_mm: number; created_at: string;
+  width_mm: number; height_mm: number;
+  show_dm?: boolean; show_logo?: boolean;
+  created_at: string;
 };
 
 /** ขนาดสติกเกอร์แนะนำของ Batch Label */
@@ -93,7 +95,7 @@ export function labelCSS(w: number, h: number, scope = "") {
     border:calc(var(--u) * ${r(Math.max(0.18, pad * 0.12))}) solid #111;
     background:#fff; color:#111214; overflow:hidden;
     font-family:'Urbanist','Noto Sans Thai',Arial,sans-serif;
-    line-height:1.1;
+    line-height:1.02;
   }
   /* วางเป็น 2 คอลัมน์: ซ้าย = ข้อความ, ขวา = Data Matrix
      แบบนี้บาร์โค้ดไม่ไปกินความสูง ตัวหนังสือจึงขยายได้เต็มที่ */
@@ -103,12 +105,12 @@ export function labelCSS(w: number, h: number, scope = "") {
     font-weight:800; font-size:${b(4.6)};
     line-height:1.05; word-break:break-word;
   }
-  ${S} .l-code{ font-weight:500; font-size:${b(2.7)}; margin-top:${b(1.1)} }
+  ${S} .l-code{ font-weight:500; font-size:${b(2.7)}; margin-top:${b(0.9)} }
   ${S} .l-code b{ font-weight:500; margin-left:${b(2.5)} }
   ${S} .l-rows{
     display:grid; grid-template-columns:auto auto 1fr;
-    column-gap:${b(2.5)}; row-gap:${b(1.4)};
-    font-size:${b(2.7)}; font-weight:500; margin-top:${b(4.25)};
+    column-gap:${b(2.2)}; row-gap:${b(0.9)};
+    font-size:${b(2.7)}; font-weight:500; margin-top:${b(2.6)};
   }
   ${S} .l-foot{ display:flex; align-items:flex-end; margin-top:${b(2)} }
   ${S} .l-brand{ display:flex; align-items:center; gap:${b(1.75)} }
@@ -158,7 +160,9 @@ function fitLabel(el) {
 
 /** เนื้อหาในสติกเกอร์ (HTML ชุดเดียว ใช้ทั้งดูตัวอย่างและปริ้น) */
 export function labelInnerHTML(item: BatchLabel, logoUrl: string, dmScale = 6) {
-  const svg = dataMatrixSVG(dmPayload(item.code, item.batch_no), dmScale);
+  const withDM = item.show_dm !== false;
+  const withLogo = item.show_logo !== false;
+  const svg = withDM ? dataMatrixSVG(dmPayload(item.code, item.batch_no), dmScale) : "";
   const row = (k: string, v: string) => `<div>${k}</div><div>:</div><div>${esc(v)}</div>`;
   return `<div class="l-fit">
   <div class="l-main">
@@ -172,11 +176,11 @@ export function labelInnerHTML(item: BatchLabel, logoUrl: string, dmScale = 6) {
         ${row("QUANTITY", String(item.quantity ?? ""))}
       </div>
     </div>
-    <div class="l-foot">
+    ${withLogo ? `<div class="l-foot">
       <div class="l-brand"><img src="${logoUrl}" alt=""><span>HOUSE OF N SAVOIR</span></div>
-    </div>
+    </div>` : ""}
   </div>
-  <div class="l-dm">${svg}</div>
+  ${withDM ? `<div class="l-dm">${svg}</div>` : ""}
 </div>`;
 }
 
@@ -224,7 +228,7 @@ function BatchLabels({ onBack }: { onBack: () => void }) {
   const load = useCallback(async () => {
     const [l, c, p] = await Promise.all([
       supabase.from("batch_labels")
-        .select("id,title,product_id,code,batch_no,mfg_date,exp_date,quantity,customer_id,customer_name,note,width_mm,height_mm,created_at")
+        .select("id,title,product_id,code,batch_no,mfg_date,exp_date,quantity,customer_id,customer_name,note,width_mm,height_mm,show_dm,show_logo,created_at")
         .order("created_at", { ascending: false }).limit(300),
       supabase.from("customers").select("id,name").order("name"),
       supabase.from("products_view").select("id,name,sku").order("name"),
@@ -602,6 +606,8 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
   const [note, setNote] = useState(initial?.note || "");
   const [wmm, setWmm] = useState(String(initial?.width_mm ?? BATCH_W));
   const [hmm, setHmm] = useState(String(initial?.height_mm ?? BATCH_H));
+  const [showDm, setShowDm] = useState(initial?.show_dm !== false);
+  const [showLogo, setShowLogo] = useState(initial?.show_logo !== false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -645,6 +651,8 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
       note: note.trim() || null,
       width_mm: W,
       height_mm: H,
+      show_dm: showDm,
+      show_logo: showLogo,
     };
     const { error } = initial
       ? await supabase.from("batch_labels").update(payload).eq("id", initial.id)
@@ -748,6 +756,21 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
         )}
       </div>
 
+      {/* เปิด/ปิดสิ่งที่อยู่บนสติกเกอร์ — ปิดทั้งคู่ = ตัวหนังสือได้พื้นที่เต็มใบ */}
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {([["บาร์โค้ด", showDm, setShowDm], ["โลโก้", showLogo, setShowLogo]] as const).map(([name, on, set]) => (
+          <button key={name} type="button" onClick={() => set(!on)}
+            className="flex items-center justify-between rounded-2xl px-4 py-3 text-[13px] font-semibold"
+            style={on ? { background: C.brandSoft, color: C.brand } : { background: C.bg, color: C.sub }}>
+            {name}
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+              style={on ? { background: C.brand, color: "#fff" } : { background: "#C9CDD3", color: "#fff" }}>
+              {on ? "ใส่" : "ไม่ใส่"}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* ตัวอย่างสติกเกอร์สด ๆ ตามที่กรอก */}
       {title.trim() && batchNo.trim() && Number(wmm) >= 10 && Number(hmm) >= 10 && (
         <div className="mb-3 overflow-hidden rounded-2xl bg-secondary p-3">
@@ -756,7 +779,8 @@ function LabelForm({ initial, customers, products, onDone, onDelete }: {
             id: "", title: title.trim(), product_id: null, code: code.trim() || null,
             batch_no: batchNo.trim(), mfg_date: mfg, exp_date: exp, quantity: qty.trim(),
             customer_id: null, customer_name: null, note: null,
-            width_mm: Number(wmm), height_mm: Number(hmm), created_at: new Date().toISOString(),
+            width_mm: Number(wmm), height_mm: Number(hmm),
+            show_dm: showDm, show_logo: showLogo, created_at: new Date().toISOString(),
           }} />
         </div>
       )}
