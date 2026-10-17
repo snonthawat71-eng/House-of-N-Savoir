@@ -1,5 +1,5 @@
 /**
- * หน้าตาสำหรับจอคอม — เมนูดำฝั่งซ้าย + แถบบนมีชื่อหน้ากับช่องค้นหา
+ * หน้าตาสำหรับจอคอม — แถบดำด้านบนเต็มความกว้าง + เนื้อหาอยู่กลางจอ
  * เนื้อหาหน้าต่าง ๆ ใช้ของเดิมทั้งหมด แค่มาอยู่ในพื้นที่ที่กว้างขึ้น
  * บนมือถือไม่ได้ใช้ไฟล์นี้ (ยังเป็นแอปแบบเดิม)
  */
@@ -8,86 +8,63 @@ import type { LucideIcon } from "lucide-react";
 import { ChevronLeft } from "lucide-react";
 import { C } from "../lib/ui";
 
-export type SideItem = { id: string; label: string; icon: LucideIcon; onClick?: () => void };
-export type SideGroup = { label: string; items: SideItem[] };
+export type TopItem = { id: string; label: string; icon: LucideIcon };
 
 export function DesktopShell({
-  groups, active, title, sub, onNav, onBack, user, search, children,
+  items, active, brand, user, title, onNav, onBack, children,
 }: {
-  groups: SideGroup[];
+  items: TopItem[];
   active: string;
-  title: string;
-  sub?: string;
+  brand: string;
+  user: { name: string; role: string };
+  /** ชื่อหน้า — โชว์เฉพาะหน้าย่อย (หน้าแรกไม่ต้อง) */
+  title?: string;
   onNav: (id: string) => void;
   onBack?: () => void;
-  user: { name: string; role: string };
-  search?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen-safe" style={{ background: C.bg }}>
-      {/* ---------- เมนูซ้าย ---------- */}
-      <aside className="sticky top-0 flex h-screen w-[252px] shrink-0 flex-col gap-1 overflow-y-auto px-3.5 py-5 text-white"
-        style={{ background: C.ink }}>
-        <div className="flex items-center gap-3 px-2 pb-4 pt-1">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white font-disp text-xl font-extrabold"
-            style={{ color: C.ink }}>N</div>
-          <div className="min-w-0">
-            <div className="font-disp text-[9.5px] font-bold uppercase tracking-[.1em]" style={{ color: "#4D8FE8" }}>House of</div>
-            <div className="font-disp text-[15px] font-extrabold leading-tight">N SAVOIR</div>
+    <div className="min-h-screen-safe" style={{ background: C.bg }}>
+      {/* ---------- แถบบนสีดำ ---------- */}
+      <header className="sticky top-0 z-30 flex h-[66px] items-center gap-4 px-8" style={{ background: C.ink }}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white font-disp text-xl font-extrabold"
+          style={{ color: C.ink }}>N</div>
+        <div className="min-w-0">
+          <div className="font-disp text-[10.5px] font-bold uppercase tracking-[.09em] text-primary">{brand}</div>
+          <div className="truncate font-disp text-[15px] font-extrabold text-white">
+            {user.name} · <span style={{ color: "#8A8F98" }}>{user.role}</span>
           </div>
         </div>
+        <div className="flex-1" />
+        <nav className="flex items-center gap-1.5">
+          {items.map((n) => {
+            const on = n.id === active;
+            return (
+              <button key={n.id} onClick={() => onNav(n.id)}
+                className="flex items-center gap-2 rounded-[14px] px-3.5 py-2 text-[14px] font-semibold transition-colors"
+                style={{ background: on ? "#1E1F22" : "transparent", color: on ? "#fff" : "#A8AEB6" }}>
+                <n.icon size={17} strokeWidth={1.9} />
+                <span>{n.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </header>
 
-        {groups.filter((g) => g.items.length).map((g) => (
-          <div key={g.label}>
-            <div className="px-3 pb-1.5 pt-4 text-[10.5px] font-bold uppercase tracking-[.12em]" style={{ color: "#5E646D" }}>
-              {g.label}
-            </div>
-            {g.items.map((it) => {
-              const on = it.id === active;
-              return (
-                <button key={it.id} onClick={() => (it.onClick ? it.onClick() : onNav(it.id))}
-                  className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-[14px] font-semibold transition-colors"
-                  style={{ background: on ? "#1E1F22" : "transparent", color: on ? "#fff" : "#A8AEB6" }}>
-                  <it.icon size={18} strokeWidth={1.9} className="shrink-0" />
-                  <span className="truncate">{it.label}</span>
-                </button>
-              );
-            })}
+      {/* ---------- เนื้อหา ---------- */}
+      <div className="mx-auto w-full max-w-[1080px] px-6 py-7">
+        {title && (
+          <div className="mb-5 flex items-center gap-3">
+            {onBack && (
+              <button onClick={onBack} aria-label="ย้อนกลับ"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-card shadow-sm">
+                <ChevronLeft size={19} style={{ color: C.ink }} />
+              </button>
+            )}
+            <h1 className="font-disp text-[24px] font-extrabold tracking-tight" style={{ color: C.ink }}>{title}</h1>
           </div>
-        ))}
-
-        <div className="mt-auto flex items-center gap-2.5 rounded-2xl p-3" style={{ background: "#1A1B1E" }}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] bg-white font-disp text-[13px] font-extrabold"
-            style={{ color: C.ink }}>{(user.name || "?").trim().charAt(0)}</div>
-          <div className="min-w-0">
-            <div className="truncate text-[12.5px] font-bold">{user.name}</div>
-            <div className="truncate text-[10.5px]" style={{ color: "#7B818A" }}>{user.role}</div>
-          </div>
-        </div>
-      </aside>
-
-      {/* ---------- ฝั่งเนื้อหา ---------- */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b bg-white px-7"
-          style={{ borderColor: C.line }}>
-          {onBack && (
-            <button onClick={onBack} aria-label="ย้อนกลับ"
-              className="-ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-              style={{ background: C.bg }}>
-              <ChevronLeft size={18} style={{ color: C.ink }} />
-            </button>
-          )}
-          <div className="min-w-[150px] shrink-0">
-            <div className="font-disp text-[16px] font-extrabold leading-tight" style={{ color: C.ink }}>{title}</div>
-            {sub && <div className="text-[11.5px]" style={{ color: C.sub }}>{sub}</div>}
-          </div>
-          {search && <div className="min-w-0 flex-1" style={{ maxWidth: 580 }}>{search}</div>}
-        </header>
-
-        <main className="flex-1">
-          <div className="mx-auto w-full max-w-5xl px-7 py-6">{children}</div>
-        </main>
+        )}
+        {children}
       </div>
     </div>
   );

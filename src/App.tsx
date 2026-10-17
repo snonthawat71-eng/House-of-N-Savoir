@@ -5,7 +5,7 @@ import {
   ArrowLeft, TrendingUp, TrendingDown, Truck, FileText, AlertTriangle,
   RotateCcw, Boxes, MapPin, CalendarClock, Eye, ChevronDown, Check,
   Fingerprint, Plus, SlidersHorizontal, KeyRound, ArrowUpRight, LayoutGrid,
-  LogOut, Loader2, Settings, RefreshCcw, Printer
+  LogOut, Loader2, Settings, RefreshCcw
 } from "lucide-react";
 import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
@@ -25,7 +25,7 @@ import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
 import NotesScreen from "./screens/Notes";
 import { GlobalSearch } from "./screens/Search";
-import { DesktopShell, type SideGroup } from "./components/DesktopShell";
+import { DesktopShell } from "./components/DesktopShell";
 import { useIsDesktop } from "./lib/useDesktop";
 // หน้า Print ใช้ไลบรารีสร้างบาร์โค้ดที่ไฟล์ใหญ่ → โหลดเฉพาะตอนเข้าหน้านี้ แอปส่วนอื่นจะได้ไม่ช้า
 const PrintScreen = lazy(() => import("./screens/Print"));
@@ -915,37 +915,23 @@ export default function App() {
     }
   };
 
-  /* ---------- เปลือกหน้าจอคอม: เมนูซ้าย + แถบบน ---------- */
-  const sideGroups: SideGroup[] = [
-    { label: "นำทาง", items: [
-      { id: "modules", label: "Overview", icon: Home },
-      { id: "home", label: "Dashboard", icon: LayoutGrid },
-      { id: "alerts", label: "แจ้งเตือน", icon: Bell },
-    ] },
-    { label: "หมวดงาน", items: MODULES.filter((m) => P.mods.includes(m.id))
-      .map((m) => ({ id: m.id, label: m.name, icon: m.icon })) },
-    { label: "เครื่องมือ", items: [
-      ...(P.mods.includes("office") ? [{ id: "print", label: "Print", icon: Printer }] : []),
-      ...(role === "owner" || role === "dev"
-        ? [{ id: "connect", label: "N SAVOIR Connect", icon: Lock, onClick: openConnect }] : []),
-      { id: "me", label: "Manage", icon: Settings },
-    ] },
-  ];
-
+  /* ---------- เปลือกหน้าจอคอม: แถบดำด้านบน + เนื้อหากลางจอ ---------- */
   if (desktop) {
     return (
       <div style={{ fontFamily: sans, background: C.bg }} className="min-h-screen-safe">
         <style>{FONTS}</style>
         <Toaster />
         <DesktopShell
-          groups={sideGroups}
+          items={NAV}
           active={screen}
-          title={screen === "modules" ? "Overview" : (titleMap[screen] || "N SAVOIR")}
-          sub={screen === "modules" ? `${demo ? "demo@nsavoir.app" : (auth.session?.user?.email || "")} · ${P.name}` : undefined}
+          brand="House of N Savoir"
+          user={{
+            name: demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้"),
+            role: P.name,
+          }}
+          title={screen === "modules" ? undefined : (titleMap[screen] || "N SAVOIR")}
           onNav={go}
           onBack={history.length && !isNavScreen ? goBack : undefined}
-          user={{ name: demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้"), role: P.name }}
-          search={<GlobalSearch mods={P.mods} go={go} variant="bar" />}
         >
           <NavCtx.Provider value={{ registerBack }}>{Body()}</NavCtx.Provider>
         </DesktopShell>

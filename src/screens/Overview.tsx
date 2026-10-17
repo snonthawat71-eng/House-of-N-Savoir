@@ -102,13 +102,13 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
       )}
 
       <div className={desktop ? "mt-6" : "mt-6 px-5"}>
-        {/* ค้นหาทั้งระบบ — จอคอมย้ายไปอยู่แถบบนแล้ว */}
-        {!desktop && <GlobalSearch mods={mods} go={go} onActive={setSearching} />}
+        {/* ค้นหาทั้งระบบ — พิมพ์/ยิงสแกนได้ตรงนี้เลย ผลลัพธ์ขึ้นข้างล่าง */}
+        <GlobalSearch mods={mods} go={go} onActive={setSearching} />
 
         {/* การ์ดหมวดงาน + Dashboard — ซ่อนไว้ตอนกำลังค้นหา */}
-        {(desktop || !searching) && (
+        {!searching && (
           <>
-            <div className={`grid gap-3 ${desktop ? "grid-cols-4 gap-4" : "mt-4 grid-cols-2"}`}>
+            <div className={`mt-4 grid gap-3 ${desktop ? "grid-cols-4 gap-4" : "grid-cols-2"}`}>
               {modules.map((m) => (
                 <Card key={m.id} onClick={() => onModule(m.id)} className="cursor-pointer p-5">
                   <div className="mb-4 text-foreground">
