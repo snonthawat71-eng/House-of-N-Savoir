@@ -51,13 +51,22 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
       </div>
       )}
 
+      {/* จอคอม: ช่องค้นหาอยู่บนสุด เหนือการ์ดงานที่ต้องทำ */}
+      {desktop && (
+        <div className="mb-5">
+          <GlobalSearch mods={mods} go={go} onActive={setSearching} big />
+        </div>
+      )}
+
       {/* การ์ดเตือนงานวันนี้ (พับ/กางได้) — ซ้อนหัวดำ */}
-      <div className={desktop ? "" : "-mt-10 px-5"}>
-        <TodoCard onOpen={onNotes} />
-      </div>
+      {!(desktop && searching) && (
+        <div className={desktop ? "" : "-mt-10 px-5"}>
+          <TodoCard onOpen={onNotes} />
+        </div>
+      )}
 
       {/* การ์ดเลื่อน — จอคอมวางเรียงกันไปเลย ไม่ต้องปัด */}
-      {desktop ? (
+      {desktop && searching ? null : desktop ? (
         <div className="mt-4 grid grid-cols-2 gap-4">
           {isAdmin && (
             <Card onClick={onConnect} className="flex cursor-pointer items-center justify-between px-5 py-6">
@@ -102,8 +111,8 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
       )}
 
       <div className={desktop ? "mt-6" : "mt-6 px-5"}>
-        {/* ค้นหาทั้งระบบ — พิมพ์/ยิงสแกนได้ตรงนี้เลย ผลลัพธ์ขึ้นข้างล่าง */}
-        <GlobalSearch mods={mods} go={go} onActive={setSearching} />
+        {/* ค้นหาทั้งระบบ — มือถืออยู่ตรงนี้ · จอคอมย้ายขึ้นไปบนสุดแล้ว */}
+        {!desktop && <GlobalSearch mods={mods} go={go} onActive={setSearching} />}
 
         {/* การ์ดหมวดงาน + Dashboard — ซ่อนไว้ตอนกำลังค้นหา */}
         {!searching && (

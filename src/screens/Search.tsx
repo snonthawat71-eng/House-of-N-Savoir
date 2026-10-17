@@ -145,11 +145,13 @@ const SOURCES: Src[] = [
 /** ตัดตัวอักษรที่ทำให้คำสั่งค้นหาของฐานข้อมูลพัง */
 const safe = (q: string) => q.replace(/[,()%*\\"']/g, " ").replace(/\s+/g, " ").trim();
 
-export function GlobalSearch({ mods, go, onActive }: {
+export function GlobalSearch({ mods, go, onActive, big }: {
   mods: string[];
   go: (screen: string) => void;
   /** บอกหน้าแรกว่ากำลังค้นอยู่ไหม จะได้ซ่อนการ์ดหมวดงานชั่วคราว */
   onActive?: (active: boolean) => void;
+  /** จอคอม: ช่องค้นหาใหญ่ขึ้น */
+  big?: boolean;
 }) {
   const [raw, setRaw] = useState("");
   const [scanned, setScanned] = useState("");      // ข้อความที่แปลงจากคีย์บอร์ดไทยแล้ว
@@ -238,26 +240,26 @@ export function GlobalSearch({ mods, go, onActive }: {
     <div>
       {/* ช่องค้นหา + ปุ่มสแกน */}
       <div className="flex items-center gap-2">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl bg-card px-4 py-3 shadow-sm">
-          <SearchIcon size={16} className="shrink-0 text-muted-foreground" />
+        <div className={`flex flex-1 items-center gap-2.5 rounded-2xl bg-card shadow-sm ${big ? "px-5 py-4" : "px-4 py-3"}`}>
+          <SearchIcon size={big ? 19 : 16} className="shrink-0 text-muted-foreground" />
           <input
             ref={box}
             value={raw}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); void run(term.trim()); } }}
             placeholder="ค้นหาทั้งระบบ หรือยิงโค้ดตรงนี้…"
-            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
+            className={`min-w-0 flex-1 bg-transparent outline-none ${big ? "text-[15.5px]" : "text-[13px]"}`}
             style={{ color: C.ink, boxShadow: "none", border: "none" }}
           />
           {raw && (
             <button onClick={clear} aria-label="ล้าง" className="shrink-0 text-muted-foreground">
-              <X size={16} />
+              <X size={big ? 19 : 16} />
             </button>
           )}
         </div>
         <button onClick={() => setCam(true)} aria-label="สแกนโค้ดด้วยกล้อง"
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl bg-ink text-white">
-          <ScanLine size={18} />
+          className={`flex shrink-0 items-center justify-center rounded-2xl bg-ink text-white ${big ? "h-[58px] w-[58px]" : "h-[46px] w-[46px]"}`}>
+          <ScanLine size={big ? 22 : 18} />
         </button>
       </div>
 

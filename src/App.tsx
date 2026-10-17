@@ -402,9 +402,9 @@ export default function App() {
 
   /* ---------- ป๊อปอัพใส่รหัสเข้า Connect ---------- */
   const PinModal = () => pinOpen && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-8 max-w-md mx-auto" style={{ background: "rgba(0,0,0,.5)" }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-8" style={{ background: "rgba(0,0,0,.5)" }}
       onClick={() => setPinOpen(false)}>
-      <div className="w-full rounded-3xl p-6 text-center" style={{ background: C.card }} onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-[380px] rounded-3xl p-6 text-center" style={{ background: C.card }} onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mb-3 flex items-center justify-center rounded-2xl" style={{ width: 52, height: 52, background: C.ink }}>
           <Lock size={22} style={{ color: C.brand }} />
         </div>
@@ -924,14 +924,9 @@ export default function App() {
         <DesktopShell
           items={NAV}
           active={screen}
-          brand="House of N Savoir"
-          user={{
-            name: demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้"),
-            role: P.name,
-          }}
           title={screen === "modules" ? undefined : (titleMap[screen] || "N SAVOIR")}
           onNav={go}
-          onBack={history.length && !isNavScreen ? goBack : undefined}
+          onBack={history.length ? goBack : undefined}
         >
           <NavCtx.Provider value={{ registerBack }}>{Body()}</NavCtx.Provider>
         </DesktopShell>

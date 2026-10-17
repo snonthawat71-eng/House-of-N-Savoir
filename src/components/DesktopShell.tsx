@@ -1,7 +1,7 @@
 /**
  * หน้าตาสำหรับจอคอม — แถบดำด้านบนเต็มความกว้าง + เนื้อหาอยู่กลางจอ
+ * เมนูใช้แบบเดียวกับแถบล่างบนมือถือ (ปุ่มที่เลือกอยู่เป็นแคปซูลน้ำเงินมีชื่อกำกับ) แต่ใหญ่กว่า
  * เนื้อหาหน้าต่าง ๆ ใช้ของเดิมทั้งหมด แค่มาอยู่ในพื้นที่ที่กว้างขึ้น
- * บนมือถือไม่ได้ใช้ไฟล์นี้ (ยังเป็นแอปแบบเดิม)
  */
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -11,12 +11,10 @@ import { C } from "../lib/ui";
 export type TopItem = { id: string; label: string; icon: LucideIcon };
 
 export function DesktopShell({
-  items, active, brand, user, title, onNav, onBack, children,
+  items, active, title, onNav, onBack, children,
 }: {
   items: TopItem[];
   active: string;
-  brand: string;
-  user: { name: string; role: string };
   /** ชื่อหน้า — โชว์เฉพาะหน้าย่อย (หน้าแรกไม่ต้อง) */
   title?: string;
   onNav: (id: string) => void;
@@ -26,25 +24,19 @@ export function DesktopShell({
   return (
     <div className="min-h-screen-safe" style={{ background: C.bg }}>
       {/* ---------- แถบบนสีดำ ---------- */}
-      <header className="sticky top-0 z-30 flex h-[66px] items-center gap-4 px-8" style={{ background: C.ink }}>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white font-disp text-xl font-extrabold"
-          style={{ color: C.ink }}>N</div>
-        <div className="min-w-0">
-          <div className="font-disp text-[10.5px] font-bold uppercase tracking-[.09em] text-primary">{brand}</div>
-          <div className="truncate font-disp text-[15px] font-extrabold text-white">
-            {user.name} · <span style={{ color: "#8A8F98" }}>{user.role}</span>
-          </div>
-        </div>
+      <header className="sticky top-0 z-30 flex h-[88px] items-center gap-6 px-9" style={{ background: C.ink }}>
+        <img src="/logo-wordmark.svg" alt="HOUSE OF N SAVOIR" className="shrink-0" style={{ height: 21 }} />
         <div className="flex-1" />
-        <nav className="flex items-center gap-1.5">
+        {/* เมนูแบบเดียวกับแถบล่างของแอปมือถือ แต่ใหญ่ขึ้น */}
+        <nav className="flex items-center gap-1 rounded-full p-2" style={{ background: "#1E1F22" }}>
           {items.map((n) => {
             const on = n.id === active;
             return (
-              <button key={n.id} onClick={() => onNav(n.id)}
-                className="flex items-center gap-2 rounded-[14px] px-3.5 py-2 text-[14px] font-semibold transition-colors"
-                style={{ background: on ? "#1E1F22" : "transparent", color: on ? "#fff" : "#A8AEB6" }}>
-                <n.icon size={17} strokeWidth={1.9} />
-                <span>{n.label}</span>
+              <button key={n.id} onClick={() => onNav(n.id)} aria-label={n.label}
+                className="flex items-center gap-2.5 rounded-full transition-all"
+                style={{ background: on ? C.brand : "transparent", padding: on ? "12px 20px" : "12px 15px" }}>
+                <n.icon size={22} style={{ color: on ? "#fff" : "#9AA0A6" }} />
+                {on && <span style={{ color: "#fff", fontSize: 15, fontWeight: 600 }}>{n.label}</span>}
               </button>
             );
           })}
