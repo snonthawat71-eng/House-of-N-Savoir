@@ -1,7 +1,11 @@
 /**
  * หน้าตาฉลาก FO Label — ใช้ชุดเดียวกันทั้งตอนดูตัวอย่างบนจอและตอนสร้าง PDF
- * ทุกระยะอ้างอิงตัวแปร --u (1 หน่วย = 1mm ตอนปริ้น) และ --s (ตัวคูณขนาดตัวหนังสือ)
- * ยึดตามแบบที่ให้มา ห้ามสลับตำแหน่ง
+ *
+ * ทุกตัวเลขในไฟล์นี้วัดมาจากภาพต้นแบบที่เจ้าของส่งให้ (ไฟล์ขนาด 1800x1200 จุด = 152.4x101.6 มม.)
+ * 1 จุดในภาพต้นแบบ = 0.0846667 มม.  ตัวเลขในวงเล็บคือค่าที่วัดได้จากภาพ (หน่วยเป็นจุด)
+ *
+ * วางทุกชิ้นแบบ "ตรึงตำแหน่ง" ตามต้นแบบ ไม่ยืดไม่หด ไม่สลับที่
+ * ถ้าสติกเกอร์ขนาดอื่น ให้ย่อ/ขยายทั้งแบบตามสัดส่วนเดียวกัน (ตัวแปร s) แล้ววางกลางแผ่น
  */
 import { FO_W, FO_H, foDate, ghsUrl, type FoLabel } from "./foLabel";
 import { dataMatrixSVG } from "./Print";
@@ -9,143 +13,212 @@ import { dataMatrixSVG } from "./Print";
 const esc = (s: unknown) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/* ---------- ค่าคงที่ของแบบ (มม. อ้างอิงฉลาก 152.4 x 101.6) ---------- */
+const LEFT = 8.047;        // (95)   ขอบซ้ายของข้อความทั้งหมด
+const RIGHT = 8.128;       // (96)   ขอบขวาของกลุ่มสัญลักษณ์/ข้อความล่าง
+const TEXT_MAXW = 83.0;    //        ความกว้างสูงสุดของ Code/Name/ตาราง ก่อนชนกลุ่มสัญลักษณ์
+
+const BRAND_F = 8.414;     // (99.4)  ขนาดตัวอักษร N SAVOIR
+const BRAND_TOP = 11.687;  // (138.0) ขอบบนกล่องข้อความ (หัวตัวอักษรอยู่ที่ 151)
+const BRAND_LS = 0.0861;   //         ระยะห่างตัวอักษร (em) — ต้นแบบจัดตัวห่าง
+const BRAND_X = 7.539;     // (89)    กล่องเริ่มซ้ายกว่าตัวอื่นเล็กน้อย ให้หมึกเสมอกันที่ 95
+
+const CODE_F = 5.658;      // (66.8)  ขนาดตัวอักษร Code
+const CODE_TOP = 28.419;   // (335.7)
+const CODE_X = 7.370;      // (87)
+
+const NAME_F = 8.712;      // (102.9) ขนาดตัวอักษร Name (ใหญ่สุด)
+const NAME_TOP = 35.306;   // (417)
+const NAME_LS = -0.008;    //         (em)
+const NAME_X = 7.454;      // (88)
+
+const ROW_F = 2.824;       // (33.4)  ขนาดตัวอักษรในตาราง
+const ROWS_TOP = 49.030;   // (579.1)
+const ROW_PITCH = 3.400;   // (40.2)  ระยะห่างแต่ละบรรทัด
+const COL1_W = 30.054;     // (355)   ความกว้างคอลัมน์ชื่อหัวข้อ
+
+const DM_TOP = 75.861;     // (896)   Data Matrix มุมซ้ายล่าง
+const DM_SIZE = 12.954;    // (153)
+
+const LEG_X = 24.342;      // (287.5) ข้อความสองบรรทัดล่าง เริ่มถัดจาก Data Matrix
+const LEG_MAXW = 120.5;    // (1423)  ยาวได้ถึงขอบขวา
+const LEG1_F = 1.554;      // (18.4)  บรรทัด H/P
+const LEG1_TOP = 85.240;   // (1006.8)
+const LEG2_F = 1.685;      // (19.9)  บรรทัดวิธีเก็บรักษา
+const LEG2_TOP = 87.171;   // (1029.6)
+
+const PIC_TOP = 24.977;    // (295)   กลุ่มสัญลักษณ์ GHS
+const PIC_CELL = 25.062;   // (296)   ขนาดสัญลักษณ์ 1 อัน
+const PIC_GX = 1.185;      // (14)
+const PIC_GY = 1.439;      // (17)
+const PIC_CELL_M = 16.2;   //         ถ้าเลือกเกิน 4 อัน ใช้ 3 คอลัมน์ ย่อลงให้อยู่ในพื้นที่เดิม
+
+const SIG_F = 2.782;       // (32.9)  คำว่า DANGER / WARNING
+const SIG_LS = 0.038;      //         ระยะห่างตัวอักษร (em)
+const SIG_TOP = 24.151;    // (285.3) นับจากขอบบนของกลุ่มสัญลักษณ์
+const SIG_X = 0.508;       // (6)     เขยิบขวาให้ตรงต้นแบบ
+const SIG_TOP_M = 15.53;   //         กรณีสัญลักษณ์ย่อ
+const SIG_TOP_R1 = 25.5;   //         กรณีมีแถวเดียว ให้ลงมาอยู่ใต้สัญลักษณ์
+
 export function foCSS(w: number, h: number, scope = "") {
   const S = scope ? `.${scope}` : "";
-  const pad = +(Math.min(w, h) * 0.055).toFixed(3);
-  const start = +Math.min(w / FO_W, h / FO_H).toFixed(3);
-  const b = (base: number) => `calc(var(--u) * var(--s) * ${base})`; // base = mm ที่ขนาด 152.4x101.6
-  const r = (n: number) => +n.toFixed(3);
+  const s = Math.min(w / FO_W, h / FO_H);
+  const ox = (w - FO_W * s) / 2;
+  const oy = (h - FO_H * s) / 2;
+  const n = (v: number) => +v.toFixed(4);
+  const U = (mm: number) => `calc(var(--u) * ${n(mm * s)})`;          // ความยาว/ขนาด
+  const X = (mm: number) => `calc(var(--u) * ${n(ox + mm * s)})`;     // ตำแหน่งจากซ้าย
+  const Y = (mm: number) => `calc(var(--u) * ${n(oy + mm * s)})`;     // ตำแหน่งจากบน
+  const RX = (mm: number) => `calc(var(--u) * ${n(ox + mm * s)})`;    // ตำแหน่งจากขวา
+
   return `
   ${S}.fo{
-    --s:${start};
-    width:calc(var(--u) * ${r(w)}); height:calc(var(--u) * ${r(h)});
-    padding:calc(var(--u) * ${pad});
+    --s:${n(s)};
+    position:relative; box-sizing:border-box;
+    width:calc(var(--u) * ${n(w)}); height:calc(var(--u) * ${n(h)});
     background:#fff; color:#111214; overflow:hidden;
     font-family:'IBM Plex Mono',ui-monospace,monospace;
-    line-height:1.05;
   }
-  /* บน = ข้อมูลซ้าย + สัญลักษณ์ขวา · ล่าง = Data Matrix + ข้อความกำกับยาวเต็มความกว้าง */
-  ${S} .fo-fit{ display:flex; flex-direction:column; min-height:100% }
-  ${S} .fo-top{ display:flex; gap:${b(4)}; flex:1 }
-  ${S} .fo-left{ flex:1; min-width:0; display:flex; flex-direction:column }
-  ${S} .fo-right{ flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center }
+  ${S} .fo-fit{ position:absolute; left:0; top:0; right:0; bottom:0 }
+  ${S} .fo-fit *{ box-sizing:border-box }
+  ${S} .fo-fit > div{ position:absolute }
 
-  ${S} .fo-brand{ font-family:'Urbanist','Noto Sans Thai',sans-serif; font-weight:800; font-size:${b(11)}; letter-spacing:${b(-0.2)}; line-height:1 }
-  ${S} .fo-code{ font-family:'Narin','Urbanist',sans-serif; font-weight:400; font-size:${b(6.2)}; margin-top:${b(5.5)}; line-height:1 }
-  ${S} .fo-name{ font-family:'Narin','Urbanist',sans-serif; font-weight:400; font-size:${b(9.2)}; margin-top:${b(1.6)}; line-height:1.02; word-break:break-word }
+  /* ---- ชื่อแบรนด์ (ห้ามเปลี่ยนฟอนต์) ---- */
+  ${S} .fo-brand{
+    left:${X(BRAND_X)}; top:${Y(BRAND_TOP)};
+    font-family:'Urbanist','Noto Sans Thai',sans-serif; font-weight:800;
+    font-size:${U(BRAND_F)}; letter-spacing:${BRAND_LS}em; line-height:1; white-space:nowrap;
+  }
 
+  /* ---- Code / Name ใช้ฟอนต์ Narin ---- */
+  ${S} .fo-code, ${S} .fo-name{
+    width:${U(TEXT_MAXW)};
+    font-family:'Narin','Urbanist',sans-serif; font-weight:400;
+    line-height:1; white-space:nowrap; overflow:hidden;
+  }
+  ${S} .fo-code{ left:${X(CODE_X)}; top:${Y(CODE_TOP)}; font-size:${U(CODE_F)} }
+  ${S} .fo-name{ left:${X(NAME_X)}; top:${Y(NAME_TOP)}; font-size:${U(NAME_F)}; letter-spacing:${NAME_LS}em }
+
+  /* ---- ตารางข้อมูล ---- */
   ${S} .fo-rows{
-    margin-bottom:auto;
-    display:grid; grid-template-columns:auto 1fr;
-    column-gap:${b(4)}; row-gap:${b(1.1)};
-    font-family:'IBM Plex Mono',ui-monospace,monospace;
-    font-size:${b(3.9)}; margin-top:${b(7)};
+    left:${X(LEFT)}; top:${Y(ROWS_TOP)}; width:${U(TEXT_MAXW)};
+    display:grid; grid-template-columns:${U(COL1_W)} 1fr;
+    font-size:${U(ROW_F)}; line-height:1;
+  }
+  ${S} .fo-rows > div{
+    height:${U(ROW_PITCH)}; white-space:nowrap; overflow:hidden;
   }
   ${S} .fo-rows .k{ font-weight:700 }
 
-  ${S} .fo-bottom{ display:flex; align-items:flex-end; gap:${b(3)}; margin-top:${b(2)} }
-  ${S} .fo-dm{ width:${b(13.5)}; height:${b(13.5)}; flex:none }
+  /* ---- Data Matrix ---- */
+  ${S} .fo-dm{
+    left:${X(LEFT)}; top:${Y(DM_TOP)};
+    width:${U(DM_SIZE)}; height:${U(DM_SIZE)};
+  }
   ${S} .fo-dm svg{ width:100%; height:100%; display:block; shape-rendering:crispEdges }
-  ${S} .fo-legal{
-    flex:1; min-width:0;
-    font-family:'IBM Plex Mono',ui-monospace,monospace;
-    font-size:${b(2.35)}; line-height:1.45;
-  }
 
-  ${S} .fo-pics{ display:grid; grid-template-columns:repeat(2, ${b(23)}); gap:${b(1)} ${b(1.5)}; justify-items:center }
-  ${S} .fo-pics.many{ grid-template-columns:repeat(3, ${b(18)}) }
-  ${S} .fo-pics img{ width:100%; height:auto; display:block }
-  ${S} .fo-pics .ph{ width:100%; aspect-ratio:1; border:${b(0.8)} solid #E5322A; transform:rotate(45deg) scale(.72) }
-  ${S} .fo-signal{
-    font-family:'IBM Plex Mono',ui-monospace,monospace;
-    font-size:${b(4.2)}; letter-spacing:${b(0.3)}; margin:${b(0.6)} 0;
+  /* ---- สองบรรทัดล่าง: ตัวเล็ก บรรทัดละ 1 แถว ห้ามตัดลงบรรทัดใหม่ ---- */
+  ${S} .fo-l1, ${S} .fo-l2{
+    left:${X(LEG_X)}; width:${U(LEG_MAXW)};
+    line-height:1; white-space:nowrap; overflow:hidden;
   }
+  ${S} .fo-l1{ top:${Y(LEG1_TOP)}; font-size:${U(LEG1_F)} }
+  ${S} .fo-l2{ top:${Y(LEG2_TOP)}; font-size:${U(LEG2_F)} }
+
+  /* ---- กลุ่มสัญลักษณ์ GHS + คำสัญญาณ ---- */
+  ${S} .fo-pics{ right:${RX(RIGHT)}; top:${Y(PIC_TOP)} }
+  ${S} .fo-grid{
+    display:grid; grid-template-columns:repeat(2, ${U(PIC_CELL)});
+    column-gap:${U(PIC_GX)}; row-gap:${U(PIC_GY)};
+  }
+  ${S} .fo-pics.many .fo-grid{
+    grid-template-columns:repeat(3, ${U(PIC_CELL_M)});
+  }
+  ${S} .fo-grid img{ width:100%; height:auto; display:block }
+  ${S} .fo-grid .ph{ width:100%; aspect-ratio:1; border:${U(0.8)} solid #E5322A; transform:rotate(45deg) scale(.72) }
+  ${S} .fo-signal{
+    position:absolute; left:${U(SIG_X)}; right:0; top:${U(SIG_TOP)}; text-align:center;
+    font-size:${U(SIG_F)}; letter-spacing:${SIG_LS}em; line-height:1; white-space:nowrap;
+  }
+  ${S} .fo-pics.many .fo-signal{ top:${U(SIG_TOP_M)} }
+  ${S} .fo-pics.r1 .fo-signal{ top:${U(SIG_TOP_R1)} }
   `;
 }
 
-/** ครึ่งบนของสัญลักษณ์ / คำสัญญาณ / ครึ่งล่าง — ให้ DANGER อยู่กลางระหว่างสองแถวเหมือนแบบ */
+/** สัญลักษณ์ GHS: ไม่เกิน 4 อันเรียง 2 คอลัมน์เท่าต้นแบบ · เกินนั้นย่อเป็น 3 คอลัมน์ */
 function picsHTML(item: FoLabel) {
   const codes = item.pictograms || [];
+  const sig = esc(item.signal_word || "DANGER");
   if (!codes.length) return "";
   const many = codes.length > 4;
-  const cls = many ? "fo-pics many" : "fo-pics";
-  const cell = (c: string) => `<img src="${ghsUrl(c)}" alt="${esc(c)}" onerror="this.outerHTML='<div class=ph></div>'">`;
-  const perRow = many ? 3 : 2;
-  const half = Math.ceil(codes.length / 2 / perRow) * perRow;
-  const top = codes.slice(0, half);
-  const bottom = codes.slice(half);
-  return `
-    <div class="${cls}">${top.map(cell).join("")}</div>
-    <div class="fo-signal">${esc(item.signal_word || "DANGER")}</div>
-    ${bottom.length ? `<div class="${cls}">${bottom.map(cell).join("")}</div>` : ""}`;
+  const cols = many ? 3 : 2;
+  const rows = Math.ceil(codes.length / cols);
+  const cls = ["fo-pics", many ? "many" : "", rows < 2 ? "r1" : ""].filter(Boolean).join(" ");
+  const cell = (c: string) =>
+    `<img src="${ghsUrl(c)}" alt="${esc(c)}" onerror="this.outerHTML='<div class=ph></div>'">`;
+  return `<div class="${cls}">
+    <div class="fo-grid">${codes.map(cell).join("")}</div>
+    <div class="fo-signal">${sig}</div>
+  </div>`;
 }
 
 export function foInnerHTML(item: FoLabel, dmScale = 6) {
   const svg = dataMatrixSVG(item.batch_of || "", dmScale);
-  const row = (k: string, v: string) => `<div class="k">${k}</div><div>${esc(v)}</div>`;
+  const row = (k: string, v: string) => `<div class="k">${k}</div><div class="v">${esc(v)}</div>`;
   return `<div class="fo-fit">
-  <div class="fo-top">
-    <div class="fo-left">
-      <div class="fo-brand">N SAVOIR</div>
-      <div class="fo-code">${esc(item.code)}</div>
-      <div class="fo-name">${esc(item.name)}</div>
-      <div class="fo-rows">
-        ${row("Gross min", item.gross_min)}
-        ${row("Tare min", item.tare_min)}
-        ${row("Net", item.net)}
-        ${row("Manufactured", foDate(item.mfg_date))}
-        ${row("BBE", foDate(item.bbe_date))}
-        ${row("Batch (OF)", item.batch_of)}
-      </div>
-    </div>
-    <div class="fo-right">${picsHTML(item)}</div>
+  <div class="fo-brand">N SAVOIR</div>
+  <div class="fo-code"><span>${esc(item.code)}</span></div>
+  <div class="fo-name"><span>${esc(item.name)}</span></div>
+  <div class="fo-rows">
+    ${row("Gross min", item.gross_min)}
+    ${row("Tare min", item.tare_min)}
+    ${row("Net", item.net)}
+    ${row("Manufactured", foDate(item.mfg_date))}
+    ${row("BBE", foDate(item.bbe_date))}
+    ${row("Batch (OF)", item.batch_of)}
   </div>
-  <div class="fo-bottom">
-    <div class="fo-dm">${svg}</div>
-    <div class="fo-legal">
-      <div>${esc(item.hp_codes || "")}</div>
-      <div>${esc(item.storage_text || "")}</div>
-    </div>
-  </div>
+  ${picsHTML(item)}
+  <div class="fo-dm">${svg}</div>
+  <div class="fo-l1"><span>${esc(item.hp_codes || "")}</span></div>
+  <div class="fo-l2"><span>${esc(item.storage_text || "")}</span></div>
 </div>`;
 }
 
-/** วัดแล้วขยายตัวหนังสือให้เต็มกรอบ (ใช้ร่วมกับหน้าต่างปริ้นได้ด้วย) */
+/**
+ * ตำแหน่งทุกอย่างตรึงตามต้นแบบแล้ว หน้าที่เดียวที่เหลือคือ
+ * "ถ้าข้อความยาวเกินช่องที่มี ให้ย่อเฉพาะบรรทัดนั้นลงจนพอดี" — ไม่ตัดขึ้นบรรทัดใหม่
+ */
 export const FO_FIT_FN = `
 function fitFo(el) {
-  var fit = el.querySelector('.fo-fit');
-  if (!fit) return;
-  var cur = function () {
-    return parseFloat(el.style.getPropertyValue('--s')) ||
-           parseFloat(getComputedStyle(el).getPropertyValue('--s')) || 1;
-  };
-  var tooWide = function () {
-    var ns = fit.querySelectorAll('.fo-rows, .fo-legal, .fo-brand');
-    for (var i = 0; i < ns.length; i++) {
-      if (ns[i].scrollWidth > ns[i].clientWidth + 1) return true;
+  var shrink = function (box) {
+    if (!box) return;
+    var sp = box.firstElementChild;
+    if (!sp) return;
+    box.style.fontSize = '';
+    var avail = box.clientWidth;
+    var nat = sp.offsetWidth || sp.scrollWidth;
+    if (avail > 0 && nat > avail) {
+      var f = parseFloat(getComputedStyle(box).fontSize);
+      box.style.fontSize = (f * (avail / nat) * 0.995) + 'px';
     }
-    return false;
   };
-  fit.style.minHeight = '0';
-  for (var i = 0; i < 6; i++) {
-    var cs = getComputedStyle(el);
-    var availH = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    var hh = fit.scrollHeight;
-    if (!hh || availH <= 0) break;
-    var c = cur();
-    var next = Math.max(0.1, Math.min(6, c * (availH / hh) * 0.97));
-    if (Math.abs(next - c) / c < 0.005) break;
-    el.style.setProperty('--s', String(next));
+  shrink(el.querySelector('.fo-code'));
+  shrink(el.querySelector('.fo-name'));
+  shrink(el.querySelector('.fo-l1'));
+  shrink(el.querySelector('.fo-l2'));
+
+  var rows = el.querySelector('.fo-rows');
+  if (rows) {
+    rows.style.fontSize = '';
+    var cells = rows.children, k = 1;
+    for (var i = 0; i < cells.length; i++) {
+      var c = cells[i];
+      if (c.clientWidth > 0 && c.scrollWidth > c.clientWidth + 0.5) {
+        k = Math.min(k, c.clientWidth / c.scrollWidth);
+      }
+    }
+    if (k < 1) {
+      rows.style.fontSize = (parseFloat(getComputedStyle(rows).fontSize) * k * 0.995) + 'px';
+    }
   }
-  for (var j = 0; j < 14 && tooWide(); j++) {
-    el.style.setProperty('--s', String(cur() * 0.94));
-  }
-  // กันตกขอบล่าง: ถ้าข้อความยังสูงเกินกรอบ (เกิดจากบรรทัดล่างตัดขึ้นบรรทัดใหม่) ให้ย่อทีละนิดจนพอดี
-  for (var k = 0; k < 24; k++) {
-    var cs3 = getComputedStyle(el);
-    var availH3 = el.clientHeight - parseFloat(cs3.paddingTop) - parseFloat(cs3.paddingBottom);
-    if (availH3 <= 0 || fit.scrollHeight <= availH3 + 0.5) break;
-    el.style.setProperty('--s', String(cur() * 0.98));
-  }
-  fit.style.minHeight = '';
 }`;
