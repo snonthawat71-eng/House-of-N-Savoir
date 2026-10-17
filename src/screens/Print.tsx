@@ -554,6 +554,7 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
 <style>
   :root { --u: 1mm }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact }
+  html, body { overflow-x: hidden; max-width: 100% }
   body { background: #e9ebef; font-family: 'Urbanist','Noto Sans Thai',sans-serif }
   ${pageCss}
   ${labelCSS(W, H)}
@@ -563,21 +564,22 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
     position: sticky; top: 0; z-index: 9; display: flex; gap: 8px; align-items: center;
     padding: 10px 14px; background: #111214; color: #fff;
   }
-  .bar b { flex: 1; font-size: 14px; font-weight: 800 }
+  .bar b { flex: 1; min-width: 0; font-size: 13px; font-weight: 800;
+           overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
   .bar button {
-    border: none; border-radius: 999px; padding: 9px 16px;
-    font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    border: none; border-radius: 999px; padding: 9px 14px; flex: none;
+    font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
   .b-back { background: #2A2B2E; color: #fff }
   .b-print { background: #014BAA; color: #fff }
-  /* บนจอมือถือ ย่อทั้งแผ่นให้พอดีหน้าจอ แต่ตอนพิมพ์ใช้ขนาดจริงเสมอ */
-  .wrap { padding: 14px; overflow-x: auto }
-  .zoom { transform-origin: top center }
+  /* บนจอมือถือ ย่อทั้งแผ่นให้พอดีหน้าจอ แต่ตอนพิมพ์ใช้ขนาดจริงเสมอ
+     ใช้ zoom เพราะมันย่อพื้นที่จริงด้วย (transform ย่อแค่ภาพ แผ่นจะยังล้นจอ) */
+  .wrap { padding: 14px }
   @media print {
     body { background: #fff }
     .bar { display: none }
-    .wrap { padding: 0; overflow: visible }
-    .zoom { transform: none !important; width: auto !important }
+    .wrap { padding: 0 }
+    .zoom { zoom: 1 !important }
   }
 </style></head><body>
 <div class="bar">
@@ -589,20 +591,17 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
 <script>
   ${FIT_FN}
   var LOCKED = ${scale && scale > 0 ? "true" : "false"};
-  // ย่อทั้งแผ่นให้พอดีจอมือถือ (เฉพาะบนจอ — ตอนพิมพ์ CSS สั่งไม่ให้ย่อ)
+  // ย่อทั้งแผ่นให้พอดีจอ (เฉพาะบนจอ — ตอนพิมพ์ CSS สั่ง zoom:1 ใช้ขนาดจริง)
   function fitScreen() {
-    var z = document.querySelector('.zoom'), s = document.querySelector('.sheet');
-    if (!z || !s) return;
-    z.style.transform = '';
-    var avail = document.querySelector('.wrap').clientWidth;
-    var k = Math.min(1, avail / s.offsetWidth);
-    z.style.transform = 'scale(' + k + ')';
-    z.style.height = (s.offsetHeight * k) + 'px';
+    var z = document.querySelector('.zoom'), wrap = document.querySelector('.wrap');
+    if (!z || !wrap) return;
+    z.style.zoom = '1';
+    var k = Math.min(1, wrap.clientWidth / z.scrollWidth);
+    z.style.zoom = String(k);
   }
   window.onload = function () {
     var go = function () {
-      // ถ้ายังไม่มีค่าขนาดตัวหนังสือจากตัวอย่าง ค่อยวัดเอง
-      // ถ้ามีแล้ว ใช้ค่านั้นเลย จะได้ออกมาเหมือนตัวอย่างเป๊ะ
+      // ถ้ามีค่าขนาดตัวหนังสือจากตัวอย่างแล้ว ใช้ค่านั้นเลย จะได้ออกมาเหมือนตัวอย่างเป๊ะ
       if (!LOCKED) [].forEach.call(document.querySelectorAll('.label'), fitLabel);
       fitScreen();
       setTimeout(function () { window.print(); }, 250);
@@ -610,11 +609,6 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(go); } else { go(); }
   };
   window.addEventListener('resize', fitScreen);
-  window.addEventListener('beforeprint', function () {
-    var z = document.querySelector('.zoom');
-    if (z) { z.style.transform = 'none'; z.style.height = 'auto'; }
-  });
-  window.addEventListener('afterprint', fitScreen);
 <\/script>
 </body></html>`;
 
