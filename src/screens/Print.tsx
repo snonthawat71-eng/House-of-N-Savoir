@@ -8,6 +8,7 @@ import { C, mono, inputStyle } from "../lib/ui";
 import { toast } from "../lib/toast";
 import { Field } from "./B2B";
 import { Modal, DeleteButton } from "@/components/ui/modal";
+import FoLabels from "./FoLabels";
 import { Button } from "@/components/ui/button";
 
 /* ---------------- ชนิดข้อมูล ---------------- */
@@ -188,26 +189,32 @@ export function labelInnerHTML(item: BatchLabel, logoUrl: string, dmScale = 6) {
    หน้า Print — รวมงานปริ้นทั้งหมด
    ============================================================ */
 export default function PrintScreen() {
-  const [open, setOpen] = useState<null | "batch">(null);
+  const [open, setOpen] = useState<null | "batch" | "fo">(null);
   useEffect(() => { logAudit({ action: "view", entity: "screen", entityId: "print" }); }, []);
   useBackHandler(open !== null, () => setOpen(null));
 
   if (open === "batch") return <BatchLabels onBack={() => setOpen(null)} />;
+  if (open === "fo") return <FoLabels onBack={() => setOpen(null)} />;
+
+  const Card = ({ id, title, sub }: { id: "batch" | "fo"; title: string; sub: string }) => (
+    <button onClick={() => setOpen(id)}
+      className="mb-2.5 flex w-full items-center justify-between rounded-3xl bg-card p-4 text-left shadow-sm">
+      <div className="flex items-center gap-3">
+        <Tags size={26} strokeWidth={1.8} className="shrink-0 text-foreground" />
+        <div>
+          <div className="font-disp text-[15px] font-bold text-foreground">{title}</div>
+          <div className="text-[11px] text-muted-foreground">{sub}</div>
+        </div>
+      </div>
+      <ChevronRight size={18} className="text-muted-foreground" />
+    </button>
+  );
 
   return (
     <div className="px-5 pb-32">
       <p className="mb-3 mt-2 px-1 text-xs text-muted-foreground">งานที่พร้อมสั่งปริ้นได้ทันที</p>
-      <button onClick={() => setOpen("batch")}
-        className="flex w-full items-center justify-between rounded-3xl bg-card p-4 text-left shadow-sm">
-        <div className="flex items-center gap-3">
-          <Tags size={26} strokeWidth={1.8} className="shrink-0 text-foreground" />
-          <div>
-            <div className="font-disp text-[15px] font-bold text-foreground">Batch Label</div>
-            <div className="text-[11px] text-muted-foreground">สติกเกอร์ติดส่งลูกค้า 80×50mm · มี Data Matrix</div>
-          </div>
-        </div>
-        <ChevronRight size={18} className="text-muted-foreground" />
-      </button>
+      <Card id="batch" title="Batch Label" sub="สติกเกอร์ติดส่งลูกค้า 80×50mm · มี Data Matrix" />
+      <Card id="fo" title="FO Label" sub="ฉลากสารเคมี 152.4×101.6mm · มีสัญลักษณ์อันตราย" />
     </div>
   );
 }
