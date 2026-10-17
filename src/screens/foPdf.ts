@@ -5,12 +5,11 @@
  */
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { FO_W, FO_H, type FoLabel } from "./foLabel";
+import { FO_W, FO_H, foGrid, type FoLabel } from "./foLabel";
 import { foCSS, foInnerHTML, FO_FIT_FN } from "./foLabelRender";
 
 const A4_W = 210;
 const A4_H = 297;
-const MARGIN = 5;
 /** ความละเอียดภาพฉลาก (จุดต่อนิ้ว) — 350 คมพอสำหรับงานพิมพ์สติกเกอร์ */
 const DPI = 350;
 
@@ -52,12 +51,6 @@ async function renderLabel(item: FoLabel): Promise<string> {
   }
 }
 
-/** จำนวนฉลากที่ลงได้ 1 แผ่น A4 */
-export function foPerSheet(w: number, h: number) {
-  return Math.max(1, Math.floor((A4_W - MARGIN * 2) / w)) *
-         Math.max(1, Math.floor((A4_H - MARGIN * 2) / h));
-}
-
 export async function buildFoPdf(jobs: FoJob[], mode: "a4" | "label") {
   const list = jobs.filter((j) => j.copies > 0);
   if (!list.length) throw new Error("ไม่มีรายการให้ปริ้น");
@@ -93,9 +86,7 @@ export async function buildFoPdf(jobs: FoJob[], mode: "a4" | "label") {
   }
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const cols = Math.max(1, Math.floor((A4_W - MARGIN * 2) / W));
-  const rowsPerPage = Math.max(1, Math.floor((A4_H - MARGIN * 2) / H));
-  const perPage = cols * rowsPerPage;
+  const { cols, rows: rowsPerPage, per: perPage } = foGrid(W, H);
   const x0 = (A4_W - cols * W) / 2;
 
   seq.forEach((it, i) => {

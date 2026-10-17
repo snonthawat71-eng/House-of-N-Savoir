@@ -1,6 +1,6 @@
 -- =====================================================================
 -- HOUSE OF N SAVOIR — Office > Print > FO Label
--- สติกเกอร์ฉลากสารเคมี (ขนาดแนะนำ 152.4 x 101.6 mm = 6 x 4 นิ้ว)
+-- สติกเกอร์ฉลากสารเคมี (ขนาดแนะนำ 210 x 145 mm — ลง A4 ได้แผ่นละ 2 ดวง)
 -- วางทั้งไฟล์นี้ใน Supabase → SQL Editor → Run
 -- =====================================================================
 
@@ -22,8 +22,8 @@ create table if not exists public.fo_labels (
   customer_id   uuid references public.customers (id) on delete set null,
   customer_name text,                                  -- เก็บชื่อซ้ำไว้ กันลูกค้าถูกลบแล้วประวัติหาย
   note          text,
-  width_mm      numeric not null default 152.4,
-  height_mm     numeric not null default 101.6,
+  width_mm      numeric not null default 210,
+  height_mm     numeric not null default 145,
   created_by    uuid default auth.uid() references public.profiles (id) on delete set null,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()

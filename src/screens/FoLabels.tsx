@@ -9,7 +9,7 @@ import { Field } from "./B2B";
 import { Modal, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import {
-  FO_W, FO_H, GHS, ghsUrl, foDate, foToday, plusTwoYears,
+  FO_W, FO_H, foPerSheet, GHS, ghsUrl, foDate, foToday, plusTwoYears,
   lastHp, lastStorage, rememberLines, DEFAULT_HP, DEFAULT_STORAGE, type FoLabel,
 } from "./foLabel";
 import { foCSS, foInnerHTML, FO_FIT_FN } from "./foLabelRender";
@@ -113,8 +113,7 @@ export default function FoLabels({ onBack }: { onBack: () => void }) {
   const sheets = useMemo(() => {
     const f = rows.find((r) => sel.has(r.id));
     if (!f) return 0;
-    const per = Math.max(1, Math.floor(200 / (Number(f.width_mm) || FO_W))) *
-                Math.max(1, Math.floor(287 / (Number(f.height_mm) || FO_H)));
+    const per = foPerSheet(Number(f.width_mm) || FO_W, Number(f.height_mm) || FO_H);
     return Math.ceil(totalCopies / per);
   }, [rows, sel, totalCopies]);
 
@@ -580,7 +579,7 @@ function FoForm({ initial, customers, onDone, onDelete }: {
       </div>
       <div className="-mt-1 mb-3 flex items-center gap-2 px-1">
         <p className="flex-1 text-[11px] text-muted-foreground">
-          FO Label แนะนำ <b className="text-foreground">{FO_W} × {FO_H} mm</b> (6 × 4 นิ้ว)
+          FO Label แนะนำ <b className="text-foreground">{FO_W} × {FO_H} mm</b> (ลง A4 ได้แผ่นละ 2 ดวง)
         </p>
         {(Number(wmm) !== FO_W || Number(hmm) !== FO_H) && (
           <button type="button" onClick={() => { setWmm(String(FO_W)); setHmm(String(FO_H)); }}

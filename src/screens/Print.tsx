@@ -214,7 +214,7 @@ export default function PrintScreen() {
     <div className="px-5 pb-32">
       <p className="mb-3 mt-2 px-1 text-xs text-muted-foreground">งานที่พร้อมสั่งปริ้นได้ทันที</p>
       <Card id="batch" title="Batch Label" sub="สติกเกอร์ติดส่งลูกค้า 80×50mm · มี Data Matrix" />
-      <Card id="fo" title="FO Label" sub="ฉลากสารเคมี 152.4×101.6mm · มีสัญลักษณ์อันตราย" />
+      <Card id="fo" title="FO Label" sub="ฉลากสารเคมี 210×145mm · มีสัญลักษณ์อันตราย" />
     </div>
   );
 }

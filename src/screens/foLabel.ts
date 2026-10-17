@@ -1,5 +1,5 @@
 /**
- * FO Label — ฉลากสารเคมีขนาดแนะนำ 152.4 x 101.6 mm (6 x 4 นิ้ว)
+ * FO Label — ฉลากสารเคมี ขนาดแนะนำ 210 x 145 mm (ลง A4 ได้ 1 แผ่น 2 ดวง)
  * หน้าตายึดตามแบบที่ให้มาเป๊ะ ๆ ห้ามเปลี่ยนโครง
  */
 
@@ -26,8 +26,22 @@ export type FoLabel = {
 };
 
 /** ขนาดแนะนำ (6 x 4 นิ้ว) */
-export const FO_W = 152.4;
-export const FO_H = 101.6;
+/** ขนาดสติกเกอร์ที่แนะนำ — ลงกระดาษ A4 ได้แผ่นละ 2 ดวงพอดี */
+export const FO_W = 210;
+export const FO_H = 145;
+/** สัดส่วนของ "แบบ" ตามภาพต้นแบบที่เจ้าของให้มา — ห้ามแก้
+ *  ทุกตำแหน่งในฉลากอ้างอิงขนาดนี้ แล้วค่อยย่อ/ขยายทั้งแบบตามขนาดสติกเกอร์จริง */
+export const REF_W = 152.4;
+export const REF_H = 101.6;
+
+/** ฉลากลง A4 (210x297) ได้กี่ดวง — คิดจากหน้ากระดาษเต็มใบ
+ *  ขนาดแนะนำ 210x145 กว้างเท่ากระดาษพอดี ถ้าหักขอบกระดาษก่อนจะลงได้แค่ดวงเดียว */
+export function foGrid(w: number, h: number) {
+  const cols = Math.max(1, Math.floor(210 / w));
+  const rows = Math.max(1, Math.floor(297 / h));
+  return { cols, rows, per: cols * rows };
+}
+export const foPerSheet = (w: number, h: number) => foGrid(w, h).per;
 
 /** สัญลักษณ์อันตรายมาตรฐาน GHS ทั้ง 9 แบบ — ไฟล์รูปอยู่ที่ /ghs/<code>.svg */
 export const GHS = [

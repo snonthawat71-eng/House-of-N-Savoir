@@ -7,7 +7,7 @@
  * วางทุกชิ้นแบบ "ตรึงตำแหน่ง" ตามต้นแบบ ไม่ยืดไม่หด ไม่สลับที่
  * ถ้าสติกเกอร์ขนาดอื่น ให้ย่อ/ขยายทั้งแบบตามสัดส่วนเดียวกัน (ตัวแปร s) แล้ววางกลางแผ่น
  */
-import { FO_W, FO_H, foDate, ghsUrl, type FoLabel } from "./foLabel";
+import { REF_W, REF_H, foDate, ghsUrl, type FoLabel } from "./foLabel";
 import { dataMatrixSVG } from "./Print";
 
 const esc = (s: unknown) =>
@@ -18,10 +18,13 @@ const LEFT = 8.047;        // (95)   ขอบซ้ายของข้อค�
 const RIGHT = 8.128;       // (96)   ขอบขวาของกลุ่มสัญลักษณ์/ข้อความล่าง
 const TEXT_MAXW = 83.0;    //        ความกว้างสูงสุดของ Code/Name/ตาราง ก่อนชนกลุ่มสัญลักษณ์
 
-const BRAND_F = 8.414;     // (99.4)  ขนาดตัวอักษร N SAVOIR
-const BRAND_TOP = 11.687;  // (138.0) ขอบบนกล่องข้อความ (หัวตัวอักษรอยู่ที่ 151)
-const BRAND_LS = 0.0861;   //         ระยะห่างตัวอักษร (em) — ต้นแบบจัดตัวห่าง
-const BRAND_X = 7.539;     // (89)    กล่องเริ่มซ้ายกว่าตัวอื่นเล็กน้อย ให้หมึกเสมอกันที่ 95
+/* โลโก้ = ไฟล์ภาพลายเส้นของจริง (ห้ามพิมพ์เป็นตัวหนังสือ ฟอนต์จะไม่ตรง)
+   ไฟล์ /logo-fo.svg กว้าง 504 สูง 120 หน่วย · แถวบน "N SAVOIR" สูง 73 หน่วย
+   ตั้งให้แถวบนสูงเท่าเดิมกับต้นแบบ (6.054 มม.) และหัวตัวอักษรอยู่ที่เดิม */
+const LOGO_X = 8.047;      // (95)
+const LOGO_TOP = 12.784;   // (151)   ขอบบนรูป = หัวตัวอักษร N พอดี
+const LOGO_W = 41.80;      // (504 หน่วย)
+const LOGO_H = 9.95;       // (120 หน่วย)
 
 const CODE_F = 5.658;      // (66.8)  ขนาดตัวอักษร Code
 const CODE_TOP = 28.419;   // (335.7)
@@ -62,9 +65,9 @@ const SIG_TOP_R1 = 25.5;   //         กรณีมีแถวเดียว
 
 export function foCSS(w: number, h: number, scope = "") {
   const S = scope ? `.${scope}` : "";
-  const s = Math.min(w / FO_W, h / FO_H);
-  const ox = (w - FO_W * s) / 2;
-  const oy = (h - FO_H * s) / 2;
+  const s = Math.min(w / REF_W, h / REF_H);
+  const ox = (w - REF_W * s) / 2;
+  const oy = (h - REF_H * s) / 2;
   const n = (v: number) => +v.toFixed(4);
   const U = (mm: number) => `calc(var(--u) * ${n(mm * s)})`;          // ความยาว/ขนาด
   const X = (mm: number) => `calc(var(--u) * ${n(ox + mm * s)})`;     // ตำแหน่งจากซ้าย
@@ -81,13 +84,12 @@ export function foCSS(w: number, h: number, scope = "") {
   }
   ${S} .fo-fit{ position:absolute; left:0; top:0; right:0; bottom:0 }
   ${S} .fo-fit *{ box-sizing:border-box }
-  ${S} .fo-fit > div{ position:absolute }
+  ${S} .fo-fit > *{ position:absolute }
 
-  /* ---- ชื่อแบรนด์ (ห้ามเปลี่ยนฟอนต์) ---- */
+  /* ---- โลโก้ (รูปจริง ไม่ใช่ตัวหนังสือ) ---- */
   ${S} .fo-brand{
-    left:${X(BRAND_X)}; top:${Y(BRAND_TOP)};
-    font-family:'Urbanist','Noto Sans Thai',sans-serif; font-weight:800;
-    font-size:${U(BRAND_F)}; letter-spacing:${BRAND_LS}em; line-height:1; white-space:nowrap;
+    left:${X(LOGO_X)}; top:${Y(LOGO_TOP)};
+    width:${U(LOGO_W)}; height:${U(LOGO_H)}; display:block;
   }
 
   /* ---- Code / Name ใช้ฟอนต์ Narin ---- */
@@ -168,7 +170,7 @@ export function foInnerHTML(item: FoLabel, dmScale = 6) {
   const svg = dataMatrixSVG(item.batch_of || "", dmScale);
   const row = (k: string, v: string) => `<div class="k">${k}</div><div class="v">${esc(v)}</div>`;
   return `<div class="fo-fit">
-  <div class="fo-brand">N SAVOIR</div>
+  <img class="fo-brand" src="/logo-fo.svg" alt="N SAVOIR">
   <div class="fo-code"><span>${esc(item.code)}</span></div>
   <div class="fo-name"><span>${esc(item.name)}</span></div>
   <div class="fo-rows">
