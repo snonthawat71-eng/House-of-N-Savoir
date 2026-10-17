@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, useId } from "react";
 import { Plus, Loader2, Tags, ChevronRight, ChevronLeft, Printer, ScanLine, Search, X } from "lucide-react";
 import { toSVG } from "bwip-js/browser";
 import { supabase } from "../lib/supabase";
@@ -75,66 +75,109 @@ const esc = (s: unknown) =>
    ทุกขนาดอ้างอิงตัวแปร --u (1 หน่วย = 1mm ตอนปริ้น)
    เปลี่ยนขนาดสติกเกอร์แล้วทุกอย่างย่อ/ขยายตามเองอัตโนมัติ
    ------------------------------------------------------------ */
-export function labelCSS(w: number, h: number) {
-  // ย่อ/ขยายทั้งใบเหมือนย่อรูป โดยเทียบกับขนาดมาตรฐาน 80x50mm
-  // ใช้ด้านที่บีบกว่าเป็นตัวกำหนด จึงไม่มีทางล้นกรอบไม่ว่าจะตั้งขนาดเท่าไหร่
-  const k = Math.min(w / BATCH_W, h / BATCH_H);
-  const s = (base: number) => +(base * k).toFixed(3); // base = ขนาดเป็น mm ที่ 80x50
+export function labelCSS(w: number, h: number, scope = "") {
+  // scope = คลาสเฉพาะของสติกเกอร์ใบนั้น กันสไตล์ทับกันเวลามีหลายใบในหน้าเดียว
+  const S = scope ? `.${scope}` : "";
+  // ขอบในคิดจากด้านที่สั้นกว่า ไม่ผูกกับการย่อ/ขยายตัวหนังสือ
+  const pad = +(Math.min(w, h) * 0.075).toFixed(3);
+  // --s = ตัวคูณขนาดตัวหนังสือ ค่าตั้งต้นเผื่อไว้กรณี JS ยังไม่ทำงาน
+  // ของจริง fitLabel() จะวัดแล้วขยายให้เต็มพื้นที่ที่มี
+  const start = +Math.min(w / BATCH_W, h / BATCH_H).toFixed(3);
+  const b = (base: number) => `calc(var(--u) * var(--s) * ${base})`; // base = ขนาด mm ที่ 80x50
   const r = (n: number) => +n.toFixed(3);
   return `
-  .label{
+  ${S}.label{
+    --s:${start};
     width:calc(var(--u) * ${r(w)}); height:calc(var(--u) * ${r(h)});
-    padding:calc(var(--u) * ${s(3.75)});
-    border:calc(var(--u) * ${s(0.45)}) solid #111;
+    padding:calc(var(--u) * ${pad});
+    border:calc(var(--u) * ${r(Math.max(0.18, pad * 0.12))}) solid #111;
     background:#fff; color:#111214; overflow:hidden;
-    display:flex; flex-direction:column; justify-content:space-between;
     font-family:'Urbanist','Noto Sans Thai',Arial,sans-serif;
     line-height:1.1;
   }
-  .l-title{
-    font-weight:800; font-size:calc(var(--u) * ${s(4.6)});
+  /* วางเป็น 2 คอลัมน์: ซ้าย = ข้อความ, ขวา = Data Matrix
+     แบบนี้บาร์โค้ดไม่ไปกินความสูง ตัวหนังสือจึงขยายได้เต็มที่ */
+  ${S} .l-fit{ display:flex; align-items:stretch; gap:${b(2)}; min-height:100%; }
+  ${S} .l-main{ flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between }
+  ${S} .l-title{
+    font-weight:800; font-size:${b(4.6)};
     line-height:1.05; word-break:break-word;
   }
-  .l-code{
-    font-weight:500; font-size:calc(var(--u) * ${s(2.7)});
-    margin-top:calc(var(--u) * ${s(1.1)});
-  }
-  .l-code b{ font-weight:500; margin-left:calc(var(--u) * ${s(2.5)}) }
-  .l-rows{
+  ${S} .l-code{ font-weight:500; font-size:${b(2.7)}; margin-top:${b(1.1)} }
+  ${S} .l-code b{ font-weight:500; margin-left:${b(2.5)} }
+  ${S} .l-rows{
     display:grid; grid-template-columns:auto auto 1fr;
-    column-gap:calc(var(--u) * ${s(2.5)});
-    row-gap:calc(var(--u) * ${s(1.4)});
-    font-size:calc(var(--u) * ${s(2.7)}); font-weight:500;
-    margin-top:calc(var(--u) * ${s(4.25)});
+    column-gap:${b(2.5)}; row-gap:${b(1.4)};
+    font-size:${b(2.7)}; font-weight:500; margin-top:${b(4.25)};
   }
-  .l-foot{ display:flex; align-items:flex-end; justify-content:space-between; gap:calc(var(--u) * ${s(2)}) }
-  .l-brand{ display:flex; align-items:center; gap:calc(var(--u) * ${s(1.75)}) }
-  .l-brand img{ height:calc(var(--u) * ${s(3.6)}); width:auto; display:block }
-  .l-brand span{ font-weight:800; font-size:calc(var(--u) * ${s(1.8)}); letter-spacing:calc(var(--u) * ${s(0.2)}) }
-  .l-dm{ width:calc(var(--u) * ${s(11.5)}); height:calc(var(--u) * ${s(11.5)}); flex:none }
-  .l-dm svg{ width:100%; height:100%; display:block; shape-rendering:crispEdges }
+  ${S} .l-foot{ display:flex; align-items:flex-end; margin-top:${b(2)} }
+  ${S} .l-brand{ display:flex; align-items:center; gap:${b(1.75)} }
+  ${S} .l-brand img{ height:${b(3.6)}; width:auto; display:block }
+  ${S} .l-brand span{ font-weight:800; font-size:${b(1.8)}; letter-spacing:${b(0.2)} }
+  ${S} .l-dm{ width:${b(11.5)}; height:${b(11.5)}; flex:none; align-self:flex-end }
+  ${S} .l-dm svg{ width:100%; height:100%; display:block; shape-rendering:crispEdges }
   `;
 }
+
+/** โค้ดวัด-แล้วขยาย: ทำให้ตัวหนังสือใหญ่ที่สุดเท่าที่ยังอยู่ในกรอบพอดี
+ *  (เขียนเป็นข้อความเพื่อเอาไปแปะในหน้าต่างปริ้นได้ด้วย) */
+export const FIT_FN = `
+function fitLabel(el) {
+  var fit = el.querySelector('.l-fit');
+  if (!fit) return;
+  var cur = function () {
+    return parseFloat(el.style.getPropertyValue('--s')) ||
+           parseFloat(getComputedStyle(el).getPropertyValue('--s')) || 1;
+  };
+  // ล้นด้านกว้างไหม — เช็คเฉพาะตัวที่หดไม่ได้ (ตารางข้อมูล/โลโก้)
+  var tooWide = function () {
+    var ns = fit.querySelectorAll('.l-rows, .l-brand, .l-code');
+    for (var i = 0; i < ns.length; i++) {
+      if (ns[i].scrollWidth > ns[i].clientWidth + 1) return true;
+    }
+    return false;
+  };
+  fit.style.minHeight = '0';
+  // 1) ขยาย/ย่อให้ความสูงพอดีกรอบ
+  for (var i = 0; i < 6; i++) {
+    var cs = getComputedStyle(el);
+    var availH = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    var hh = fit.scrollHeight;
+    if (!hh || availH <= 0) break;
+    var c = cur();
+    var next = Math.max(0.1, Math.min(6, c * (availH / hh) * 0.97));
+    if (Math.abs(next - c) / c < 0.005) break;
+    el.style.setProperty('--s', String(next));
+  }
+  // 2) ถ้าล้นด้านกว้าง ค่อยหดลงทีละนิดจนพอดี
+  for (var j = 0; j < 14 && tooWide(); j++) {
+    el.style.setProperty('--s', String(cur() * 0.94));
+  }
+  fit.style.minHeight = '';
+}`;
 
 /** เนื้อหาในสติกเกอร์ (HTML ชุดเดียว ใช้ทั้งดูตัวอย่างและปริ้น) */
 export function labelInnerHTML(item: BatchLabel, logoUrl: string, dmScale = 6) {
   const svg = dataMatrixSVG(dmPayload(item.code, item.batch_no), dmScale);
   const row = (k: string, v: string) => `<div>${k}</div><div>:</div><div>${esc(v)}</div>`;
-  return `
-  <div>
-    <div class="l-title">${esc(item.title)}</div>
-    ${item.code ? `<div class="l-code">CODE :<b>${esc(item.code)}</b></div>` : ""}
-    <div class="l-rows">
-      ${row("BATCH NO.", item.batch_no)}
-      ${row("MFG. DATE", labelDate(item.mfg_date))}
-      ${row("EXP. DATE", labelDate(item.exp_date))}
-      ${row("QUANTITY", String(item.quantity ?? ""))}
+  return `<div class="l-fit">
+  <div class="l-main">
+    <div>
+      <div class="l-title">${esc(item.title)}</div>
+      ${item.code ? `<div class="l-code">CODE :<b>${esc(item.code)}</b></div>` : ""}
+      <div class="l-rows">
+        ${row("BATCH NO.", item.batch_no)}
+        ${row("MFG. DATE", labelDate(item.mfg_date))}
+        ${row("EXP. DATE", labelDate(item.exp_date))}
+        ${row("QUANTITY", String(item.quantity ?? ""))}
+      </div>
+    </div>
+    <div class="l-foot">
+      <div class="l-brand"><img src="${logoUrl}" alt=""><span>HOUSE OF N SAVOIR</span></div>
     </div>
   </div>
-  <div class="l-foot">
-    <div class="l-brand"><img src="${logoUrl}" alt=""><span>HOUSE OF N SAVOIR</span></div>
-    <div class="l-dm">${svg}</div>
-  </div>`;
+  <div class="l-dm">${svg}</div>
+</div>`;
 }
 
 /* ============================================================
@@ -367,27 +410,53 @@ function ScanLookup({ rows, onOpen }: { rows: BatchLabel[]; onOpen: (it: BatchLa
 /** ตัวอย่างสติกเกอร์ตามสัดส่วนจริง — ย่อให้พอดีความกว้างที่มี */
 export function LabelCanvas({ item }: { item: BatchLabel }) {
   const box = useRef<HTMLDivElement>(null);
+  const label = useRef<HTMLDivElement>(null);
   const [u, setU] = useState(0);
   const w = Number(item.width_mm) || BATCH_W;
   const h = Number(item.height_mm) || BATCH_H;
+  const html = labelInnerHTML(item, "/logo-mark.png", 6);
+  // คลาสเฉพาะใบนี้ กันสไตล์ชนกันเวลามีสติกเกอร์หลายใบอยู่ในหน้าเดียว
+  const scope = `lbl${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
 
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const fit = () => setU(el.clientWidth / w);
-    fit();
-    const ro = new ResizeObserver(fit);
+    const measure = () => setU(el.clientWidth / w);
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, [w]);
+
+  // วัดแล้วขยายตัวหนังสือให้เต็มกรอบ — ทำใหม่ทุกครั้งที่ขนาด/เนื้อหาเปลี่ยน
+  useEffect(() => {
+    const el = label.current;
+    if (!el || !u) return;
+    let dead = false;
+    // eslint-disable-next-line no-new-func
+    const run = new Function(`${FIT_FN}; fitLabel(arguments[0]);`);
+    const fit = () => {
+      if (dead || !label.current) return;
+      label.current.style.removeProperty("--s");
+      try { run(label.current); } catch { /* ไม่เป็นไร ใช้ค่าตั้งต้น */ }
+    };
+    // ต้องรอฟอนต์กับรูปโลโก้โหลดเสร็จก่อน ไม่งั้นวัดความสูงได้ค่าผิด
+    const ready: Promise<unknown>[] = [];
+    if (document.fonts?.ready) ready.push(document.fonts.ready);
+    const img = el.querySelector("img");
+    if (img && !img.complete) ready.push(new Promise((r) => { img.onload = r; img.onerror = r; }));
+    fit();
+    Promise.all(ready).then(() => requestAnimationFrame(fit));
+    return () => { dead = true; };
+  }, [u, w, h, html]);
 
   return (
     <div ref={box} style={{ width: "100%" }}>
       {u > 0 && (
         <>
-          <style>{labelCSS(w, h)}</style>
-          <div className="label shadow-sm" style={{ ["--u" as any]: `${u}px` }}
-            dangerouslySetInnerHTML={{ __html: labelInnerHTML(item, "/logo-mark.png", 6) }} />
+          <style>{labelCSS(w, h, scope)}</style>
+          <div ref={label} className={`${scope} label shadow-sm`} style={{ ["--u" as any]: `${u}px` }}
+            dangerouslySetInnerHTML={{ __html: html }} />
         </>
       )}
     </div>
@@ -494,9 +563,13 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
 </div>
 <div class="wrap"><div class="sheet">${one.repeat(copies)}</div></div>
 <script>
-  // รอให้ฟอนต์กับโลโก้โหลดเสร็จก่อน ไม่งั้นสติกเกอร์อาจออกมาผิดขนาด
+  ${FIT_FN}
+  // รอให้ฟอนต์กับโลโก้โหลดเสร็จก่อน ไม่งั้นวัดขนาดตัวหนังสือผิด
   window.onload = function () {
-    var go = function () { setTimeout(function () { window.print(); }, 250); };
+    var go = function () {
+      [].forEach.call(document.querySelectorAll('.label'), fitLabel);
+      setTimeout(function () { window.print(); }, 250);
+    };
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(go); } else { go(); }
   };
 <\/script>
