@@ -412,7 +412,7 @@ function ScanLookup({ rows, onOpen }: { rows: BatchLabel[]; onOpen: (it: BatchLa
    ตัวอย่างสติกเกอร์ + ปุ่มปริ้น
    ============================================================ */
 /** ตัวอย่างสติกเกอร์ตามสัดส่วนจริง — ย่อให้พอดีความกว้างที่มี */
-export function LabelCanvas({ item }: { item: BatchLabel }) {
+export function LabelCanvas({ item, onScale }: { item: BatchLabel; onScale?: (s: number) => void }) {
   const box = useRef<HTMLDivElement>(null);
   const label = useRef<HTMLDivElement>(null);
   const [u, setU] = useState(0);
@@ -443,6 +443,9 @@ export function LabelCanvas({ item }: { item: BatchLabel }) {
       if (dead || !label.current) return;
       label.current.style.removeProperty("--s");
       try { run(label.current); } catch { /* ไม่เป็นไร ใช้ค่าตั้งต้น */ }
+      // ส่งค่าที่วัดได้ออกไป เพื่อให้ตอนปริ้นใช้ค่าเดียวกันเป๊ะ ๆ
+      const s = parseFloat(label.current.style.getPropertyValue("--s"));
+      if (onScale && s > 0) onScale(s);
     };
     // ต้องรอฟอนต์กับรูปโลโก้โหลดเสร็จก่อน ไม่งั้นวัดความสูงได้ค่าผิด
     const ready: Promise<unknown>[] = [];
@@ -452,6 +455,7 @@ export function LabelCanvas({ item }: { item: BatchLabel }) {
     fit();
     Promise.all(ready).then(() => requestAnimationFrame(fit));
     return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [u, w, h, html]);
 
   return (
@@ -469,11 +473,13 @@ export function LabelCanvas({ item }: { item: BatchLabel }) {
 
 function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: () => void; onDelete: () => void }) {
   const [copies, setCopies] = useState("1");
+  // ขนาดตัวหนังสือที่ตัวอย่างวัดได้ — ส่งต่อให้ตอนปริ้นใช้ค่าเดียวกัน
+  const scale = useRef<number | undefined>(undefined);
 
   return (
     <div className="pb-4">
       <div className="mb-3 overflow-hidden rounded-2xl bg-secondary p-3">
-        <LabelCanvas item={item} />
+        <LabelCanvas item={item} onScale={(s) => { scale.current = s; }} />
       </div>
       <p className="mb-3 px-1 text-center text-[11px] text-muted-foreground">
         ขนาดสติกเกอร์ {Number(item.width_mm) || BATCH_W} × {Number(item.height_mm) || BATCH_H} mm
@@ -490,11 +496,11 @@ function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: ()
           inputMode="numeric" placeholder="1" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
       </Field>
 
-      <Button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "label")}
+      <Button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "label", scale.current)}
         className="w-full rounded-2xl py-6 text-[15px]">
         <Printer size={16} /> ปริ้นเครื่องสติกเกอร์ ({Number(item.width_mm) || BATCH_W}×{Number(item.height_mm) || BATCH_H}mm)
       </Button>
-      <button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "a4")}
+      <button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "a4", scale.current)}
         className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary py-3.5 text-sm font-bold text-foreground">
         <Printer size={15} /> ปริ้นลงกระดาษ A4 (เรียงหลายดวง)
       </button>
@@ -512,26 +518,37 @@ function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: ()
    mode "label" = เครื่องพิมพ์สติกเกอร์ 80x50mm (1 ดวง/แผ่น)
    mode "a4"    = กระดาษ A4 เรียงดวงละ 80x50mm แล้วตัดเอง
    ============================================================ */
-export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a4") {
+export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a4", scale?: number) {
   logAudit({ action: "view", entity: "batch-label-print", entityId: item.batch_no, newValue: { copies, mode } });
   const W = Number(item.width_mm) || BATCH_W;
   const H = Number(item.height_mm) || BATCH_H;
   const logo = `${window.location.origin}/logo-mark.png`;
-  const one = `<div class="label">${labelInnerHTML(item, logo, 8)}</div>`;
+  // ใช้ขนาดตัวหนังสือค่าเดียวกับที่เห็นในตัวอย่าง จะได้ออกมาเหมือนกันเป๊ะ
+  const sAttr = scale && scale > 0 ? ` style="--s:${scale.toFixed(4)}"` : "";
+  const one = `<div class="label"${sAttr}>${labelInnerHTML(item, logo, 8)}</div>`;
+  // A4 เว้นขอบ 8mm -> พื้นที่พิมพ์จริง 194mm ล็อกความกว้างไว้เท่านี้
+  // ทั้งบนจอและบนกระดาษจะได้เรียงเหมือนกัน ไม่ตกขอบ
+  const SHEET_W = 210 - 8 * 2;
+  const perRow = Math.max(1, Math.floor((SHEET_W + 4) / (W + 4)));
 
   const pageCss = mode === "label"
     ? `@page { size: ${W}mm ${H}mm; margin: 0 }
        body { margin: 0 }
-       .sheet { display: flex; flex-direction: column; align-items: center }
+       .sheet { width: ${W}mm; margin: 0 auto; display: flex; flex-direction: column; align-items: center }
        .label { page-break-after: always; border: none }
        .label:last-child { page-break-after: auto }`
     : `@page { size: A4; margin: 8mm }
        body { margin: 0 }
-       /* จัดสติกเกอร์ให้อยู่กลางหน้ากระดาษ ไม่ชิดซ้าย */
-       .sheet { display: flex; flex-wrap: wrap; gap: 4mm; justify-content: center; align-content: flex-start }
+       /* ล็อกความกว้างเท่าพื้นที่พิมพ์จริง เรียง ${perRow} ดวง/แถว ไม่ตกขอบ */
+       .sheet {
+         width: ${SHEET_W}mm; margin: 0 auto;
+         display: flex; flex-wrap: wrap; gap: 4mm;
+         justify-content: center; align-content: flex-start;
+       }
        .label { border-style: dashed; border-color: #bbb }`;
 
   const html = `<!doctype html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Batch ${esc(item.batch_no)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;700;800&family=Noto+Sans+Thai:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -553,11 +570,14 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
   }
   .b-back { background: #2A2B2E; color: #fff }
   .b-print { background: #014BAA; color: #fff }
-  .wrap { padding: 14px }
+  /* บนจอมือถือ ย่อทั้งแผ่นให้พอดีหน้าจอ แต่ตอนพิมพ์ใช้ขนาดจริงเสมอ */
+  .wrap { padding: 14px; overflow-x: auto }
+  .zoom { transform-origin: top center }
   @media print {
     body { background: #fff }
-    .bar, .wrap { padding: 0; background: none }
     .bar { display: none }
+    .wrap { padding: 0; overflow: visible }
+    .zoom { transform: none !important; width: auto !important }
   }
 </style></head><body>
 <div class="bar">
@@ -565,17 +585,36 @@ export function printLabels(item: BatchLabel, copies: number, mode: "label" | "a
   <button class="b-back" onclick="window.close()">ปิดหน้านี้</button>
   <button class="b-print" onclick="window.print()">สั่งปริ้นอีกครั้ง</button>
 </div>
-<div class="wrap"><div class="sheet">${one.repeat(copies)}</div></div>
+<div class="wrap"><div class="zoom"><div class="sheet">${one.repeat(copies)}</div></div></div>
 <script>
   ${FIT_FN}
-  // รอให้ฟอนต์กับโลโก้โหลดเสร็จก่อน ไม่งั้นวัดขนาดตัวหนังสือผิด
+  var LOCKED = ${scale && scale > 0 ? "true" : "false"};
+  // ย่อทั้งแผ่นให้พอดีจอมือถือ (เฉพาะบนจอ — ตอนพิมพ์ CSS สั่งไม่ให้ย่อ)
+  function fitScreen() {
+    var z = document.querySelector('.zoom'), s = document.querySelector('.sheet');
+    if (!z || !s) return;
+    z.style.transform = '';
+    var avail = document.querySelector('.wrap').clientWidth;
+    var k = Math.min(1, avail / s.offsetWidth);
+    z.style.transform = 'scale(' + k + ')';
+    z.style.height = (s.offsetHeight * k) + 'px';
+  }
   window.onload = function () {
     var go = function () {
-      [].forEach.call(document.querySelectorAll('.label'), fitLabel);
+      // ถ้ายังไม่มีค่าขนาดตัวหนังสือจากตัวอย่าง ค่อยวัดเอง
+      // ถ้ามีแล้ว ใช้ค่านั้นเลย จะได้ออกมาเหมือนตัวอย่างเป๊ะ
+      if (!LOCKED) [].forEach.call(document.querySelectorAll('.label'), fitLabel);
+      fitScreen();
       setTimeout(function () { window.print(); }, 250);
     };
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(go); } else { go(); }
   };
+  window.addEventListener('resize', fitScreen);
+  window.addEventListener('beforeprint', function () {
+    var z = document.querySelector('.zoom');
+    if (z) { z.style.transform = 'none'; z.style.height = 'auto'; }
+  });
+  window.addEventListener('afterprint', fitScreen);
 <\/script>
 </body></html>`;
 
