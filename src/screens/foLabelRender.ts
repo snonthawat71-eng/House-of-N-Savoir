@@ -21,7 +21,7 @@ export function foCSS(w: number, h: number, scope = "") {
     width:calc(var(--u) * ${r(w)}); height:calc(var(--u) * ${r(h)});
     padding:calc(var(--u) * ${pad});
     background:#fff; color:#111214; overflow:hidden;
-    font-family:'Urbanist','Noto Sans Thai',Arial,sans-serif;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
     line-height:1.05;
   }
   /* บน = ข้อมูลซ้าย + สัญลักษณ์ขวา · ล่าง = Data Matrix + ข้อความกำกับยาวเต็มความกว้าง */
@@ -30,15 +30,15 @@ export function foCSS(w: number, h: number, scope = "") {
   ${S} .fo-left{ flex:1; min-width:0; display:flex; flex-direction:column }
   ${S} .fo-right{ flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center }
 
-  ${S} .fo-brand{ font-weight:800; font-size:${b(11)}; letter-spacing:${b(-0.2)}; line-height:1 }
-  ${S} .fo-code{ font-weight:400; font-size:${b(6.2)}; margin-top:${b(5.5)}; line-height:1 }
-  ${S} .fo-name{ font-weight:400; font-size:${b(9.2)}; margin-top:${b(1.6)}; line-height:1.02; word-break:break-word }
+  ${S} .fo-brand{ font-family:'Urbanist','Noto Sans Thai',sans-serif; font-weight:800; font-size:${b(11)}; letter-spacing:${b(-0.2)}; line-height:1 }
+  ${S} .fo-code{ font-family:'Narin','Urbanist',sans-serif; font-weight:400; font-size:${b(6.2)}; margin-top:${b(5.5)}; line-height:1 }
+  ${S} .fo-name{ font-family:'Narin','Urbanist',sans-serif; font-weight:400; font-size:${b(9.2)}; margin-top:${b(1.6)}; line-height:1.02; word-break:break-word }
 
   ${S} .fo-rows{
     margin-bottom:auto;
     display:grid; grid-template-columns:auto 1fr;
     column-gap:${b(4)}; row-gap:${b(1.1)};
-    font-family:'Space Mono',ui-monospace,monospace;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
     font-size:${b(3.9)}; margin-top:${b(7)};
   }
   ${S} .fo-rows .k{ font-weight:700 }
@@ -48,7 +48,7 @@ export function foCSS(w: number, h: number, scope = "") {
   ${S} .fo-dm svg{ width:100%; height:100%; display:block; shape-rendering:crispEdges }
   ${S} .fo-legal{
     flex:1; min-width:0;
-    font-family:'Space Mono',ui-monospace,monospace;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
     font-size:${b(2.35)}; line-height:1.45;
   }
 
@@ -57,7 +57,7 @@ export function foCSS(w: number, h: number, scope = "") {
   ${S} .fo-pics img{ width:100%; height:auto; display:block }
   ${S} .fo-pics .ph{ width:100%; aspect-ratio:1; border:${b(0.8)} solid #E5322A; transform:rotate(45deg) scale(.72) }
   ${S} .fo-signal{
-    font-family:'Space Mono',ui-monospace,monospace;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
     font-size:${b(4.2)}; letter-spacing:${b(0.3)}; margin:${b(0.6)} 0;
   }
   `;
