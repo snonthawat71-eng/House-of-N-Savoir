@@ -42,7 +42,7 @@ export const GHS = [
   { code: "GHS09", th: "เป็นพิษต่อสิ่งแวดล้อม" },
 ] as const;
 
-export const ghsUrl = (code: string) => `/ghs/${code}.png`;
+export const ghsUrl = (code: string) => `/ghs/${code}.svg`;
 
 /** ค่าเริ่มต้นของบรรทัดล่าง — ตามภาพตัวอย่างที่ให้มา */
 export const DEFAULT_HP =

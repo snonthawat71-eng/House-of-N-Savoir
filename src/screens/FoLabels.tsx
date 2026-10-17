@@ -9,7 +9,7 @@ import { Field } from "./B2B";
 import { Modal, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import {
-  FO_W, FO_H, GHS, foDate, foToday, plusTwoYears,
+  FO_W, FO_H, GHS, ghsUrl, foDate, foToday, plusTwoYears,
   lastHp, lastStorage, rememberLines, DEFAULT_HP, DEFAULT_STORAGE, type FoLabel,
 } from "./foLabel";
 import { foCSS, foInnerHTML, FO_FIT_FN } from "./foLabelRender";
@@ -540,7 +540,7 @@ function FoForm({ initial, customers, onDone, onDelete }: {
                 className="flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-center"
                 style={on ? { background: C.brandSoft, border: `1.5px solid ${C.brand}` }
                           : { background: C.bg, border: "1.5px solid transparent" }}>
-                <img src={`/ghs/${g.code}.png`} alt="" style={{ width: 30, height: 30, objectFit: "contain" }}
+                <img src={ghsUrl(g.code)} alt="" style={{ width: 30, height: 30, objectFit: "contain" }}
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }} />
                 <span className="text-[10px] font-semibold leading-tight"
                   style={{ color: on ? C.brand : C.sub }}>{g.th}</span>
