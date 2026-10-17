@@ -24,6 +24,16 @@ export default defineConfig({
       canvg: fileURLToPath(new URL("./src/lib/empty-stub.ts", import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // ตั้งชื่อก้อนตัวอ่านบาร์โค้ดให้ชัด จะได้สั่งไม่ให้โหลดล่วงหน้าตอนติดตั้งแอปได้
+        manualChunks(id: string) {
+          if (id.includes("@zxing")) return "zxing";
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -32,7 +42,7 @@ export default defineConfig({
       workbox: {
         // ไฟล์ก้อนใหญ่ที่ใช้เป็นครั้งคราว (หน้า Print, ตัวอ่าน Excel)
         // ไม่ต้องโหลดล่วงหน้าตอนติดตั้งแอป — ค่อยโหลดตอนเปิดใช้จริงแล้วเก็บไว้เอง
-        globIgnores: ["**/Print-*.js", "**/xlsx-*.js", "**/labelPdf-*.js", "**/foPdf-*.js", "**/html2canvas*.js", "**/jspdf*.js"],
+        globIgnores: ["**/Print-*.js", "**/xlsx-*.js", "**/labelPdf-*.js", "**/foPdf-*.js", "**/html2canvas*.js", "**/jspdf*.js", "**/zxing*.js", "**/index.esm*.js"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       manifest: {

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, Lock, ChevronRight, LayoutGrid, Search, SlidersHorizontal } from "lucide-react";
+import { Bell, Lock, ChevronRight, LayoutGrid, Search, ScanLine } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/Carousel";
@@ -18,10 +18,11 @@ type Props = {
   onDashboard: () => void;
   onConnect: () => void;
   onNotes: () => void;
+  onSearch: (scan?: boolean) => void;
 };
 
 /** หน้าแรก (Overview) — ยกเครื่องด้วย shadcn/ui */
-export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect, onNotes }: Props) {
+export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect, onNotes, onSearch }: Props) {
   return (
     <div className="pb-16">
       {/* หัวดำแบบเตี้ย — ข้อความ 3 บรรทัดเรียงข้างโลโก้ */}
@@ -71,14 +72,16 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
       </Carousel>
 
       <div className="mt-6 px-5">
-        {/* ค้นหา + filter */}
+        {/* ค้นหาทั้งระบบ + ยิงโค้ด */}
         <div className="mb-4 flex items-center gap-2">
-          <div className="flex flex-1 items-center gap-2 rounded-2xl bg-card px-4 py-3 shadow-sm">
-            <Search size={16} className="text-muted-foreground" />
+          <button onClick={() => onSearch()}
+            className="flex flex-1 items-center gap-2 rounded-2xl bg-card px-4 py-3 text-left shadow-sm">
+            <Search size={16} className="shrink-0 text-muted-foreground" />
             <span className="text-[13px] text-muted-foreground">ค้นหาทั้งระบบ…</span>
-          </div>
-          <Button size="icon" className="h-[46px] w-[46px] rounded-2xl bg-ink hover:bg-ink/90">
-            <SlidersHorizontal size={16} />
+          </button>
+          <Button size="icon" aria-label="สแกนโค้ด" onClick={() => onSearch(true)}
+            className="h-[46px] w-[46px] rounded-2xl bg-ink hover:bg-ink/90">
+            <ScanLine size={16} />
           </Button>
         </div>
 
