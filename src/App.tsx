@@ -23,7 +23,6 @@ import DashboardReal from "./screens/Dashboard";
 import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
-import SearchScreen from "./screens/Search";
 import NotesScreen from "./screens/Notes";
 // หน้า Print ใช้ไลบรารีสร้างบาร์โค้ดที่ไฟล์ใหญ่ → โหลดเฉพาะตอนเข้าหน้านี้ แอปส่วนอื่นจะได้ไม่ช้า
 const PrintScreen = lazy(() => import("./screens/Print"));
@@ -168,8 +167,6 @@ export default function App() {
   // ล้าง localStorage เก่าที่เคยใช้ (ย้ายมา sessionStorage แล้ว)
   useEffect(() => { ["b2c_channel", "b2c_shop", "b2c_sub", "ns_screen", "ns_left_at"].forEach((k) => localStorage.removeItem(k)); }, []);
   const [rolePick, setRolePick] = useState(false);
-  // ค้นหาทั้งระบบ: เปิดกล้องสแกนทันทีไหม (กดจากปุ่มสแกนหน้าแรก)
-  const [searchScan, setSearchScan] = useState(false);
 
   // รหัสเข้า N SAVOIR CONNECT (ล็อกอีกชั้นสำหรับเจ้าของ)
   const CONNECT_PIN = (import.meta.env.VITE_CONNECT_PIN as string) || "2580";
@@ -862,7 +859,7 @@ export default function App() {
   );
 
   /* ---------- router ---------- */
-  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", search:"ค้นหาทั้งระบบ", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV", notes:"Note · งานทั้งหมด", print:"Print · งานปริ้น" };
+  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV", notes:"Note · งานทั้งหมด", print:"Print · งานปริ้น" };
   const NAV = [
     { id: "modules", label: "Overview", icon: Home },
     { id: "home", label: "Dashboard", icon: LayoutGrid },
@@ -884,10 +881,10 @@ export default function App() {
           onDashboard={() => go("home")}
           onConnect={openConnect}
           onNotes={() => go("notes")}
-          onSearch={(scan) => { setSearchScan(Boolean(scan)); go("search"); }}
+          mods={P.mods}
+          go={go}
         />
       );
-      case "search": return <SearchScreen mods={P.mods} go={go} autoScan={searchScan} />;
       case "home": return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
       case "office": return demo ? <Office /> : <OfficeReal go={go} finance={P.finance} />;
       case "b2b": return demo ? <B2BScreen /> : <B2BReal />;

@@ -1,9 +1,10 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, Lock, ChevronRight, LayoutGrid, Search, ScanLine } from "lucide-react";
+import { useState } from "react";
+import { Bell, Lock, ChevronRight, LayoutGrid } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/Carousel";
 import { TodoCard } from "./Notes";
+import { GlobalSearch } from "./Search";
 
 export type ModuleTile = { id: string; name: string; sub: string; icon: LucideIcon };
 
@@ -18,11 +19,15 @@ type Props = {
   onDashboard: () => void;
   onConnect: () => void;
   onNotes: () => void;
-  onSearch: (scan?: boolean) => void;
+  /** หมวดที่ผู้ใช้คนนี้มีสิทธิ์ — ใช้จำกัดขอบเขตการค้นหา */
+  mods: string[];
+  go: (screen: string) => void;
 };
 
 /** หน้าแรก (Overview) — ยกเครื่องด้วย shadcn/ui */
-export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect, onNotes, onSearch }: Props) {
+export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect, onNotes, mods, go }: Props) {
+  // กำลังค้นอยู่ = ซ่อนการ์ดหมวดงานไว้ก่อน ให้ผลการค้นหาเต็มจอ
+  const [searching, setSearching] = useState(false);
   return (
     <div className="pb-16">
       {/* หัวดำแบบเตี้ย — ข้อความ 3 บรรทัดเรียงข้างโลโก้ */}
@@ -72,40 +77,33 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
       </Carousel>
 
       <div className="mt-6 px-5">
-        {/* ค้นหาทั้งระบบ + ยิงโค้ด */}
-        <div className="mb-4 flex items-center gap-2">
-          <button onClick={() => onSearch()}
-            className="flex flex-1 items-center gap-2 rounded-2xl bg-card px-4 py-3 text-left shadow-sm">
-            <Search size={16} className="shrink-0 text-muted-foreground" />
-            <span className="text-[13px] text-muted-foreground">ค้นหาทั้งระบบ…</span>
-          </button>
-          <Button size="icon" aria-label="สแกนโค้ด" onClick={() => onSearch(true)}
-            className="h-[46px] w-[46px] rounded-2xl bg-ink hover:bg-ink/90">
-            <ScanLine size={16} />
-          </Button>
-        </div>
+        {/* ค้นหาทั้งระบบ — พิมพ์/ยิงสแกนได้ตรงนี้เลย ผลลัพธ์ขึ้นข้างล่าง */}
+        <GlobalSearch mods={mods} go={go} onActive={setSearching} />
 
-        {/* 4 การ์ดหมวดงาน */}
-        <div className="grid grid-cols-2 gap-3">
-          {modules.map((m) => (
-            <Card key={m.id} onClick={() => onModule(m.id)} className="cursor-pointer p-5">
-              <div className="mb-4 text-foreground">
-                <m.icon size={32} strokeWidth={1.8} />
+        {/* การ์ดหมวดงาน + Dashboard — ซ่อนไว้ตอนกำลังค้นหา */}
+        {!searching && (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {modules.map((m) => (
+                <Card key={m.id} onClick={() => onModule(m.id)} className="cursor-pointer p-5">
+                  <div className="mb-4 text-foreground">
+                    <m.icon size={32} strokeWidth={1.8} />
+                  </div>
+                  <div className="font-disp text-lg font-bold text-foreground">{m.name}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{m.sub}</div>
+                </Card>
+              ))}
+            </div>
+
+            <Card onClick={onDashboard} className="mt-3 flex cursor-pointer items-center justify-between p-4">
+              <div className="flex items-center gap-3.5">
+                <LayoutGrid size={26} strokeWidth={1.8} className="shrink-0 text-foreground" />
+                <div className="font-disp text-[15px] font-bold text-foreground">Dashboard</div>
               </div>
-              <div className="font-disp text-lg font-bold text-foreground">{m.name}</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">{m.sub}</div>
+              <ChevronRight size={18} className="text-muted-foreground" />
             </Card>
-          ))}
-        </div>
-
-        {/* Dashboard */}
-        <Card onClick={onDashboard} className="mt-3 flex cursor-pointer items-center justify-between p-4">
-          <div className="flex items-center gap-3.5">
-            <LayoutGrid size={26} strokeWidth={1.8} className="shrink-0 text-foreground" />
-            <div className="font-disp text-[15px] font-bold text-foreground">Dashboard</div>
-          </div>
-          <ChevronRight size={18} className="text-muted-foreground" />
-        </Card>
+          </>
+        )}
       </div>
     </div>
   );
