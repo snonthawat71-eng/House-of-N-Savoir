@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef, useId } from "react";
-import { Plus, Loader2, Tags, ChevronRight, ChevronLeft, Printer, ScanLine, Search, X } from "lucide-react";
+import { Plus, Loader2, Tags, ChevronRight, Printer, ScanLine, Search, X } from "lucide-react";
 import { toSVG } from "bwip-js/browser";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
@@ -260,9 +260,7 @@ function BatchLabels({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="px-5 pb-32">
-      <button onClick={onBack} className="mt-2 inline-flex items-center gap-1 text-[13px] text-muted-foreground">
-        <ChevronLeft size={16} /> งานปริ้นทั้งหมด
-      </button>
+      {/* ไม่ใส่ปุ่มย้อนกลับตรงนี้ — ใช้ปุ่มย้อนกลับบนหัวแอปอันเดียว ไม่งั้นมีสองปุ่มซ้ำกัน */}
       <div className="mb-3 mt-2 flex items-center justify-between">
         <div>
           <div className="font-disp text-xl font-extrabold text-foreground">Batch Label</div>
