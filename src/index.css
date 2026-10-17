@@ -1,21 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
 /* ฟอนต์ Narin (ลิขสิทธิ์ซื้อ) — ใช้กับ Code/Name บนฉลาก FO Label
-   วางไฟล์ไว้ที่ public/fonts/ แล้วจะใช้งานได้ทันที
-   ถ้ายังไม่มีไฟล์ ระบบจะถอยไปใช้ Urbanist ให้เองโดยไม่พัง */
+   ไฟล์อยู่ที่ public/fonts/Narin-Regular.woff2
+   ถ้าไฟล์หาย ระบบจะถอยไปใช้ Urbanist ให้เองโดยไม่พัง */
 @font-face {
   font-family: 'Narin';
-  src: url('/fonts/Narin-Regular.woff2') format('woff2'),
-       url('/fonts/Narin-Regular.woff') format('woff');
+  src: url('/fonts/Narin-Regular.woff2') format('woff2');
   font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Narin';
-  src: url('/fonts/Narin-Light.woff2') format('woff2'),
-       url('/fonts/Narin-Light.woff') format('woff');
-  font-weight: 300;
   font-style: normal;
   font-display: swap;
 }

@@ -29,7 +29,7 @@ export type FoLabel = {
 export const FO_W = 152.4;
 export const FO_H = 101.6;
 
-/** สัญลักษณ์อันตรายมาตรฐาน GHS ทั้ง 9 แบบ — ไฟล์รูปอยู่ที่ /ghs/<code>.png */
+/** สัญลักษณ์อันตรายมาตรฐาน GHS ทั้ง 9 แบบ — ไฟล์รูปอยู่ที่ /ghs/<code>.svg */
 export const GHS = [
   { code: "GHS01", th: "ระเบิดได้" },
   { code: "GHS02", th: "ไวไฟ" },

@@ -140,5 +140,12 @@ function fitFo(el) {
   for (var j = 0; j < 14 && tooWide(); j++) {
     el.style.setProperty('--s', String(cur() * 0.94));
   }
+  // กันตกขอบล่าง: ถ้าข้อความยังสูงเกินกรอบ (เกิดจากบรรทัดล่างตัดขึ้นบรรทัดใหม่) ให้ย่อทีละนิดจนพอดี
+  for (var k = 0; k < 24; k++) {
+    var cs3 = getComputedStyle(el);
+    var availH3 = el.clientHeight - parseFloat(cs3.paddingTop) - parseFloat(cs3.paddingBottom);
+    if (availH3 <= 0 || fit.scrollHeight <= availH3 + 0.5) break;
+    el.style.setProperty('--s', String(cur() * 0.98));
+  }
   fit.style.minHeight = '';
 }`;
