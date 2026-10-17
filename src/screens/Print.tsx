@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef, useId } from "react";
-import { Plus, Loader2, Tags, ChevronRight, Printer, ScanLine, Search, X } from "lucide-react";
+import { Plus, Loader2, Tags, ChevronRight, Printer, ScanLine, Search, X, Check, CheckSquare } from "lucide-react";
 import { toSVG } from "bwip-js/browser";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
@@ -224,6 +224,56 @@ function BatchLabels({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<ModalState>(null);
+  // โหมดเลือกหลายรายการ: id -> จำนวนดวง
+  const [pick, setPick] = useState(false);
+  const [sel, setSel] = useState<Map<string, number>>(new Map());
+  const [multiBusy, setMultiBusy] = useState<null | "a4" | "label">(null);
+  const [multiErr, setMultiErr] = useState("");
+
+  const sizeOf = (r: BatchLabel) =>
+    `${Number(r.width_mm) || BATCH_W}×${Number(r.height_mm) || BATCH_H}mm`;
+  /** ขนาดของใบแรกที่เลือก — ใบอื่นต้องขนาดนี้เท่านั้น */
+  const lockSize = useMemo(() => {
+    const first = rows.find((r) => sel.has(r.id));
+    return first ? sizeOf(first) : null;
+  }, [rows, sel]);
+  const totalCopies = useMemo(() => [...sel.values()].reduce((a, b) => a + b, 0), [sel]);
+  const sheets = useMemo(() => {
+    const first = rows.find((r) => sel.has(r.id));
+    if (!first) return 0;
+    const per = Math.max(1, Math.floor(200 / (Number(first.width_mm) || BATCH_W))) *
+                Math.max(1, Math.floor(287 / (Number(first.height_mm) || BATCH_H)));
+    return Math.ceil(totalCopies / per);
+  }, [rows, sel, totalCopies]);
+
+  const toggleSel = (r: BatchLabel) => setSel((m) => {
+    const n = new Map(m);
+    if (n.has(r.id)) n.delete(r.id); else n.set(r.id, 1);
+    return n;
+  });
+  const setCopiesFor = (id: string, v: string) => setSel((m) => {
+    const n = new Map(m);
+    const num = Math.min(999, Number(v.replace(/\D/g, "")) || 0);
+    n.set(id, num);
+    return n;
+  });
+
+  async function makeMultiPdf(mode: "a4" | "label") {
+    const jobs = rows.filter((r) => (sel.get(r.id) ?? 0) > 0).map((r) => ({ item: r, copies: sel.get(r.id)! }));
+    if (!jobs.length) { setMultiErr("ใส่จำนวนดวงอย่างน้อย 1 รายการ"); return; }
+    setMultiErr(""); setMultiBusy(mode);
+    try {
+      const { openLabelsPdf } = await import("./labelPdf");
+      await openLabelsPdf(jobs, mode);
+      await logAudit({ action: "view", entity: "batch-label-print", entityId: `รวม ${jobs.length} รายการ`, newValue: { copies: totalCopies, mode } });
+      toast.success("สร้างไฟล์ PDF แล้ว");
+      setPick(false); setSel(new Map());
+    } catch (e) {
+      setMultiErr("สร้างไฟล์ไม่สำเร็จ — ลองใหม่อีกครั้ง");
+      console.error(e);
+    }
+    setMultiBusy(null);
+  }
 
   const load = useCallback(async () => {
     const [l, c, p] = await Promise.all([
@@ -282,11 +332,34 @@ function BatchLabels({ onBack }: { onBack: () => void }) {
         </button>
       </div>
 
-      <button onClick={() => setModal({ k: "form", item: null })}
-        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white"
-        style={{ background: C.brand }}>
-        <Plus size={16} /> สร้างสติกเกอร์ใหม่
-      </button>
+      {pick ? (
+        <div className="mb-4 flex items-center gap-2 rounded-2xl bg-card px-4 py-3 shadow-sm">
+          <div className="min-w-0 flex-1 text-[12.5px] leading-snug">
+            {sel.size === 0
+              ? <span className="text-muted-foreground">ติ๊กเลือกสติกเกอร์ที่จะปริ้น</span>
+              : <>เลือก <b className="text-foreground">{sel.size} รายการ</b> · รวม <b className="text-foreground">{totalCopies} ดวง</b>
+                  <span className="text-muted-foreground"> · ขนาด {lockSize}</span></>}
+          </div>
+          <button onClick={() => { setPick(false); setSel(new Map()); }}
+            className="shrink-0 rounded-full bg-secondary px-3 py-1.5 text-[12px] font-semibold text-muted-foreground">
+            ยกเลิก
+          </button>
+        </div>
+      ) : (
+        <div className="mb-4 flex gap-2">
+          <button onClick={() => setModal({ k: "form", item: null })}
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white"
+            style={{ background: C.brand }}>
+            <Plus size={16} /> สร้างสติกเกอร์ใหม่
+          </button>
+          {rows.length > 1 && (
+            <button onClick={() => setPick(true)}
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-2xl bg-ink px-4 text-[12.5px] font-bold text-white">
+              <CheckSquare size={15} /> เลือกหลายรายการ
+            </button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-10 text-muted-foreground"><Loader2 size={22} className="animate-spin" /></div>
@@ -295,24 +368,78 @@ function BatchLabels({ onBack }: { onBack: () => void }) {
           {rows.length === 0 ? "ยังไม่มีสติกเกอร์ — กด สร้างสติกเกอร์ใหม่" : "ไม่พบรายการที่ค้นหา"}
         </p>
       ) : (
-        shown.map((r) => (
-          <button key={r.id} onClick={() => setModal({ k: "view", item: r })}
-            className="mb-2.5 flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-sm">
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{r.title}</div>
-              <div className="mt-0.5 truncate text-[11px] text-muted-foreground" style={{ fontFamily: mono }}>
-                BATCH {r.batch_no}{r.code ? ` · ${r.code}` : ""}
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground">
-                <span>ผลิต {thaiDate(r.mfg_date)}</span>
-                <span>หมดอายุ {thaiDate(r.exp_date)}</span>
-                <span>{r.quantity}</span>
-              </div>
-              {r.customer_name && <div className="mt-0.5 truncate text-[10.5px] font-semibold text-primary">{r.customer_name}</div>}
+        shown.map((r) => {
+          const on = sel.has(r.id);
+          // โหมดเลือกหลายรายการ: เลือกได้เฉพาะขนาดเดียวกันเท่านั้น (วางเรียงบนแผ่นเดียวกันได้)
+          const blocked = pick && !on && lockSize !== null && sizeOf(r) !== lockSize;
+          return (
+            <div key={r.id}
+              className="mb-2.5 flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm"
+              style={{
+                opacity: blocked ? 0.4 : 1,
+                border: on ? `1.5px solid ${C.brand}` : "1.5px solid transparent",
+              }}>
+              {pick && (
+                <button onClick={() => !blocked && toggleSel(r)} disabled={blocked} aria-label="เลือก"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2"
+                  style={on ? { background: C.brand, borderColor: C.brand } : { borderColor: "#C9CDD3" }}>
+                  {on && <Check size={14} strokeWidth={3} className="text-white" />}
+                </button>
+              )}
+              <button onClick={() => (pick ? !blocked && toggleSel(r) : setModal({ k: "view", item: r }))}
+                disabled={blocked} className="min-w-0 flex-1 text-left">
+                <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{r.title}</div>
+                <div className="mt-0.5 truncate text-[11px] text-muted-foreground" style={{ fontFamily: mono }}>
+                  BATCH {r.batch_no}{r.code ? ` · ${r.code}` : ""}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground">
+                  <span>ผลิต {thaiDate(r.mfg_date)}</span>
+                  <span>หมดอายุ {thaiDate(r.exp_date)}</span>
+                  <span>{sizeOf(r)}</span>
+                </div>
+                {blocked && <div className="mt-1 text-[10.5px] font-semibold text-destructive">ขนาดไม่ตรงกับที่เลือกไว้</div>}
+                {r.customer_name && !blocked && <div className="mt-0.5 truncate text-[10.5px] font-semibold text-primary">{r.customer_name}</div>}
+              </button>
+
+              {pick ? (
+                on && (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <input
+                      value={String(sel.get(r.id) ?? 1)}
+                      onChange={(e) => setCopiesFor(r.id, e.target.value)}
+                      inputMode="numeric"
+                      aria-label="จำนวนดวง"
+                      className="w-14 rounded-xl py-2 text-center text-[14px] font-bold"
+                      style={inputStyle}
+                    />
+                    <span className="text-[10.5px] text-muted-foreground">ดวง</span>
+                  </div>
+                )
+              ) : (
+                <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+              )}
             </div>
-            <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+          );
+        })
+      )}
+
+      {/* แถบล่าง: สร้าง PDF จากรายการที่เลือก */}
+      {pick && sel.size > 0 && (
+        <div className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 px-5 pb-5 pt-3"
+          style={{ background: "linear-gradient(to top, rgba(241,242,244,1) 55%, rgba(241,242,244,0))" }}>
+          {multiErr && <p className="mb-2 text-center text-xs text-destructive">{multiErr}</p>}
+          <button onClick={() => makeMultiPdf("a4")} disabled={multiBusy !== null}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-[15px] font-bold text-white"
+            style={{ background: C.brand, opacity: multiBusy ? 0.6 : 1 }}>
+            {multiBusy === "a4"
+              ? <><Loader2 size={16} className="animate-spin" /> กำลังสร้างไฟล์…</>
+              : <><Printer size={16} /> PDF รวม {totalCopies} ดวง ({sheets} แผ่น A4)</>}
           </button>
-        ))
+          <button onClick={() => makeMultiPdf("label")} disabled={multiBusy !== null}
+            className="mt-2 w-full rounded-2xl bg-card py-3 text-[12.5px] font-bold text-foreground shadow-sm">
+            {multiBusy === "label" ? "กำลังสร้างไฟล์…" : `PDF เครื่องพิมพ์สติกเกอร์ (${lockSize})`}
+          </button>
+        </div>
       )}
 
       {/* ดูสติกเกอร์ + ปริ้น */}
@@ -484,8 +611,8 @@ function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: ()
   async function makePdf(mode: "a4" | "label") {
     setPdfErr(""); setBusyPdf(mode);
     try {
-      const { openLabelPdf } = await import("./labelPdf");
-      await openLabelPdf(item, Math.max(1, Number(copies) || 1), mode);
+      const { openLabelsPdf } = await import("./labelPdf");
+      await openLabelsPdf([{ item, copies: Math.max(1, Number(copies) || 1) }], mode);
       toast.success("สร้างไฟล์ PDF แล้ว");
     } catch (e) {
       setPdfErr("สร้างไฟล์ไม่สำเร็จ — ลองใหม่อีกครั้ง");

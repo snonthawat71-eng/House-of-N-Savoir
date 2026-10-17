@@ -159,49 +159,85 @@ function drawLabel(
 /* ---------- สร้าง PDF ---------- */
 
 export type PdfMode = "a4" | "label";
+/** 1 งาน = สติกเกอร์ 1 แบบ พร้อมจำนวนดวงที่ต้องการ */
+export type PrintJob = { item: BatchLabel; copies: number };
+
+/** เตรียมรูปบาร์โค้ด (ต่อ batch) และโลโก้ (ใช้ร่วมกัน) ไว้ล่วงหน้า */
+async function prepare(jobs: PrintJob[]) {
+  const dms = new Map<string, string | null>();
+  for (const { item } of jobs) {
+    if (item.show_dm === false) continue;
+    const key = dmPayload(item.code, item.batch_no);
+    if (!dms.has(key)) dms.set(key, await dmDataUrl(key));
+  }
+  const needLogo = jobs.some((j) => j.item.show_logo !== false);
+  const logo = needLogo ? await logoDataUrl() : null;
+  const dmOf = (item: BatchLabel) =>
+    item.show_dm === false ? null : dms.get(dmPayload(item.code, item.batch_no)) ?? null;
+  const logoOf = (item: BatchLabel) => (item.show_logo === false ? null : logo);
+  return { dmOf, logoOf };
+}
 
 /**
- * a4    = เรียงหลายดวงลงกระดาษ A4 ขอบซ้ายขวา/บนล่างชนกัน (ตัดครั้งเดียวได้ 2 ดวง)
+ * a4    = เรียงหลายดวงลงกระดาษ A4 ขอบซ้ายขวา/บนล่างชนกัน (ตัดครั้งเดียวได้ทั้งแถว)
  * label = 1 ดวง 1 หน้า ขนาดเท่าสติกเกอร์เป๊ะ สำหรับเครื่องพิมพ์สติกเกอร์
+ *
+ * รับได้หลาย batch ในครั้งเดียว — ทุกใบต้องขนาดเท่ากัน (หน้าจอบังคับไว้แล้ว)
  */
-export async function buildLabelPdf(item: BatchLabel, copies: number, mode: PdfMode) {
-  const W = Number(item.width_mm) || 80;
-  const H = Number(item.height_mm) || 50;
-  const dm = item.show_dm !== false ? await dmDataUrl(dmPayload(item.code, item.batch_no)) : null;
-  const logo = item.show_logo !== false ? await logoDataUrl() : null;
+export async function buildLabelsPdf(jobs: PrintJob[], mode: PdfMode) {
+  const list = jobs.filter((j) => j.copies > 0);
+  if (!list.length) throw new Error("ไม่มีรายการให้ปริ้น");
+  const first = list[0].item;
+  const W = Number(first.width_mm) || 80;
+  const H = Number(first.height_mm) || 50;
+  const { dmOf, logoOf } = await prepare(list);
+
+  // กางเป็นลำดับสติกเกอร์ทีละดวง
+  const seq: BatchLabel[] = [];
+  list.forEach(({ item, copies }) => { for (let i = 0; i < copies; i++) seq.push(item); });
 
   if (mode === "label") {
-    const doc = new jsPDF({ unit: "mm", format: [W, H], orientation: W >= H ? "landscape" : "portrait" });
-    for (let i = 0; i < copies; i++) {
-      if (i > 0) doc.addPage([W, H], W >= H ? "landscape" : "portrait");
-      drawLabel(doc, item, 0, 0, W, H, dm, logo);
-    }
+    const orient = W >= H ? "landscape" : "portrait";
+    const doc = new jsPDF({ unit: "mm", format: [W, H], orientation: orient });
+    seq.forEach((it, i) => {
+      if (i > 0) doc.addPage([W, H], orient);
+      drawLabel(doc, it, 0, 0, W, H, dmOf(it), logoOf(it));
+    });
     return doc;
   }
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  // ขอบสติกเกอร์ชนกันพอดี ไม่เว้นช่องไฟ -> เส้นขอบซ้อนกัน ตัดทีเดียวได้ 2 ดวง
+  // ขอบสติกเกอร์ชนกันพอดี ไม่เว้นช่องไฟ -> เส้นขอบซ้อนกัน ตัดทีเดียวได้ทั้งแถว
   const cols = Math.max(1, Math.floor((A4_W - MARGIN * 2) / W));
   const rowsPerPage = Math.max(1, Math.floor((A4_H - MARGIN * 2) / H));
   const perPage = cols * rowsPerPage;
-  // จัดบล็อกทั้งหมดให้อยู่กลางหน้ากระดาษ
-  const x0 = (A4_W - cols * W) / 2;
+  const x0 = (A4_W - cols * W) / 2;          // จัดกลางหน้ากระดาษ
 
-  for (let i = 0; i < copies; i++) {
+  seq.forEach((it, i) => {
     const onPage = i % perPage;
     if (i > 0 && onPage === 0) doc.addPage("a4", "portrait");
     const r = Math.floor(onPage / cols);
     const c = onPage % cols;
-    const rowsThisPage = Math.min(rowsPerPage, Math.ceil((copies - (i - onPage)) / cols));
+    const leftOnPage = Math.min(perPage, seq.length - (i - onPage));
+    const rowsThisPage = Math.ceil(leftOnPage / cols);
     const y0 = (A4_H - rowsThisPage * H) / 2;
-    drawLabel(doc, item, x0 + c * W, y0 + r * H, W, H, dm, logo);
-  }
+    drawLabel(doc, it, x0 + c * W, y0 + r * H, W, H, dmOf(it), logoOf(it));
+  });
   return doc;
 }
 
+/** จำนวนสติกเกอร์ที่ลงได้ 1 แผ่น A4 ของขนาดนี้ */
+export function perSheet(w: number, h: number) {
+  return Math.max(1, Math.floor((A4_W - MARGIN * 2) / w)) *
+         Math.max(1, Math.floor((A4_H - MARGIN * 2) / h));
+}
+
 /** เปิดไฟล์ PDF ให้ผู้ใช้ (มือถือจะเด้งหน้าดู/แชร์/สั่งพิมพ์) */
-export async function openLabelPdf(item: BatchLabel, copies: number, mode: PdfMode) {
-  const doc = await buildLabelPdf(item, copies, mode);
-  const name = `batch-${(item.batch_no || "label").replace(/[^\w.-]/g, "")}-${item.width_mm}x${item.height_mm}mm.pdf`;
-  doc.save(name);
+export async function openLabelsPdf(jobs: PrintJob[], mode: PdfMode) {
+  const doc = await buildLabelsPdf(jobs, mode);
+  const f = jobs[0].item;
+  const base = jobs.length === 1
+    ? `batch-${(f.batch_no || "label").replace(/[^\w.-]/g, "")}`
+    : `batch-รวม${jobs.length}รายการ`;
+  doc.save(`${base}-${f.width_mm}x${f.height_mm}mm.pdf`);
 }
