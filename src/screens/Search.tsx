@@ -145,11 +145,13 @@ const SOURCES: Src[] = [
 /** ตัดตัวอักษรที่ทำให้คำสั่งค้นหาของฐานข้อมูลพัง */
 const safe = (q: string) => q.replace(/[,()%*\\"']/g, " ").replace(/\s+/g, " ").trim();
 
-export function GlobalSearch({ mods, go, onActive }: {
+export function GlobalSearch({ mods, go, onActive, variant = "inline" }: {
   mods: string[];
   go: (screen: string) => void;
   /** บอกหน้าแรกว่ากำลังค้นอยู่ไหม จะได้ซ่อนการ์ดหมวดงานชั่วคราว */
   onActive?: (active: boolean) => void;
+  /** inline = ผลลัพธ์ต่อท้ายช่องค้นหา (มือถือ) · bar = ผลลัพธ์ลอยลงมาเป็นกล่อง (จอคอม) */
+  variant?: "inline" | "bar";
 }) {
   const [raw, setRaw] = useState("");
   const [scanned, setScanned] = useState("");      // ข้อความที่แปลงจากคีย์บอร์ดไทยแล้ว
@@ -160,6 +162,19 @@ export function GlobalSearch({ mods, go, onActive }: {
   const burst = useRef(makeBurstDetector());
   const prevLen = useRef(0);
   const box = useRef<HTMLInputElement>(null);
+  const shell = useRef<HTMLDivElement>(null);
+  const bar = variant === "bar";
+  const [hidden, setHidden] = useState(false);   // กล่องผลลัพธ์บนจอคอม: ปิดชั่วคราวเมื่อคลิกที่อื่น
+
+  // จอคอม: คลิกนอกกล่อง หรือกด Esc = ปิดกล่องผลลัพธ์
+  useEffect(() => {
+    if (!bar) return;
+    const away = (e: MouseEvent) => { if (!shell.current?.contains(e.target as Node)) setHidden(true); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setHidden(true); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
+  }, [bar]);
 
   useBackHandler(cam, () => setCam(false));
 
@@ -169,6 +184,7 @@ export function GlobalSearch({ mods, go, onActive }: {
   const onChange = (v: string) => {
     const isBurst = burst.current.feed(v.length, prevLen.current);
     prevLen.current = v.length;
+    setHidden(false);
     setRaw(v);
     // ยิงสแกนมาแต่คีย์บอร์ดเป็นไทย → เตือน + แปลงกลับให้ค้นต่อได้
     if (isBurst && hasThai(v)) {
@@ -220,6 +236,7 @@ export function GlobalSearch({ mods, go, onActive }: {
 
   /** กำลังค้นอยู่ไหม — หน้าแรกจะได้ซ่อนการ์ดหมวดงานชั่วคราว */
   const active = term.trim().length >= 2;
+  const show = !hidden && (active || thaiWarn);
   useEffect(() => { onActive?.(active); }, [active, onActive]);
 
   const groups = useMemo(() => {
@@ -231,14 +248,15 @@ export function GlobalSearch({ mods, go, onActive }: {
   /** กดผลลัพธ์ = บันทึกลง Audit Log แล้วพาไปหน้านั้นเลย */
   const openHit = (h: Hit) => {
     void logAudit({ action: "view", entity: h.table, entityId: h.id, newValue: { from: "ค้นหาทั้งระบบ" } });
+    if (bar) clear();
     go(h.screen);
   };
 
   return (
-    <>
+    <div ref={shell} className={bar ? "relative" : undefined}>
       {/* ช่องค้นหา + ปุ่มสแกน */}
       <div className="flex items-center gap-2">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl bg-card px-4 py-3 shadow-sm">
+        <div className={`flex flex-1 items-center gap-2 rounded-2xl px-4 ${bar ? "bg-secondary py-2.5" : "bg-card py-3 shadow-sm"}`}>
           <SearchIcon size={16} className="shrink-0 text-muted-foreground" />
           <input
             ref={box}
@@ -256,14 +274,18 @@ export function GlobalSearch({ mods, go, onActive }: {
           )}
         </div>
         <button onClick={() => setCam(true)} aria-label="สแกนโค้ดด้วยกล้อง"
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl bg-ink text-white">
+          className={`flex shrink-0 items-center justify-center rounded-2xl bg-ink text-white ${bar ? "h-10 w-10" : "h-[46px] w-[46px]"}`}>
           <ScanLine size={18} />
         </button>
       </div>
 
+      {/* กล่องผลลัพธ์: มือถือ = ต่อท้ายช่องค้นหา · จอคอม = ลอยลงมาทับเนื้อหา */}
+      <div className={bar
+        ? `absolute left-0 right-0 top-[calc(100%+10px)] z-40 max-h-[70vh] overflow-y-auto rounded-2xl bg-card p-3 shadow-xl ${show ? "" : "hidden"}`
+        : ""}>
       {/* เตือนคีย์บอร์ดภาษาไทย */}
       {thaiWarn && (
-        <div className="mt-3 rounded-2xl p-3.5" style={{ background: C.redSoft, border: `1px solid ${C.red}33` }}>
+        <div className={`rounded-2xl p-3.5 ${bar ? "" : "mt-3"}`} style={{ background: C.redSoft, border: `1px solid ${C.red}33` }}>
           <div className="flex items-start gap-2.5">
             <Languages size={17} className="mt-[1px] shrink-0" style={{ color: C.red }} />
             <div className="min-w-0 text-[12.5px] leading-relaxed" style={{ color: C.ink }}>
@@ -277,9 +299,9 @@ export function GlobalSearch({ mods, go, onActive }: {
         </div>
       )}
 
-      {/* ผลลัพธ์ — ขึ้นใต้ช่องค้นหาเลย */}
+      {/* รายการที่เจอ */}
       {active && (
-        <div className="mt-3">
+        <div className={bar ? "mt-2" : "mt-3"}>
           {!isSupabaseConfigured ? (
             <p className="py-6 text-center text-[12.5px] text-muted-foreground">โหมดเดโม — ยังไม่ได้ต่อฐานข้อมูล</p>
           ) : busy && !hits.length ? (
@@ -297,7 +319,8 @@ export function GlobalSearch({ mods, go, onActive }: {
                 </div>
                 {list.map((h) => (
                   <button key={h.key} onClick={() => openHit(h)}
-                    className="mb-2 flex w-full items-center gap-3 rounded-2xl bg-card p-3.5 text-left shadow-sm">
+                    className={`mb-2 flex w-full items-center gap-3 rounded-2xl p-3.5 text-left ${
+                      bar ? "hover:bg-secondary" : "bg-card shadow-sm"}`}>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-bold" style={{ color: C.ink }}>{h.title}</div>
                       {h.sub && <div className="truncate text-[11.5px] text-muted-foreground" style={{ fontFamily: mono }}>{h.sub}</div>}
@@ -311,6 +334,7 @@ export function GlobalSearch({ mods, go, onActive }: {
           )}
         </div>
       )}
+      </div>
 
       {cam && (
         <CameraScan
@@ -325,6 +349,6 @@ export function GlobalSearch({ mods, go, onActive }: {
           }}
         />
       )}
-    </>
+    </div>
   );
 }

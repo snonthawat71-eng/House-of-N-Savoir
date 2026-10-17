@@ -5,7 +5,7 @@ import {
   ArrowLeft, TrendingUp, TrendingDown, Truck, FileText, AlertTriangle,
   RotateCcw, Boxes, MapPin, CalendarClock, Eye, ChevronDown, Check,
   Fingerprint, Plus, SlidersHorizontal, KeyRound, ArrowUpRight, LayoutGrid,
-  LogOut, Loader2, Settings, RefreshCcw
+  LogOut, Loader2, Settings, RefreshCcw, Printer
 } from "lucide-react";
 import { useAuth } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
@@ -24,6 +24,9 @@ import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
 import NotesScreen from "./screens/Notes";
+import { GlobalSearch } from "./screens/Search";
+import { DesktopShell, type SideGroup } from "./components/DesktopShell";
+import { useIsDesktop } from "./lib/useDesktop";
 // หน้า Print ใช้ไลบรารีสร้างบาร์โค้ดที่ไฟล์ใหญ่ → โหลดเฉพาะตอนเข้าหน้านี้ แอปส่วนอื่นจะได้ไม่ช้า
 const PrintScreen = lazy(() => import("./screens/Print"));
 /* สีหน้าล็อกอิน/ยืนยันตัวตน — เก็บไว้ที่ lib/ui แหล่งเดียว ใช้ร่วมกับหน้า OTP */
@@ -167,6 +170,8 @@ export default function App() {
   // ล้าง localStorage เก่าที่เคยใช้ (ย้ายมา sessionStorage แล้ว)
   useEffect(() => { ["b2c_channel", "b2c_shop", "b2c_sub", "ns_screen", "ns_left_at"].forEach((k) => localStorage.removeItem(k)); }, []);
   const [rolePick, setRolePick] = useState(false);
+  // จอกว้าง (คอม) = ใช้หน้าตาแบบเว็บเต็มจอ · จอแคบ = แอปมือถือแบบเดิม
+  const desktop = useIsDesktop();
 
   // รหัสเข้า N SAVOIR CONNECT (ล็อกอีกชั้นสำหรับเจ้าของ)
   const CONNECT_PIN = (import.meta.env.VITE_CONNECT_PIN as string) || "2580";
@@ -187,7 +192,7 @@ export default function App() {
   const authed = demo ? authedDemo : Boolean(auth.session && auth.profile);
   // แถบดำด้านบน (theme-color/พื้นหลัง) เฉพาะหน้า Overview เท่านั้น หน้าอื่นเป็นสีอ่อน
   // หน้าล็อกอิน + หน้าใส่รหัส OTP ใช้พื้นน้ำเงินแบรนด์เต็มจอ (รวมแถบสถานะบนมือถือ)
-  const darkTop = screen === "modules";
+  const darkTop = screen === "modules" && !desktop;
   const onAuthScreen = !authed || (!demo && auth.aal.current !== "aal2");
   useEffect(() => {
     const color = onAuthScreen ? AUTH_BG : darkTop ? "#111214" : "#F1F2F4";
@@ -883,6 +888,7 @@ export default function App() {
           onNotes={() => go("notes")}
           mods={P.mods}
           go={go}
+          desktop={desktop}
         />
       );
       case "home": return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
@@ -908,6 +914,46 @@ export default function App() {
       default: return demo ? <HomeScreen /> : <DashboardReal finance={P.finance} />;
     }
   };
+
+  /* ---------- เปลือกหน้าจอคอม: เมนูซ้าย + แถบบน ---------- */
+  const sideGroups: SideGroup[] = [
+    { label: "นำทาง", items: [
+      { id: "modules", label: "Overview", icon: Home },
+      { id: "home", label: "Dashboard", icon: LayoutGrid },
+      { id: "alerts", label: "แจ้งเตือน", icon: Bell },
+    ] },
+    { label: "หมวดงาน", items: MODULES.filter((m) => P.mods.includes(m.id))
+      .map((m) => ({ id: m.id, label: m.name, icon: m.icon })) },
+    { label: "เครื่องมือ", items: [
+      ...(P.mods.includes("office") ? [{ id: "print", label: "Print", icon: Printer }] : []),
+      ...(role === "owner" || role === "dev"
+        ? [{ id: "connect", label: "N SAVOIR Connect", icon: Lock, onClick: openConnect }] : []),
+      { id: "me", label: "Manage", icon: Settings },
+    ] },
+  ];
+
+  if (desktop) {
+    return (
+      <div style={{ fontFamily: sans, background: C.bg }} className="min-h-screen-safe">
+        <style>{FONTS}</style>
+        <Toaster />
+        <DesktopShell
+          groups={sideGroups}
+          active={screen}
+          title={screen === "modules" ? "Overview" : (titleMap[screen] || "N SAVOIR")}
+          sub={screen === "modules" ? `${demo ? "demo@nsavoir.app" : (auth.session?.user?.email || "")} · ${P.name}` : undefined}
+          onNav={go}
+          onBack={history.length && !isNavScreen ? goBack : undefined}
+          user={{ name: demo ? "ผู้ใช้เดโม" : (auth.profile?.full_name || auth.session?.user?.email || "ผู้ใช้"), role: P.name }}
+          search={<GlobalSearch mods={P.mods} go={go} variant="bar" />}
+        >
+          <NavCtx.Provider value={{ registerBack }}>{Body()}</NavCtx.Provider>
+        </DesktopShell>
+        <RolePicker />
+        <PinModal />
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily: sans, background: C.bg }} className="min-h-screen-safe max-w-md mx-auto relative">

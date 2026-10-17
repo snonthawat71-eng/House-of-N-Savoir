@@ -22,15 +22,18 @@ type Props = {
   /** หมวดที่ผู้ใช้คนนี้มีสิทธิ์ — ใช้จำกัดขอบเขตการค้นหา */
   mods: string[];
   go: (screen: string) => void;
+  /** จอคอม: เมนูกับช่องค้นหาอยู่ในเปลือกนอกแล้ว หน้านี้ไม่ต้องมีหัวดำกับช่องค้นหาซ้ำ */
+  desktop?: boolean;
 };
 
 /** หน้าแรก (Overview) — ยกเครื่องด้วย shadcn/ui */
-export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect, onNotes, mods, go }: Props) {
-  // กำลังค้นอยู่ = ซ่อนการ์ดหมวดงานไว้ก่อน ให้ผลการค้นหาเต็มจอ
+export default function Overview({ brand, displayName, email, roleName, isAdmin, modules, onModule, onDashboard, onConnect, onNotes, mods, go, desktop }: Props) {
+  // กำลังค้นอยู่ = ซ่อนการ์ดหมวดงานไว้ก่อน ให้ผลการค้นหาเต็มจอ (ใช้เฉพาะบนมือถือ)
   const [searching, setSearching] = useState(false);
   return (
-    <div className="pb-16">
-      {/* หัวดำแบบเตี้ย — ข้อความ 3 บรรทัดเรียงข้างโลโก้ */}
+    <div className={desktop ? "" : "pb-16"}>
+      {/* หัวดำแบบเตี้ย — ข้อความ 3 บรรทัดเรียงข้างโลโก้ (มือถือเท่านั้น) */}
+      {!desktop && (
       <div className="bg-ink px-5 pb-16" style={{ paddingTop: "calc(44px + env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-3">
           <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl bg-white font-disp text-2xl font-extrabold text-ink">
@@ -46,13 +49,34 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
           </button>
         </div>
       </div>
+      )}
 
       {/* การ์ดเตือนงานวันนี้ (พับ/กางได้) — ซ้อนหัวดำ */}
-      <div className="-mt-10 px-5">
+      <div className={desktop ? "" : "-mt-10 px-5"}>
         <TodoCard onOpen={onNotes} />
       </div>
 
-      {/* การ์ดเลื่อน */}
+      {/* การ์ดเลื่อน — จอคอมวางเรียงกันไปเลย ไม่ต้องปัด */}
+      {desktop ? (
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          {isAdmin && (
+            <Card onClick={onConnect} className="flex cursor-pointer items-center justify-between px-5 py-6">
+              <div className="min-w-0">
+                <div className="font-disp text-[19px] font-extrabold text-foreground">N Savoir Connect</div>
+                <div className="mt-1 text-[12.5px] text-muted-foreground">ระบบจัดการสำหรับผู้บริหาร</div>
+              </div>
+              <Lock size={30} strokeWidth={1.8} className="ml-4 shrink-0 text-primary" />
+            </Card>
+          )}
+          <Card className="flex items-center justify-between px-5 py-6">
+            <div className="min-w-0">
+              <div className="font-disp text-[19px] font-extrabold text-foreground">กิจกรรมล่าสุด</div>
+              <div className="mt-1 text-[12.5px] text-muted-foreground">เร็ว ๆ นี้</div>
+            </div>
+            <LayoutGrid size={30} strokeWidth={1.8} className="ml-4 shrink-0 text-foreground" />
+          </Card>
+        </div>
+      ) : (
       <Carousel className="mt-3">
         {isAdmin && (
           <Card onClick={onConnect} className="flex cursor-pointer items-center justify-between px-5 py-6">
@@ -75,15 +99,16 @@ export default function Overview({ brand, displayName, email, roleName, isAdmin,
           </div>
         </Card>
       </Carousel>
+      )}
 
-      <div className="mt-6 px-5">
-        {/* ค้นหาทั้งระบบ — พิมพ์/ยิงสแกนได้ตรงนี้เลย ผลลัพธ์ขึ้นข้างล่าง */}
-        <GlobalSearch mods={mods} go={go} onActive={setSearching} />
+      <div className={desktop ? "mt-6" : "mt-6 px-5"}>
+        {/* ค้นหาทั้งระบบ — จอคอมย้ายไปอยู่แถบบนแล้ว */}
+        {!desktop && <GlobalSearch mods={mods} go={go} onActive={setSearching} />}
 
         {/* การ์ดหมวดงาน + Dashboard — ซ่อนไว้ตอนกำลังค้นหา */}
-        {!searching && (
+        {(desktop || !searching) && (
           <>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${desktop ? "grid-cols-4 gap-4" : "mt-4 grid-cols-2"}`}>
               {modules.map((m) => (
                 <Card key={m.id} onClick={() => onModule(m.id)} className="cursor-pointer p-5">
                   <div className="mb-4 text-foreground">
