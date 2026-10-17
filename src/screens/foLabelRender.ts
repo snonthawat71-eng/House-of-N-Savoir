@@ -91,10 +91,12 @@ export function foCSS(w: number, h: number, scope = "") {
   }
 
   /* ---- Code / Name ใช้ฟอนต์ Narin ---- */
+  /* ห้ามใส่ overflow:hidden กับกล่องข้อความ — ตอนแปลงเป็นไฟล์ PDF บางเครื่อง
+     จะตัดตัวอักษรขาดครึ่ง (กล่องสูงเท่าตัวอักษรพอดี) ความยาวคุมด้วยการย่อฟอนต์แทน */
   ${S} .fo-code, ${S} .fo-name{
     width:${U(TEXT_MAXW)};
     font-family:'Narin','Urbanist',sans-serif; font-weight:400;
-    line-height:1; white-space:nowrap; overflow:hidden;
+    line-height:1; white-space:nowrap;
   }
   ${S} .fo-code{ left:${X(CODE_X)}; top:${Y(CODE_TOP)}; font-size:${U(CODE_F)} }
   ${S} .fo-name{ left:${X(NAME_X)}; top:${Y(NAME_TOP)}; font-size:${U(NAME_F)}; letter-spacing:${NAME_LS}em }
@@ -106,7 +108,7 @@ export function foCSS(w: number, h: number, scope = "") {
     font-size:${U(ROW_F)}; line-height:1;
   }
   ${S} .fo-rows > div{
-    height:${U(ROW_PITCH)}; white-space:nowrap; overflow:hidden;
+    height:${U(ROW_PITCH)}; white-space:nowrap;
   }
   ${S} .fo-rows .k{ font-weight:700 }
 
@@ -120,7 +122,7 @@ export function foCSS(w: number, h: number, scope = "") {
   /* ---- สองบรรทัดล่าง: ตัวเล็ก บรรทัดละ 1 แถว ห้ามตัดลงบรรทัดใหม่ ---- */
   ${S} .fo-l1, ${S} .fo-l2{
     left:${X(LEG_X)}; width:${U(LEG_MAXW)};
-    line-height:1; white-space:nowrap; overflow:hidden;
+    line-height:1; white-space:nowrap;
   }
   ${S} .fo-l1{ top:${Y(LEG1_TOP)}; font-size:${U(LEG1_F)} }
   ${S} .fo-l2{ top:${Y(LEG2_TOP)}; font-size:${U(LEG2_F)} }

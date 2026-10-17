@@ -74,12 +74,20 @@ export async function buildFoPdf(jobs: FoJob[], mode: "a4" | "label") {
   const seq: FoLabel[] = [];
   list.forEach(({ item, copies }) => { for (let i = 0; i < copies; i++) seq.push(item); });
 
+  /** เส้นกรอบบาง ๆ บอกขอบสติกเกอร์ เอาไว้เล็งตอนตัด */
+  const cutLine = (doc: jsPDF, x: number, y: number) => {
+    doc.setDrawColor(17, 18, 20);
+    doc.setLineWidth(0.15);
+    doc.rect(x, y, W, H);
+  };
+
   if (mode === "label") {
     const orient = W >= H ? "landscape" : "portrait";
     const doc = new jsPDF({ unit: "mm", format: [W, H], orientation: orient });
     seq.forEach((it, i) => {
       if (i > 0) doc.addPage([W, H], orient);
       doc.addImage(imgs.get(it.id)!, "PNG", 0, 0, W, H);
+      cutLine(doc, 0, 0);
     });
     return doc;
   }
@@ -99,6 +107,7 @@ export async function buildFoPdf(jobs: FoJob[], mode: "a4" | "label") {
     const rowsThisPage = Math.ceil(leftOnPage / cols);
     const y0 = (A4_H - rowsThisPage * H) / 2;
     doc.addImage(imgs.get(it.id)!, "PNG", x0 + c * W, y0 + r * H, W, H);
+    cutLine(doc, x0 + c * W, y0 + r * H);
   });
   return doc;
 }
