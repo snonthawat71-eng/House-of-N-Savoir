@@ -473,8 +473,28 @@ export function LabelCanvas({ item, onScale }: { item: BatchLabel; onScale?: (s:
 
 function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: () => void; onDelete: () => void }) {
   const [copies, setCopies] = useState("1");
+  const [busyPdf, setBusyPdf] = useState<null | "a4" | "label">(null);
+  const [pdfErr, setPdfErr] = useState("");
   // ขนาดตัวหนังสือที่ตัวอย่างวัดได้ — ส่งต่อให้ตอนปริ้นใช้ค่าเดียวกัน
   const scale = useRef<number | undefined>(undefined);
+
+  const W = Number(item.width_mm) || BATCH_W;
+  const H = Number(item.height_mm) || BATCH_H;
+  // ขอบสติกเกอร์ชนกัน ไม่เว้นช่องไฟ · เส้นขอบห่างขอบกระดาษ 5mm
+  const perPage = Math.max(1, Math.floor((210 - 10) / W)) * Math.max(1, Math.floor((297 - 10) / H));
+
+  async function makePdf(mode: "a4" | "label") {
+    setPdfErr(""); setBusyPdf(mode);
+    try {
+      const { openLabelPdf } = await import("./labelPdf");
+      await openLabelPdf(item, Math.max(1, Number(copies) || 1), mode);
+      toast.success("สร้างไฟล์ PDF แล้ว");
+    } catch (e) {
+      setPdfErr("สร้างไฟล์ไม่สำเร็จ — ลองใหม่อีกครั้ง");
+      console.error(e);
+    }
+    setBusyPdf(null);
+  }
 
   return (
     <div className="pb-4">
@@ -496,13 +516,26 @@ function LabelPreview({ item, onEdit, onDelete }: { item: BatchLabel; onEdit: ()
           inputMode="numeric" placeholder="1" className="w-full rounded-2xl px-4 py-3" style={inputStyle} />
       </Field>
 
-      <Button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "label", scale.current)}
+      {pdfErr && <p className="mb-2 text-center text-xs text-destructive">{pdfErr}</p>}
+
+      <Button onClick={() => makePdf("a4")} disabled={busyPdf !== null}
         className="w-full rounded-2xl py-6 text-[15px]">
-        <Printer size={16} /> ปริ้นเครื่องสติกเกอร์ ({Number(item.width_mm) || BATCH_W}×{Number(item.height_mm) || BATCH_H}mm)
+        {busyPdf === "a4"
+          ? <><Loader2 size={16} className="animate-spin" /> กำลังสร้างไฟล์…</>
+          : <><Printer size={16} /> ไฟล์ PDF ลงกระดาษ A4 ({perPage} ดวง/แผ่น)</>}
       </Button>
-      <button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "a4", scale.current)}
+      <button onClick={() => makePdf("label")} disabled={busyPdf !== null}
         className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary py-3.5 text-sm font-bold text-foreground">
-        <Printer size={15} /> ปริ้นลงกระดาษ A4 (เรียงหลายดวง)
+        {busyPdf === "label"
+          ? <><Loader2 size={15} className="animate-spin" /> กำลังสร้างไฟล์…</>
+          : <><Printer size={15} /> ไฟล์ PDF เครื่องพิมพ์สติกเกอร์ ({W}×{H}mm)</>}
+      </button>
+      <p className="mt-2 px-1 text-center text-[11px] leading-relaxed text-muted-foreground">
+        ได้ไฟล์ PDF ขนาดเป๊ะทุกมิลลิเมตร · เปิดไฟล์แล้วสั่งพิมพ์ <b className="text-foreground">มาตราส่วน 100%</b>
+      </p>
+      <button onClick={() => printLabels(item, Math.max(1, Number(copies) || 1), "a4", scale.current)}
+        className="mt-3 w-full rounded-2xl py-2.5 text-[12px] font-semibold text-muted-foreground">
+        หรือสั่งพิมพ์จากหน้าเว็บเลย (ขนาดอาจเพี้ยน)
       </button>
 
       <button onClick={onEdit} className="mt-3 w-full rounded-2xl bg-secondary py-3 text-sm font-semibold text-foreground">

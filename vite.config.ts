@@ -15,7 +15,14 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(now.toISOString()),
   },
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // jsPDF เรียก 3 ตัวนี้เฉพาะตอนแปลง HTML เป็น PDF ซึ่งเราไม่ได้ใช้
+      // ชี้ไปโมดูลเปล่าเพื่อไม่ให้ติดมาในไฟล์แอป (ประหยัดไปราว 350KB)
+      html2canvas: fileURLToPath(new URL("./src/lib/empty-stub.ts", import.meta.url)),
+      dompurify: fileURLToPath(new URL("./src/lib/empty-stub.ts", import.meta.url)),
+      canvg: fileURLToPath(new URL("./src/lib/empty-stub.ts", import.meta.url)),
+    },
   },
   plugins: [
     react(),
@@ -25,7 +32,7 @@ export default defineConfig({
       workbox: {
         // ไฟล์ก้อนใหญ่ที่ใช้เป็นครั้งคราว (หน้า Print, ตัวอ่าน Excel)
         // ไม่ต้องโหลดล่วงหน้าตอนติดตั้งแอป — ค่อยโหลดตอนเปิดใช้จริงแล้วเก็บไว้เอง
-        globIgnores: ["**/Print-*.js", "**/xlsx-*.js"],
+        globIgnores: ["**/Print-*.js", "**/xlsx-*.js", "**/labelPdf-*.js"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       manifest: {
