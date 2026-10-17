@@ -1,8 +1,13 @@
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { X, Pencil, Trash2 } from "lucide-react";
+import { useIsDesktop } from "../../lib/useDesktop";
 
-/** Popup bottom-sheet: เด้งขึ้นตรงจากด้านล่าง + ลากพับลงเพื่อปิดได้ */
+/**
+ * หน้าต่างป๊อปอัพ
+ * มือถือ = แผ่นเลื่อนขึ้นจากด้านล่าง ลากพับลงเพื่อปิดได้
+ * จอคอม  = กล่องลอยกลางจอ ปิดด้วยปุ่มกากบาท คลิกพื้นหลัง หรือกด Esc
+ */
 export function Modal({
   open, onClose, title, children, footer,
 }: {
@@ -12,6 +17,7 @@ export function Modal({
   children?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const desktop = useIsDesktop();
   const [render, setRender] = useState(open);
   const [shown, setShown] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -45,6 +51,7 @@ export function Modal({
   if (!render) return null;
 
   const onDown = (e: React.PointerEvent) => {
+    if (desktop) return;                      // จอคอมไม่ต้องลากปิด
     setDragging(true);
     startY.current = e.clientY;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -60,19 +67,27 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60]">
+    <div className={`fixed inset-0 z-[60] ${desktop ? "flex items-center justify-center p-8" : ""}`}>
       <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity duration-300" style={{ opacity: shown ? 1 : 0 }} />
       <div
-        className="absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-md flex-col rounded-t-3xl bg-card shadow-xl"
-        style={{
+        className={desktop
+          ? "relative flex w-full max-w-[560px] flex-col rounded-3xl bg-card shadow-2xl"
+          : "absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-md flex-col rounded-t-3xl bg-card shadow-xl"}
+        style={desktop ? {
+          maxHeight: "86dvh",
+          opacity: shown ? 1 : 0,
+          transform: shown ? "scale(1)" : "scale(.96)",
+          transition: "opacity .2s ease, transform .2s cubic-bezier(.32,.72,0,1)",
+        } : {
           // dvh = พื้นที่จอที่มองเห็นจริงบนมือถือ (92vh อาจสูงเกินจอจนปุ่มล่างโดนดันตกขอบ)
           maxHeight: "92dvh",
           transform: shown ? `translateY(${dragY}px)` : "translateY(100%)",
           transition: dragging ? "none" : "transform .3s cubic-bezier(.32,.72,0,1)",
         }}
       >
-        <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} className="shrink-0 cursor-grab touch-none px-6 pt-3 active:cursor-grabbing">
-          <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-border" />
+        <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}
+          className={`shrink-0 px-6 ${desktop ? "pt-5" : "cursor-grab touch-none pt-3 active:cursor-grabbing"}`}>
+          {!desktop && <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-border" />}
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="font-disp text-lg font-bold text-foreground">{title}</div>
             {/* กันไม่ให้ตัวลาก (พื้นที่รอบ ๆ) คว้าการแตะไป ไม่งั้นปุ่มปิดจะกดไม่ติด */}
@@ -86,7 +101,8 @@ export function Modal({
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 pb-8" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 pb-8"
+          style={desktop ? undefined : { paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>{children}</div>
         {footer && <div className="shrink-0 border-t border-border px-6 py-4">{footer}</div>}
       </div>
     </div>

@@ -1,7 +1,8 @@
 /**
- * หน้าตาสำหรับจอคอม — แถบดำด้านบนเต็มความกว้าง + เนื้อหาอยู่กลางจอ
- * เมนูใช้แบบเดียวกับแถบล่างบนมือถือ (ปุ่มที่เลือกอยู่เป็นแคปซูลน้ำเงินมีชื่อกำกับ) แต่ใหญ่กว่า
- * เนื้อหาหน้าต่าง ๆ ใช้ของเดิมทั้งหมด แค่มาอยู่ในพื้นที่ที่กว้างขึ้น
+ * หน้าตาสำหรับจอคอม
+ *  - แถบดำด้านบน มีโลโก้อยู่กลาง
+ *  - เมนูลอยอยู่กลางล่างของจอ แบบเดียวกับแอปมือถือ แต่ใหญ่กว่า
+ *  - เนื้อหาหน้าต่าง ๆ ใช้ของเดิมทั้งหมด แค่มาอยู่ในพื้นที่ที่กว้างขึ้น
  */
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -23,28 +24,13 @@ export function DesktopShell({
 }) {
   return (
     <div className="min-h-screen-safe" style={{ background: C.bg }}>
-      {/* ---------- แถบบนสีดำ ---------- */}
-      <header className="sticky top-0 z-30 flex h-[88px] items-center gap-6 px-9" style={{ background: C.ink }}>
-        <img src="/logo-wordmark.svg" alt="HOUSE OF N SAVOIR" className="shrink-0" style={{ height: 21 }} />
-        <div className="flex-1" />
-        {/* เมนูแบบเดียวกับแถบล่างของแอปมือถือ แต่ใหญ่ขึ้น */}
-        <nav className="flex items-center gap-1 rounded-full p-2" style={{ background: "#1E1F22" }}>
-          {items.map((n) => {
-            const on = n.id === active;
-            return (
-              <button key={n.id} onClick={() => onNav(n.id)} aria-label={n.label}
-                className="flex items-center gap-2.5 rounded-full transition-all"
-                style={{ background: on ? C.brand : "transparent", padding: on ? "12px 20px" : "12px 15px" }}>
-                <n.icon size={22} style={{ color: on ? "#fff" : "#9AA0A6" }} />
-                {on && <span style={{ color: "#fff", fontSize: 15, fontWeight: 600 }}>{n.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
+      {/* ---------- แถบบนสีดำ โลโก้อยู่กลาง ---------- */}
+      <header className="sticky top-0 z-30 flex h-[88px] items-center justify-center px-9" style={{ background: C.ink }}>
+        <img src="/logo-wordmark.svg" alt="HOUSE OF N SAVOIR" style={{ height: 21 }} />
       </header>
 
-      {/* ---------- เนื้อหา ---------- */}
-      <div className="mx-auto w-full max-w-[1080px] px-6 py-7">
+      {/* ---------- เนื้อหา (เผื่อที่ด้านล่างให้เมนูลอย) ---------- */}
+      <div className="mx-auto w-full max-w-[1080px] px-6 pb-32 pt-7">
         {title && (
           <div className="mb-5 flex items-center gap-3">
             {onBack && (
@@ -57,6 +43,24 @@ export function DesktopShell({
           </div>
         )}
         {children}
+      </div>
+
+      {/* ---------- เมนูลอยกลางล่าง แบบเดียวกับแอปมือถือ ---------- */}
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-40 flex justify-center pb-6">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full p-2.5"
+          style={{ background: C.ink, boxShadow: "0 12px 34px rgba(0,0,0,.28)" }}>
+          {items.map((n) => {
+            const on = n.id === active;
+            return (
+              <button key={n.id} onClick={() => onNav(n.id)} aria-label={n.label}
+                className="flex items-center gap-2.5 rounded-full transition-all"
+                style={{ background: on ? C.brand : "transparent", padding: on ? "13px 22px" : "13px 17px" }}>
+                <n.icon size={23} style={{ color: on ? "#fff" : "#9AA0A6" }} />
+                {on && <span style={{ color: "#fff", fontSize: 15.5, fontWeight: 600 }}>{n.label}</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
