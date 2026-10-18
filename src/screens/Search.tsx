@@ -133,6 +133,15 @@ const SOURCES: Src[] = [
     screen: () => "b2c",
   },
   {
+    key: "document", table: "documents", group: "เอกสาร",
+    cols: "id,title,category,file_name,note,customer_id", search: ["title", "file_name", "note"],
+    need: ["office", "b2b"],
+    title: (r) => s(r.title),
+    sub: (r) => join(s(r.category), s(r.file_name)),
+    detail: (r) => (r.customer_id ? "เอกสารของลูกค้า" : "เอกสารกลางของบริษัท"),
+    screen: () => "documents",
+  },
+  {
     key: "campaign", table: "campaigns", group: "การตลาด",
     cols: "id,name,channel,status,note", search: ["name", "channel", "status", "note"],
     need: ["b2c", "office"],

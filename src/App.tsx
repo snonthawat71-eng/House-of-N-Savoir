@@ -24,6 +24,7 @@ import AlertsReal from "./screens/Alerts";
 import ImportScreen from "./screens/Import";
 import Overview from "./screens/Overview";
 import NotesScreen from "./screens/Notes";
+import DocumentsScreen from "./screens/Documents";
 import { GlobalSearch } from "./screens/Search";
 import { DesktopShell } from "./components/DesktopShell";
 import { useIsDesktop } from "./lib/useDesktop";
@@ -864,7 +865,7 @@ export default function App() {
   );
 
   /* ---------- router ---------- */
-  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV", notes:"Note · งานทั้งหมด", print:"Print · งานปริ้น" };
+  const titleMap = { office:"Office", b2b:"B2B · ค้าส่ง", b2c:"B2C · ค้าปลีก", supplier:"Supplier", products:"Main Stock", connect:"N SAVOIR CONNECT", portal:"Portal", formula:"Formula Lab", audit:"Audit Log", alerts:"แจ้งเตือน", me:"บัญชีของฉัน", users:"จัดการผู้ใช้", import:"นำเข้า Excel/CSV", notes:"Note · งานทั้งหมด", print:"Print · งานปริ้น", documents:"Document · คลังเอกสาร" };
   const NAV = [
     { id: "modules", label: "Overview", icon: Home },
     { id: "home", label: "Dashboard", icon: LayoutGrid },
@@ -906,6 +907,7 @@ export default function App() {
       case "users": return <UsersAdmin />;
       case "import": return <ImportScreen />;
       case "notes": return <NotesScreen />;
+      case "documents": return <DocumentsScreen />;
       case "print": return (
         <Suspense fallback={<div className="flex justify-center py-16" style={{ color: C.sub }}><Loader2 size={24} className="animate-spin" /></div>}>
           <PrintScreen />

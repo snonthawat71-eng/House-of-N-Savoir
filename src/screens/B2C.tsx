@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Modal, DetailRow, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { ContactLine, CopyBtn } from "@/components/ui/contact-line";
-import { Field } from "./B2B";
+import { Field } from "@/components/ui/field";
 import { toast } from "../lib/toast";
 
 // ประเภทสินค้า (สำหรับ dropdown + filter ในหน้า Product List)

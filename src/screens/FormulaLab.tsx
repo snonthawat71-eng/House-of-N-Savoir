@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle } from "../lib/ui";
-import { Field } from "./B2B";
+import { Field } from "@/components/ui/field";
 import { Modal, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 

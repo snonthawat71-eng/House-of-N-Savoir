@@ -5,7 +5,7 @@ import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, disp, mono, baht, inputStyle, fmtDate, daysUntil } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
-import { Field } from "./B2B";
+import { Field } from "@/components/ui/field";
 import { Modal, DetailRow, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 

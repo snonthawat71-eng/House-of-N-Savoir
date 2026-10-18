@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Loader2, FileText, Printer, Upload, ChevronRight } from "lucide-react";
+import { Plus, Loader2, FileText, Printer, Upload, ChevronRight, FolderOpen } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, SHADOW_SM, disp, mono, baht, inputStyle, fmtDate } from "../lib/ui";
 import { LineItemsEditor, type LineItem, itemsTotal } from "./LineItems";
-import { Field } from "./B2B";
+import { Field } from "@/components/ui/field";
 import { Modal, DetailRow, DetailActions } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
@@ -105,6 +105,17 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
               <div className="font-disp text-2xl font-extrabold text-green-600">+{custNew}</div>
               <div className="text-[11px] text-muted-foreground">ใหม่เดือนนี้</div>
             </div>
+          </div>
+
+          <div onClick={() => go("documents")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0"><FolderOpen size={26} strokeWidth={1.8} className="text-foreground" /></div>
+              <div>
+                <div className="font-disp text-[15px] font-bold text-foreground">Document</div>
+                <div className="text-[11px] text-muted-foreground">คลังเอกสาร · โลโก้ · Presentation · Marketing · Packaging</div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-muted-foreground" />
           </div>
 
           <div onClick={() => go("print")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">

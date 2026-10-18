@@ -7,7 +7,7 @@ import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
 import { C, inputStyle } from "../lib/ui";
 import { toast } from "../lib/toast";
-import { Field } from "./B2B";
+import { Field } from "@/components/ui/field";
 import { Modal, DeleteButton } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 

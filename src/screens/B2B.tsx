@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Loader2, Truck, RotateCcw, Building2, Pencil, Phone, ChevronRight, TrendingUp, FileText } from "lucide-react";
+import { Plus, Loader2, Truck, RotateCcw, Building2, Pencil, Phone, ChevronRight, TrendingUp, FileText, FolderOpen } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logAudit } from "../lib/audit";
 import { useBackHandler } from "../lib/nav";
@@ -11,6 +11,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { ContactLine } from "@/components/ui/contact-line";
+import { Field } from "@/components/ui/field";
+import Documents from "./Documents";
 
 type Customer = {
   id: string;
@@ -52,6 +54,7 @@ export default function B2B() {
   // หน้าลูกค้ารายคน (ดีไซน์เดียวกับหน้าร้านฝากขายใน B2C)
   const [custId, setCustId] = useState<string | null>(() => sessionStorage.getItem("b2b_cust") || null);
   const [orderFilter, setOrderFilter] = useState<"all" | "pending" | "back">("all");
+  const [docOpen, setDocOpen] = useState(false);
   useEffect(() => {
     if (custId) sessionStorage.setItem("b2b_cust", custId);
     else sessionStorage.removeItem("b2b_cust");
@@ -71,8 +74,10 @@ export default function B2B() {
   }, []);
 
   useEffect(() => { load(); logAudit({ action: "view", entity: "screen", entityId: "b2b" }); }, [load]);
-  useBackHandler(modal !== null || custId !== null, () => {
-    if (modal) setModal(null); else setCustId(null);
+  useBackHandler(modal !== null || docOpen || custId !== null, () => {
+    if (modal) setModal(null);
+    else if (docOpen) setDocOpen(false);
+    else setCustId(null);
   });
 
   const close = () => setModal(null);
@@ -224,6 +229,26 @@ export default function B2B() {
     const back = mine.filter((o) => o.status === "returned" || o.status === "claim");
     const shownOrders = orderFilter === "pending" ? pending : orderFilter === "back" ? back : mine;
 
+    // หน้าเอกสารของลูกค้ารายนี้ (คลังเดียวกับหน้า Office แค่กรองเฉพาะของเขา)
+    if (docOpen) {
+      return (
+        <div className="px-5 pb-32">
+          <div className="mb-4 mt-2 flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-secondary">
+              {cust.logo_url
+                ? <img src={cust.logo_url} alt="" className="h-full w-full object-cover" />
+                : <Building2 size={20} className="text-muted-foreground" />}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate font-disp text-xl font-extrabold text-foreground">Document</div>
+              <div className="truncate text-[11px] text-muted-foreground">{cust.brand_name || cust.name}</div>
+            </div>
+          </div>
+          <Documents customer={{ id: cust.id, name: cust.name, brand_name: cust.brand_name }} />
+        </div>
+      );
+    }
+
     return (
       <div className="px-5 pb-32">
         {/* หัวลูกค้า — โลโก้ใหญ่โปร่ง + ข้อมูลด้านข้าง + ปุ่มแก้ไขมุมขวา */}
@@ -303,6 +328,19 @@ export default function B2B() {
           <Plus size={24} />
         </button>
 
+        {/* เอกสารของแบรนด์ */}
+        <button onClick={() => setDocOpen(true)}
+          className="mt-3 flex w-full items-center justify-between rounded-2xl bg-card px-5 py-6 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="shrink-0"><FolderOpen size={28} strokeWidth={1.8} className="text-foreground" /></div>
+            <div className="text-left">
+              <div className="font-disp text-[17px] font-extrabold text-foreground">Document</div>
+              <div className="text-[12.5px] text-muted-foreground">โลโก้ · Presentation · Marketing · Packaging</div>
+            </div>
+          </div>
+          <ChevronRight size={20} className="text-muted-foreground" />
+        </button>
+
         {/* รายการออเดอร์ */}
         <div className="mb-3 mt-6 px-1 font-disp text-base font-bold text-foreground">
           {orderFilter === "pending" ? "ออเดอร์ที่รอดำเนินการ" : orderFilter === "back" ? "รายการคืน / เคลม" : "ออเดอร์ทั้งหมด"} ({shownOrders.length})
@@ -363,7 +401,7 @@ export default function B2B() {
           <div className="mb-3 mt-2 px-1 font-disp text-base font-bold text-foreground">ลูกค้าค้าส่ง ({customers.length})</div>
           <div className="grid grid-cols-2 gap-3">
             {customers.map((c) => (
-              <Card key={c.id} onClick={() => { setOrderFilter("all"); setCustId(c.id); }} className="cursor-pointer overflow-hidden p-0">
+              <Card key={c.id} onClick={() => { setOrderFilter("all"); setDocOpen(false); setCustId(c.id); }} className="cursor-pointer overflow-hidden p-0">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-secondary">
                   {c.logo_url ? (
                     <img src={c.logo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -440,15 +478,6 @@ export default function B2B() {
 
 function Empty({ text }: { text: string }) {
   return <p className="px-1 py-3 text-[13px] text-muted-foreground">{text}</p>;
-}
-
-export function Field({ label, children }: { label: string; children?: any }) {
-  return (
-    <div className="mb-3">
-      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
-      {children}
-    </div>
-  );
 }
 
 function CustomerFields({ initial, onDone, onDelete }: { initial: Customer | null; onDone: () => void; onDelete?: () => void }) {
