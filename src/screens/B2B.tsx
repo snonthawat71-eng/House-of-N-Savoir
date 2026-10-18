@@ -13,8 +13,12 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { ContactLine } from "@/components/ui/contact-line";
 
 type Customer = {
-  id: string; name: string; contact: string | null; phone: string | null;
-  credit_terms: string | null; note: string | null;
+  id: string;
+  /** ชื่อบริษัท (ชื่อจดทะเบียน) — ใช้จับคู่กับออเดอร์/ตัวอย่าง */
+  name: string;
+  /** ชื่อแบรนด์ (ชื่อที่เรียกกันจริง) */
+  brand_name: string | null;
+  phone: string | null;
   logo_url: string | null; address: string | null; tax_id: string | null; email: string | null;
 };
 type Order = { id: string; customer_id: string | null; customer_name: string | null; status: string; items: LineItem[]; total: number; created_at: string };
@@ -56,7 +60,7 @@ export default function B2B() {
   const load = useCallback(async () => {
     setLoading(true);
     const [c, o, s] = await Promise.all([
-      supabase.from("customers").select("id,name,contact,phone,credit_terms,note,logo_url,address,tax_id,email").eq("kind", "b2b").order("name"),
+      supabase.from("customers").select("id,name,brand_name,phone,logo_url,address,tax_id,email").eq("kind", "b2b").order("name"),
       supabase.from("orders").select("id,customer_id,customer_name,status,items,total,created_at").eq("kind", "b2b").order("created_at", { ascending: false }).limit(200),
       supabase.from("samples").select("id,customer_name,item,sent_date,tracking,status").order("created_at", { ascending: false }).limit(30),
     ]);
@@ -230,9 +234,8 @@ export default function B2B() {
               : <Building2 size={44} className="text-muted-foreground" />}
           </div>
           <div className="min-w-0 flex-1 pr-10">
-            <div className="font-disp text-lg font-extrabold text-foreground">{cust.name}</div>
-            {cust.contact && <div className="mt-0.5 text-[11px] text-muted-foreground"><b className="text-foreground">ผู้ติดต่อ</b> {cust.contact}</div>}
-            {cust.credit_terms && <div className="text-[11px] text-muted-foreground"><b className="text-foreground">เครดิต</b> {cust.credit_terms}</div>}
+            <div className="font-disp text-lg font-extrabold text-foreground">{cust.brand_name || cust.name}</div>
+            {cust.brand_name && <div className="mt-0.5 text-[11px] text-muted-foreground"><b className="text-foreground">ชื่อบริษัท</b> {cust.name}</div>}
             {cust.phone && (
               <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <b className="text-foreground">เบอร์โทร</b> {cust.phone}
@@ -251,7 +254,6 @@ export default function B2B() {
           {cust.address && <ContactLine label="ที่อยู่" value={cust.address} copy={cust.address} />}
           {cust.tax_id && <ContactLine label="เลขผู้เสียภาษี" value={cust.tax_id} copy={cust.tax_id} />}
           {cust.email && <ContactLine label="อีเมล" value={cust.email} copy={cust.email} />}
-          {cust.note && <ContactLine label="โน้ต" value={cust.note} />}
         </div>
 
         {/* ยอดสั่งซื้อ */}
@@ -370,8 +372,8 @@ export default function B2B() {
                   )}
                 </div>
                 <div className="px-3 py-3 text-center">
-                  <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{c.name}</div>
-                  <div className="truncate text-[11px] text-muted-foreground">{c.contact || c.phone || "ไม่มีผู้ติดต่อ"}</div>
+                  <div className="truncate font-disp text-[15px] font-extrabold text-foreground">{c.brand_name || c.name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">{c.brand_name ? c.name : "ไม่ได้ระบุแบรนด์"}</div>
                 </div>
               </Card>
             ))}
@@ -451,9 +453,8 @@ export function Field({ label, children }: { label: string; children?: any }) {
 
 function CustomerFields({ initial, onDone, onDelete }: { initial: Customer | null; onDone: () => void; onDelete?: () => void }) {
   const [f, setF] = useState({
-    name: initial?.name || "", contact: initial?.contact || "", phone: initial?.phone || "",
-    credit_terms: initial?.credit_terms || "", note: initial?.note || "",
-    logo_url: initial?.logo_url || "", address: initial?.address || "", tax_id: initial?.tax_id || "", email: initial?.email || "",
+    logo_url: initial?.logo_url || "", brand_name: initial?.brand_name || "", name: initial?.name || "",
+    address: initial?.address || "", tax_id: initial?.tax_id || "", phone: initial?.phone || "", email: initial?.email || "",
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -463,7 +464,7 @@ function CustomerFields({ initial, onDone, onDelete }: { initial: Customer | nul
   );
 
   async function save() {
-    if (!f.name.trim()) { setErr("ต้องมีชื่อลูกค้า"); return; }
+    if (!f.name.trim()) { setErr("ต้องมีชื่อบริษัท"); return; }
     setBusy(true);
     const payload = { ...f, name: f.name.trim(), kind: "b2b" };
     const { error } = initial
@@ -477,17 +478,13 @@ function CustomerFields({ initial, onDone, onDelete }: { initial: Customer | nul
 
   return (
     <div className="pb-4">
-      <Field label="โลโก้ / รูปลูกค้า"><ImageUpload value={f.logo_url} onChange={(url) => set("logo_url", url)} folder="customers" /></Field>
-      <Field label="ชื่อลูกค้า/บริษัท">{inp("name", "เช่น Sathorn Grand Hotel")}</Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="ชื่อผู้ติดต่อ">{inp("contact")}</Field>
-        <Field label="เบอร์โทร">{inp("phone")}</Field>
-      </div>
+      <Field label="รูปภาพ"><ImageUpload value={f.logo_url} onChange={(url) => set("logo_url", url)} folder="customers" /></Field>
+      <Field label="ชื่อแบรนด์">{inp("brand_name", "เช่น Sathorn Grand")}</Field>
+      <Field label="ชื่อบริษัท">{inp("name", "เช่น บริษัท สาทร แกรนด์ จำกัด")}</Field>
       <Field label="ที่อยู่">{inp("address")}</Field>
       <Field label="เลขผู้เสียภาษี">{inp("tax_id")}</Field>
+      <Field label="เบอร์ติดต่อ">{inp("phone")}</Field>
       <Field label="อีเมล">{inp("email")}</Field>
-      <Field label="เครดิต (เช่น 30 วัน)">{inp("credit_terms")}</Field>
-      <Field label="โน้ต">{inp("note")}</Field>
       {err && <p className="mb-2 text-xs text-destructive">{err}</p>}
       <Button onClick={save} disabled={busy} className="w-full rounded-2xl py-6 text-[15px]">{busy ? "กำลังบันทึก…" : "บันทึก"}</Button>
       {onDelete && <DeleteButton onClick={onDelete} label="ลบลูกค้ารายนี้" />}
