@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Plus, Loader2, MapPin, Minus, TrendingUp, Store, Boxes, Globe, RefreshCcw,
-  ChevronRight, Copy, Phone, Check, Store as StoreIcon, Package, Trash2, Pencil,
+  ChevronRight, Phone, Store as StoreIcon, Package, Trash2, Pencil,
   Tag, Lock, ArrowLeft, Send, X, AlertTriangle, Scissors, RotateCcw, ClipboardList, Search,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Modal, DetailRow, DetailActions, DeleteButton } from "@/components/ui/modal";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { ContactLine, CopyBtn } from "@/components/ui/contact-line";
 import { Field } from "./B2B";
 import { toast } from "../lib/toast";
 
@@ -49,17 +50,6 @@ const CHANNELS: { kind: string; label: string; sub: string; icon: LucideIcon }[]
 function CostVal({ v }: { v: number | null }) {
   if (v == null) return <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: C.redSoft, color: C.red }}><Lock size={11} /> ลับ</span>;
   return <>{baht(v)}</>;
-}
-
-function CopyBtn({ text }: { text: string }) {
-  const [ok, setOk] = useState(false);
-  if (!text) return null;
-  return (
-    <button onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(text); setOk(true); setTimeout(() => setOk(false), 1200); }}
-      className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-      {ok ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
-    </button>
-  );
 }
 
 export default function B2C() {
@@ -819,21 +809,6 @@ export default function B2C() {
           <Button onClick={addCampaign} className="mt-3 w-full rounded-2xl py-6 text-[15px]">บันทึก</Button>
         </div>
       </Modal>
-    </div>
-  );
-}
-
-function ContactLine({ label, value, copy, call }: { label: string; value: string; copy?: string; call?: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="text-[11px] font-bold text-foreground">{label}</div>
-        <div className="break-words text-[12px] text-muted-foreground">{value}</div>
-      </div>
-      <div className="flex shrink-0 gap-1.5">
-        {call && <a href={`tel:${call}`} className="flex h-7 w-7 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.1)] text-primary"><Phone size={13} /></a>}
-        {copy && <CopyBtn text={copy} />}
-      </div>
     </div>
   );
 }
