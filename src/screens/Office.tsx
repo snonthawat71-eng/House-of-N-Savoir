@@ -107,12 +107,12 @@ export default function Office({ go, finance }: { go: (s: string) => void; finan
             </div>
           </div>
 
-          <div onClick={() => go("documents")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">
+          <div onClick={() => go("assets")} className="mt-3 flex cursor-pointer items-center justify-between rounded-3xl bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="shrink-0"><FolderOpen size={26} strokeWidth={1.8} className="text-foreground" /></div>
               <div>
-                <div className="font-disp text-[15px] font-bold text-foreground">Document</div>
-                <div className="text-[11px] text-muted-foreground">คลังเอกสาร · โลโก้ · Presentation · Marketing · Packaging</div>
+                <div className="font-disp text-[15px] font-bold text-foreground">Brand Assets</div>
+                <div className="text-[11px] text-muted-foreground">ไฟล์งานแบรนด์ · โลโก้ · Presentation · Marketing · Packaging</div>
               </div>
             </div>
             <ChevronRight size={18} className="text-muted-foreground" />

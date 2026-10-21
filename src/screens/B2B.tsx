@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { ContactLine } from "@/components/ui/contact-line";
 import { Field } from "@/components/ui/field";
-import Documents from "./Documents";
+import BrandAssets from "./BrandAssets";
 
 type Customer = {
   id: string;
@@ -240,11 +240,11 @@ export default function B2B() {
                 : <Building2 size={20} className="text-muted-foreground" />}
             </div>
             <div className="min-w-0">
-              <div className="truncate font-disp text-xl font-extrabold text-foreground">Document</div>
+              <div className="truncate font-disp text-xl font-extrabold text-foreground">Brand Assets</div>
               <div className="truncate text-[11px] text-muted-foreground">{cust.brand_name || cust.name}</div>
             </div>
           </div>
-          <Documents customer={{ id: cust.id, name: cust.name, brand_name: cust.brand_name }} />
+          <BrandAssets customer={{ id: cust.id, name: cust.name, brand_name: cust.brand_name }} />
         </div>
       );
     }
@@ -334,7 +334,7 @@ export default function B2B() {
           <div className="flex items-center gap-3.5">
             <div className="shrink-0"><FolderOpen size={28} strokeWidth={1.8} className="text-foreground" /></div>
             <div className="text-left">
-              <div className="font-disp text-[17px] font-extrabold text-foreground">Document</div>
+              <div className="font-disp text-[17px] font-extrabold text-foreground">Brand Assets</div>
               <div className="text-[12.5px] text-muted-foreground">โลโก้ · Presentation · Marketing · Packaging</div>
             </div>
           </div>
